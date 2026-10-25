@@ -7,7 +7,7 @@ describe('httpClient', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     // Limpa o cookie entre testes para nao vazar estado.
-    document.cookie = 'XSRF-TOKEN=; Max-Age=0; path=/';
+    document.cookie = 'JH_XSRF=; Max-Age=0; path=/';
   });
 
   function stubFetch(response: Response): ReturnType<typeof vi.fn> {
@@ -32,23 +32,23 @@ describe('httpClient', () => {
   });
 
   it('envia o token CSRF em POST quando o cookie existe', async () => {
-    document.cookie = 'XSRF-TOKEN=token-de-teste; path=/';
+    document.cookie = 'JH_XSRF=token-de-teste; path=/';
     const spy = stubFetch(jsonResponse({ ok: true }));
 
     await request('/auth/login', { method: 'POST', body: { email: 'a@b.test' } });
 
     const headers = (spy.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
-    expect(headers['X-XSRF-TOKEN']).toBe('token-de-teste');
+    expect(headers['X-JH-XSRF']).toBe('token-de-teste');
   });
 
   it('nao envia o token CSRF em GET', async () => {
-    document.cookie = 'XSRF-TOKEN=token-de-teste; path=/';
+    document.cookie = 'JH_XSRF=token-de-teste; path=/';
     const spy = stubFetch(jsonResponse({ ok: true }));
 
     await request('/health');
 
     const headers = (spy.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
-    expect(headers['X-XSRF-TOKEN']).toBeUndefined();
+    expect(headers['X-JH-XSRF']).toBeUndefined();
   });
 
   it('converte o erro da API em HttpError com os campos do contrato', async () => {

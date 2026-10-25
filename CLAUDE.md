@@ -122,6 +122,15 @@ Cada uma custou tempo real. Não reintroduzir.
   context-path `/api/v1`, e o JavaScript da página servida em `/` não o vê: o
   login falha com 403 **no navegador**, embora todo teste de API passe. Há
   teste de regressão em `AuthControllerIntegrationTest`.
+- **Cookie não é isolado por porta.** Todos os serviços em `localhost`
+  compartilham o mesmo conjunto de cookies, e esta máquina roda outros projetos
+  em 5173/8080/55433. Nome genérico (`XSRF-TOKEN`, `JSESSIONID`) colide, o
+  navegador envia **dois cookies de mesmo nome**, o servidor lê só o primeiro e
+  recusa com **403 sem mensagem útil**. Por isso os nomes são `JH_XSRF` /
+  `X-JH-XSRF` e `JHSESSION`. Ver D22.
+- **Mudar o path ou o nome de um cookie deixa órfão no navegador.** O antigo
+  continua sendo enviado e pode ser lido no lugar do novo. Ao mexer em cookie,
+  testar com o resíduo presente, não só com pote limpo.
 - **Cookie CSRF só é reemitido quando o token é novo.** Asserção sobre
   `Set-Cookie` numa requisição HTTP fica dependente da ordem dos testes; testar
   o `CsrfTokenRepository` diretamente.
@@ -155,6 +164,15 @@ organização e o administrador na primeira execução (D19).
 
 Um recurso de outra organização responde **404, nunca 403**: informar que existe
 mas pertence a outro tenant já é vazamento.
+
+A associação é **revalidada no banco a cada requisição autenticada**
+(`MembershipRevalidationFilter`, D21). Revogar associação, desabilitar usuário,
+suspender organização ou mudar papel vale na requisição seguinte, sem esperar a
+sessão expirar. Não substitua isso por cache sem reler a decisão D21.
+
+O limitador de login usa **reserva atômica** (`tryAcquire`, D20). Nunca
+reintroduzir um par `isBlocked()`/`recordFailure()`: entre a verificação e a
+contabilização, requisições concorrentes furam o limite.
 
 ## Versões fixadas (Etapa 2, consultadas nos registries em 2026-11-04)
 

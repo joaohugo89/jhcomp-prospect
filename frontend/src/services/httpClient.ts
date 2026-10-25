@@ -11,8 +11,12 @@ import type { ApiError, ProblemDetail } from '../types/apiError';
 // em container e pelo proxy do Vite em desenvolvimento (decisao D1).
 const DEFAULT_BASE_URL = '/api/v1';
 const DEFAULT_TIMEOUT_MS = 15_000;
-const CSRF_COOKIE = 'XSRF-TOKEN';
-const CSRF_HEADER = 'X-XSRF-TOKEN';
+// Nome proprio do projeto, definido em SecurityConfig. Cookie nao e isolado
+// por porta: um nome generico colidiria com outro projeto em localhost e o
+// navegador enviaria dois cookies de mesmo nome, levando o servidor a comparar
+// o cabecalho contra o valor errado e recusar com 403.
+const CSRF_COOKIE = 'JH_XSRF';
+const CSRF_HEADER = 'X-JH-XSRF';
 const UNSAFE_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
 export const apiBaseUrl: string = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL;

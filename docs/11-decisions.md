@@ -28,6 +28,9 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D17 | Escopo de testes E2E reduzido | Proposta | 9 |
 | D18 | `audit_event.ip_address` como `text` | Aprovada | 3 |
 | D19 | Semente de usuario por perfil, nao por migration | Aprovada | 3 |
+| D20 | Limitador de login com reserva atomica e teto de memoria | Aprovada | 3 |
+| D21 | Revalidacao da associacao a cada requisicao | Aprovada | 3 |
+| D22 | Nomes de cookie proprios do projeto | Aprovada | 3 |
 
 ---
 
@@ -277,3 +280,73 @@ valor padrao para a senha seria uma credencial publicamente conhecida.
 
 **Consequencia:** em producao, o primeiro administrador e criado por processo
 operacional explicito, nao pelo deploy.
+
+## D20 — Limitador de login com reserva atomica e memoria limitada · Aprovada
+
+A primeira versao expunha `isBlocked()` e `recordFailure()` separados e nunca
+removia entradas do mapa. Revisao de seguranca apontou dois problemas reais,
+ambos alcancaveis pela rota publica `/auth/login`:
+
+1. **Condicao de corrida (TOCTOU).** Entre a verificacao e a contabilizacao,
+   requisicoes concorrentes passavam todas pelo teste antes de qualquer uma
+   registrar falha. Com paralelismo, um atacante obtinha muito mais que as 5
+   tentativas previstas.
+2. **Memoria sem limite.** A chave inclui o e-mail, escolhido por quem chama.
+   E-mails distintos criavam entradas que so eram removidas em login bem
+   sucedido, permitindo exaustao de memoria.
+
+**Decisao:** a unica operacao de entrada e `tryAcquire(email, ip)`, que verifica
+o limite e contabiliza a tentativa no mesmo `compute` do `ConcurrentHashMap`,
+atomico por chave. A tentativa e cobrada adiantado; `recordSuccess` devolve a
+cota. O mapa tem teto de 20.000 chaves, com remocao das entradas expiradas e,
+se necessario, descarte das mais antigas.
+
+**Tradeoff aceito:** sob ataque intenso, registros antigos podem ser
+descartados antes de expirar. Preferiu-se isso a consumir memoria sem limite
+(indisponibilidade total) ou a recusar logins legitimos ao atingir o teto. Um
+teste garante que inundar o limitador nao apaga um bloqueio ativo.
+
+**Limite conhecido:** o contador e em memoria e vale por instancia. Se o
+backend passar a rodar replicado, precisa migrar para armazenamento
+compartilhado.
+
+## D21 — Revalidacao da associacao a cada requisicao · Aprovada
+
+Revisao de seguranca apontou autorizacao obsoleta: `organizationId` e `role`
+ficavam congelados na sessao por 8 horas. Revogar associacao, desabilitar
+usuario, suspender organizacao ou rebaixar um administrador nao surtia efeito
+algum ate a sessao expirar, o que contraria o critério de aceite do RF-003.
+
+**Decisao:** `MembershipRevalidationFilter` recarrega a associacao ativa em cada
+requisicao autenticada, antes da avaliacao de autorizacao. Associacao invalida
+encerra a sessao; papel alterado substitui o principal e e regravado na sessao.
+
+**Custo:** uma consulta indexada por requisicao autenticada, irrelevante no
+volume do MVP. A alternativa, revalidar a cada N minutos, deixaria uma janela
+em que o privilegio revogado continua funcionando. Se o volume crescer, o lugar
+de introduzir intervalo ou cache e esse filtro.
+
+## D22 — Nomes de cookie proprios do projeto · Aprovada
+
+O login falhava no navegador com 403, enquanto todos os testes de API e as
+verificacoes com `curl` passavam.
+
+**Diagnostico:** cookie nao e isolado por porta. Todos os servicos em
+`localhost` compartilham o mesmo conjunto de cookies. O navegador tinha um
+`XSRF-TOKEN` residual, emitido antes da correcao de path da D18, e passou a
+enviar dois cookies de mesmo nome. O servidor le apenas o primeiro, comparou o
+cabecalho contra o valor errado e recusou a requisicao. A auditoria nao
+registrava nada porque a recusa de CSRF ocorre no filtro, antes do controller.
+
+**Decisao:** cookie `JH_XSRF` e cabecalho `X-JH-XSRF`, no lugar dos padroes
+`XSRF-TOKEN` e `X-XSRF-TOKEN`; sessao em `JHSESSION`. O residuo antigo passa a
+ser irrelevante, sem exigir limpeza manual no navegador de ninguem.
+
+**Motivo de fundo:** esta maquina roda outros projetos em `localhost`
+(5173, 8080, 55433). Nome generico de cookie colide entre eles, e o sintoma —
+403 sem mensagem util — e caro de diagnosticar.
+
+**Licao de processo:** mudanca de nome ou de path de cookie deixa orfao no
+navegador, que continua sendo enviado. Testar com o residuo presente, e nao
+apenas com pote de cookies limpo. Teste de API com `curl` nao reproduz as
+regras de path e de duplicidade que o navegador aplica.

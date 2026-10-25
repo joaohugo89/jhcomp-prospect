@@ -34,12 +34,15 @@ public class IdentityTestData {
     private final UserRepository userRepository;
     private final OrganizationMemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public IdentityTestData(
             OrganizationRepository organizationRepository,
             UserRepository userRepository,
             OrganizationMemberRepository memberRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            jakarta.persistence.EntityManager entityManager) {
+        this.entityManager = entityManager;
         this.organizationRepository = organizationRepository;
         this.userRepository = userRepository;
         this.memberRepository = memberRepository;
@@ -87,6 +90,45 @@ public class IdentityTestData {
                 OrganizationRole.ADMIN,
                 UserStatus.ACTIVE,
                 MemberStatus.ACTIVE);
+    }
+
+    /**
+     * Altera diretamente o estado persistido, sem passar pela aplicacao.
+     *
+     * <p>Usa SQL para simular uma mudanca administrativa feita fora da sessao
+     * em curso, que e exatamente o cenario que a revalidacao precisa detectar.
+     */
+    @Transactional
+    public void revokeMembership(UUID memberId) {
+        entityManager
+                .createNativeQuery("update organization_member set status = 'REVOKED' where id = :id")
+                .setParameter("id", memberId)
+                .executeUpdate();
+    }
+
+    @Transactional
+    public void changeRole(UUID memberId, OrganizationRole role) {
+        entityManager
+                .createNativeQuery("update organization_member set role = :role where id = :id")
+                .setParameter("role", role.name())
+                .setParameter("id", memberId)
+                .executeUpdate();
+    }
+
+    @Transactional
+    public void disableUser(UUID userId) {
+        entityManager
+                .createNativeQuery("update app_user set status = 'DISABLED' where id = :id")
+                .setParameter("id", userId)
+                .executeUpdate();
+    }
+
+    @Transactional
+    public void suspendOrganization(UUID organizationId) {
+        entityManager
+                .createNativeQuery("update organization set status = 'SUSPENDED' where id = :id")
+                .setParameter("id", organizationId)
+                .executeUpdate();
     }
 
     @Transactional

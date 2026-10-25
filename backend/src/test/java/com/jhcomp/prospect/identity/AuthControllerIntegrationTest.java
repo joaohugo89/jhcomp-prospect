@@ -25,6 +25,7 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.audit.AuditAction;
 import com.jhcomp.prospect.shared.audit.AuditEventRepository;
 import com.jhcomp.prospect.shared.audit.AuditOutcome;
+import com.jhcomp.prospect.shared.security.SecurityConfig;
 
 /**
  * Autenticacao por sessao (RF-001, RF-002, decisao D1).
@@ -238,9 +239,13 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
         var token = csrfTokenRepository.generateToken(request);
         csrfTokenRepository.saveToken(token, request, response);
 
-        var cookie = response.getCookie("XSRF-TOKEN");
+        var cookie = response.getCookie(SecurityConfig.CSRF_COOKIE_NAME);
 
-        assertThat(cookie).describedAs("cookie XSRF-TOKEN").isNotNull();
+        assertThat(cookie).describedAs("cookie %s", SecurityConfig.CSRF_COOKIE_NAME).isNotNull();
+        // Nome proprio do projeto: cookie nao e isolado por porta, e um nome
+        // generico colidiria com outro servico em localhost, fazendo o
+        // navegador enviar dois cookies de mesmo nome.
+        assertThat(cookie.getName()).doesNotStartWith("XSRF");
         // Sem path "/", o cookie herdaria o context-path /api/v1 e o
         // JavaScript da pagina, servida em /, nao o veria: o login falharia
         // com 403 no navegador, embora passasse em teste de API.
