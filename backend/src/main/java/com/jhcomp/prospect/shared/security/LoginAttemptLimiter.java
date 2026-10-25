@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -56,7 +58,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoginAttemptLimiter {
 
-    /** Tentativas por e-mail e IP dentro da janela. */
+    private static final Logger log = LoggerFactory.getLogger(LoginAttemptLimiter.class);
+
+    /** Tentativas por e-mail e rede dentro da janela. */
     static final int MAX_FAILURES = 5;
 
     /**
@@ -71,8 +75,25 @@ public class LoginAttemptLimiter {
 
     static final Duration WINDOW = Duration.ofMinutes(15);
 
-    static final int MAX_TRACKED_KEYS = 20_000;
-    static final int MAX_TRACKED_NETWORKS = 5_000;
+    /**
+     * Teto de redes rastreadas.
+     *
+     * <p>Mil blocos {@code /48} distintos nao sao obtidos por rotacao de
+     * endereco: exigem redes de operadores diferentes.
+     */
+    static final int MAX_TRACKED_NETWORKS = 1_000;
+
+    /**
+     * Teto de chaves de credencial rastreadas.
+     *
+     * <p>Dimensionado como {@link #MAX_TRACKED_NETWORKS} x
+     * {@link #MAX_ATTEMPTS_PER_NETWORK}: cada rede so consegue criar tantas
+     * chaves quantas tentativas lhe sao permitidas, portanto este mapa nao
+     * satura antes do mapa de redes. E esse dimensionamento que faz a recusa
+     * por saturacao ser um estado de ataque severo, e nao algo alcancavel por
+     * uma origem unica.
+     */
+    static final int MAX_TRACKED_KEYS = MAX_TRACKED_NETWORKS * MAX_ATTEMPTS_PER_NETWORK;
 
     /**
      * Intervalo minimo entre limpezas de entradas expiradas.
@@ -172,6 +193,7 @@ public class LoginAttemptLimiter {
         private final Map<String, Attempts> entries = new ConcurrentHashMap<>();
         private final AtomicBoolean cleaning = new AtomicBoolean(false);
         private volatile Instant lastSweepAt;
+        private volatile Instant lastSaturationLogAt;
         private final int maxAttempts;
         private final int maxKeys;
         private final int sweepThreshold;
@@ -191,20 +213,23 @@ public class LoginAttemptLimiter {
             // limite e a contabilizacao acontecem sob a mesma trava.
             entries.compute(key, (unusedKey, current) -> {
                 if (current == null && entries.size() >= maxKeys) {
-                    // No teto e sem espaco descartavel, a tentativa passa sem
-                    // ser rastreada.
+                    // No teto e sem espaco descartavel, a tentativa e recusada.
                     //
-                    // Recusar aqui seria pior: um atacante encheria o mapa de
-                    // entradas bloqueadas e, a partir dai, nenhum usuario
-                    // legitimo conseguiria entrar — bloqueio global de login a
-                    // custo baixo. Tambem nao se abre espaco removendo
-                    // bloqueios ativos, que seria bypass do proprio limite.
+                    // Permitir tentativa nao rastreada aqui seria bypass: a
+                    // partir da saturacao, o limite por credencial deixaria de
+                    // valer para contas ainda nao vistas.
                     //
-                    // O que continua valendo nesse estado: bloqueios ja
-                    // registrados permanecem (a credencial sob ataque tem
-                    // entrada e continua barrada), e o limite por rede, avaliado
-                    // antes deste, ainda limita o volume total.
-                    acquired[0] = true;
+                    // Recusar tem custo de disponibilidade, e por isso a
+                    // saturacao foi encarecida em vez de tolerada: os tetos sao
+                    // dimensionados para que chegar aqui exija
+                    // MAX_TRACKED_NETWORKS blocos /48 distintos, de operadores
+                    // diferentes. Uma origem unica, mesmo com um /48 inteiro a
+                    // disposicao, e barrada muito antes pelo limite por rede.
+                    //
+                    // Nesse estado, um limitador em memoria ja nao e a defesa
+                    // adequada: o caminho e filtragem na borda. Ver D20.
+                    reportSaturation(now);
+                    acquired[0] = false;
                     return null;
                 }
 
@@ -229,6 +254,27 @@ public class LoginAttemptLimiter {
 
         void release(String key) {
             entries.remove(key);
+        }
+
+        /**
+         * Registra a saturacao, no maximo uma vez por janela.
+         *
+         * <p>Saturacao significa ataque distribuido em curso e precisa ser
+         * visivel na operacao: sem registro, o sintoma observado seria apenas
+         * "ninguem consegue entrar", sem causa aparente.
+         */
+        private void reportSaturation(Instant now) {
+            Instant last = lastSaturationLogAt;
+            if (last != null && last.isAfter(now.minus(WINDOW))) {
+                return;
+            }
+            lastSaturationLogAt = now;
+            log.error(
+                    "Limitador de login saturado: {} chaves rastreadas, teto {}. "
+                            + "Tentativas de credenciais ainda nao vistas serao recusadas. "
+                            + "Indica ataque distribuido; avaliar filtragem na borda.",
+                    entries.size(),
+                    maxKeys);
         }
 
         int size() {

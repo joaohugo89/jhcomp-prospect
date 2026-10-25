@@ -17,15 +17,24 @@ import java.util.regex.Pattern;
  * seria contornado trivialmente e, pior, cada endereco novo criaria uma entrada
  * no rastreamento.
  *
- * <p>Por isso o IPv6 e agrupado pelo prefixo {@code /64}, que e a menor unidade
- * normalmente alocada a um assinante. O IPv4 permanece exato: blocos IPv4 sao
- * escassos e agrupar por {@code /24} atingiria usuarios legitimos sem relacao
- * com o atacante.
+ * <p>Por isso o IPv6 e agrupado pelo prefixo {@code /48}, a alocacao tipica de
+ * um site. O IPv4 permanece exato: blocos IPv4 sao escassos e agrupar por
+ * {@code /24} atingiria usuarios legitimos sem relacao com o atacante.
  */
 public final class ClientNetwork {
 
-    /** Numero de bytes do prefixo IPv6 agrupado: 64 bits. */
-    private static final int IPV6_PREFIX_BYTES = 8;
+    /**
+     * Bytes do prefixo IPv6 agrupado: 48 bits.
+     *
+     * <p>Agrupar em {@code /64} nao basta. Um {@code /48} e a alocacao tipica
+     * de um site, e quem tem um {@code /48} dispoe de 65.536 blocos
+     * {@code /64}: com agrupamento em {@code /64}, encher o rastreamento sairia
+     * barato, e e justamente o custo de encher o rastreamento que sustenta o
+     * resto do desenho deste limitador.
+     *
+     * <p>Agrupar mais que isso atingiria redes sem relacao entre si.
+     */
+    private static final int IPV6_PREFIX_BYTES = 6;
 
     private static final Pattern IPV4_LITERAL = Pattern.compile("^\\d{1,3}(\\.\\d{1,3}){3}$");
 
@@ -80,6 +89,6 @@ public final class ClientNetwork {
         byte[] prefix = new byte[IPV6_PREFIX_BYTES];
         System.arraycopy(bytes, 0, prefix, 0, IPV6_PREFIX_BYTES);
 
-        return HexFormat.of().formatHex(prefix) + "::/64";
+        return HexFormat.of().formatHex(prefix) + "::/48";
     }
 }

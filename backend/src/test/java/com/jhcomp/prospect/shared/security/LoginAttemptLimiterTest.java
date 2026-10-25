@@ -307,30 +307,31 @@ class LoginAttemptLimiterTest {
     }
 
     @Test
-    @DisplayName("trocar de endereco dentro do mesmo /64 nao renova a cota")
+    @DisplayName("trocar de endereco dentro do mesmo /48 nao renova a cota")
     void ipv6RotationWithinPrefixDoesNotBypass() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
         int allowed = 0;
-        // Um atacante com um /64 tem 2^64 enderecos. Se o limite fosse por
-        // endereco exato, cada tentativa vinda de um endereco novo passaria.
+        // Quem tem um /48 dispoe de 65.536 blocos /64. Se o limite fosse por
+        // endereco, ou mesmo por /64, bastaria variar o quarto grupo para
+        // renovar a cota a cada tentativa.
         for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK * 3; i++) {
-            String address = "2001:db8:abcd:1234::" + Integer.toHexString(i + 1);
+            String address = "2001:db8:abcd:" + Integer.toHexString(i + 1) + "::1";
             if (limiter.tryAcquire("alvo-" + i + "@exemplo.test", address)) {
                 allowed++;
             }
         }
 
         assertThat(allowed)
-                .describedAs("tentativas permitidas de um unico /64")
+                .describedAs("tentativas permitidas de um unico /48")
                 .isEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK);
         assertThat(limiter.trackedNetworks())
-                .describedAs("redes rastreadas para um unico /64")
+                .describedAs("redes rastreadas para um unico /48")
                 .isEqualTo(1);
     }
 
     @Test
-    @DisplayName("/64 diferentes sao contados separadamente")
+    @DisplayName("/48 diferentes sao contados separadamente")
     void differentPrefixesAreIndependent() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
@@ -339,34 +340,65 @@ class LoginAttemptLimiterTest {
         }
 
         assertThat(limiter.tryAcquire("b@exemplo.test", "2001:db8:1111:1111::9"))
-                .describedAs("mesmo /64, cota esgotada")
+                .describedAs("mesmo /48, cota esgotada")
                 .isFalse();
         assertThat(limiter.tryAcquire("b@exemplo.test", "2001:db8:2222:2222::9"))
-                .describedAs("/64 distinto")
+                .describedAs("/48 distinto")
                 .isTrue();
     }
 
     /**
-     * Encher o rastreamento nao pode trancar o login de todos.
+     * Encher o rastreamento tem de ser caro.
      *
-     * <p>A versao anterior recusava chaves novas ao atingir o teto. Um atacante
-     * enchia o mapa de entradas bloqueadas e, a partir dai, nenhum operador
-     * legitimo conseguia entrar: bloqueio global de login a custo baixo.
+     * <p>Este limitador recusa tentativas de credenciais ainda nao vistas
+     * quando o mapa satura, porque permiti-las seria bypass do limite por
+     * credencial. Recusar tem custo de disponibilidade, e o que torna esse
+     * custo aceitavel e a saturacao ser inalcancavel para uma origem unica: os
+     * tetos sao dimensionados de modo que cada rede so cria tantas chaves
+     * quantas tentativas lhe sao permitidas.
+     *
+     * <p>Antes do agrupamento por {@code /48}, uma unica origem com um bloco
+     * IPv6 saturava o mapa de graca, e a recusa virava bloqueio global de
+     * login a custo baixo.
      */
     @Test
-    @DisplayName("mapa no teto nao tranca o login de uma origem legitima")
-    void saturatedMapDoesNotLockOutLegitimateUser() {
+    @DisplayName("uma origem unica nao satura o rastreamento, por mais que tente")
+    void singleOriginCannotSaturateTracking() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        // Um /48 inteiro a disposicao, variando endereco a cada tentativa.
+        for (int i = 0; i < LoginAttemptLimiter.MAX_TRACKED_KEYS * 2; i++) {
+            limiter.tryAcquire(
+                    "alvo-" + i + "@exemplo.test", "2001:db8:9999:" + Integer.toHexString(i % 65_536) + "::1");
+        }
+
+        assertThat(limiter.trackedNetworks())
+                .describedAs("redes rastreadas a partir de um unico /48")
+                .isEqualTo(1);
+        assertThat(limiter.trackedKeys())
+                .describedAs("chaves criadas por uma origem unica")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK);
+
+        // E o operador legitimo, em outra rede, continua entrando.
+        assertThat(limiter.tryAcquire("operador@jhcomp.local", "192.0.2.77"))
+                .describedAs("login legitimo de outra rede")
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("saturar o rastreamento exige muitas redes distintas")
+    void saturationRequiresManyDistinctNetworks() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
         flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 2_000);
-        assertThat(limiter.trackedKeys())
-                .describedAs("mapa no teto")
-                .isGreaterThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS * 3 / 4);
 
-        // Operador em rede nova, sem tentativas previas.
-        assertThat(limiter.tryAcquire("operador@jhcomp.local", "192.0.2.77"))
-                .describedAs("login legitimo durante saturacao")
-                .isTrue();
+        // A inundacao so chega perto do teto usando o teto de redes inteiro.
+        assertThat(limiter.trackedNetworks())
+                .describedAs("redes necessarias para pressionar o teto de chaves")
+                .isGreaterThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_NETWORKS / 2);
+        assertThat(limiter.trackedKeys())
+                .describedAs("teto de chaves respeitado")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
     }
 
     @Test
