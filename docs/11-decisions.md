@@ -327,6 +327,19 @@ esgotar o teto de IPs antes do teto de chaves, outra por usar relogio
 congelado, que torna "mais antiga" indefinido. A versao atual foi validada
 removendo a protecao e confirmando que o teste falha.
 
+**Agrupamento por rede.** O limite de volume e por rede de origem, nao por
+endereco exato: em IPv6 um atacante costuma dispor de um bloco `/64` inteiro e
+trocaria de endereco a cada tentativa, contornando o limite e enchendo o
+rastreamento. IPv4 permanece exato, porque agrupar por `/24` atingiria
+usuarios legitimos sem relacao com o atacante.
+
+**Sem recusa por saturacao.** Ao atingir o teto, tentativas de chaves novas
+passam sem ser rastreadas, em vez de serem recusadas. Recusar transformaria o
+teto em bloqueio global de login: bastaria encher o mapa de entradas
+bloqueadas para impedir qualquer operador de entrar. No estado saturado,
+bloqueios ja registrados continuam valendo e o limite por rede ainda limita o
+volume total.
+
 **Limite conhecido:** o contador e em memoria e vale por instancia. Se o
 backend passar a rodar replicado, precisa migrar para armazenamento
 compartilhado.

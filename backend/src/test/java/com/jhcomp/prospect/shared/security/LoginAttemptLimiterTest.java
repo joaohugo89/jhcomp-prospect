@@ -186,10 +186,10 @@ class LoginAttemptLimiterTest {
      * <p>Usa poucos IPs com muitos e-mails cada, e nao um IP por chave: com um
      * IP por chave, o teto de IPs barraria a inundacao antes de o mapa de
      * chaves alcancar o seu proprio teto, e o descarte nunca seria exercitado.
-     * Cada IP respeita {@code MAX_ATTEMPTS_PER_IP}.
+     * Cada IP respeita {@code MAX_ATTEMPTS_PER_NETWORK}.
      */
     private static void flood(LoginAttemptLimiter limiter, int keys) {
-        int perIp = LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP;
+        int perIp = LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK;
         int ips = keys / perIp + 1;
 
         for (int ipIndex = 0; ipIndex < ips; ipIndex++) {
@@ -206,7 +206,7 @@ class LoginAttemptLimiterTest {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
         int allowed = 0;
-        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP * 4; i++) {
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK * 4; i++) {
             if (limiter.tryAcquire("varredura-" + i + "@exemplo.test", IP)) {
                 allowed++;
             }
@@ -217,10 +217,10 @@ class LoginAttemptLimiterTest {
         // atingido.
         assertThat(allowed)
                 .describedAs("tentativas permitidas de um unico IP")
-                .isEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP);
+                .isEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK);
         assertThat(limiter.trackedKeys())
                 .describedAs("chaves criadas por um unico IP")
-                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP);
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK);
     }
 
     /**
@@ -237,9 +237,9 @@ class LoginAttemptLimiterTest {
         assertThat(limiter.trackedKeys())
                 .describedAs("chaves rastreadas")
                 .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
-        assertThat(limiter.trackedIps())
+        assertThat(limiter.trackedNetworks())
                 .describedAs("IPs rastreados")
-                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_IPS);
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_NETWORKS);
     }
 
     @Test
@@ -303,6 +303,84 @@ class LoginAttemptLimiterTest {
                 .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
         assertThat(limiter.tryAcquire(EMAIL, IP))
                 .describedAs("bloqueio preservado apos o descarte")
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("trocar de endereco dentro do mesmo /64 nao renova a cota")
+    void ipv6RotationWithinPrefixDoesNotBypass() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        int allowed = 0;
+        // Um atacante com um /64 tem 2^64 enderecos. Se o limite fosse por
+        // endereco exato, cada tentativa vinda de um endereco novo passaria.
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK * 3; i++) {
+            String address = "2001:db8:abcd:1234::" + Integer.toHexString(i + 1);
+            if (limiter.tryAcquire("alvo-" + i + "@exemplo.test", address)) {
+                allowed++;
+            }
+        }
+
+        assertThat(allowed)
+                .describedAs("tentativas permitidas de um unico /64")
+                .isEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK);
+        assertThat(limiter.trackedNetworks())
+                .describedAs("redes rastreadas para um unico /64")
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("/64 diferentes sao contados separadamente")
+    void differentPrefixesAreIndependent() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK; i++) {
+            limiter.tryAcquire("a-" + i + "@exemplo.test", "2001:db8:1111:1111::5");
+        }
+
+        assertThat(limiter.tryAcquire("b@exemplo.test", "2001:db8:1111:1111::9"))
+                .describedAs("mesmo /64, cota esgotada")
+                .isFalse();
+        assertThat(limiter.tryAcquire("b@exemplo.test", "2001:db8:2222:2222::9"))
+                .describedAs("/64 distinto")
+                .isTrue();
+    }
+
+    /**
+     * Encher o rastreamento nao pode trancar o login de todos.
+     *
+     * <p>A versao anterior recusava chaves novas ao atingir o teto. Um atacante
+     * enchia o mapa de entradas bloqueadas e, a partir dai, nenhum operador
+     * legitimo conseguia entrar: bloqueio global de login a custo baixo.
+     */
+    @Test
+    @DisplayName("mapa no teto nao tranca o login de uma origem legitima")
+    void saturatedMapDoesNotLockOutLegitimateUser() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 2_000);
+        assertThat(limiter.trackedKeys())
+                .describedAs("mapa no teto")
+                .isGreaterThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS * 3 / 4);
+
+        // Operador em rede nova, sem tentativas previas.
+        assertThat(limiter.tryAcquire("operador@jhcomp.local", "192.0.2.77"))
+                .describedAs("login legitimo durante saturacao")
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("IPv4 mapeado em IPv6 conta como o mesmo IPv4")
+    void mappedIpv4CountsAsIpv4() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        for (int attempt = 0; attempt < LoginAttemptLimiter.MAX_FAILURES; attempt++) {
+            limiter.tryAcquire(EMAIL, "203.0.113.55");
+        }
+
+        // ::ffff:203.0.113.55 e o mesmo host; nao deve renovar a cota.
+        assertThat(limiter.tryAcquire(EMAIL, "::ffff:203.0.113.55"))
+                .describedAs("forma mapeada do mesmo endereco")
                 .isFalse();
     }
 }

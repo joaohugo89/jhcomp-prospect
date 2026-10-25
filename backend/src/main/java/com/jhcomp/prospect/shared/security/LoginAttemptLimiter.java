@@ -60,18 +60,19 @@ public class LoginAttemptLimiter {
     static final int MAX_FAILURES = 5;
 
     /**
-     * Tentativas por IP dentro da janela, qualquer que seja o e-mail.
+     * Tentativas por rede de origem dentro da janela, qualquer que seja o
+     * e-mail.
      *
      * <p>Dez vezes o limite por credencial: sobra folga para o operador errar a
      * senha algumas vezes, e ainda assim uma origem nao consegue varrer
      * e-mails nem encher o rastreamento.
      */
-    static final int MAX_ATTEMPTS_PER_IP = 50;
+    static final int MAX_ATTEMPTS_PER_NETWORK = 50;
 
     static final Duration WINDOW = Duration.ofMinutes(15);
 
     static final int MAX_TRACKED_KEYS = 20_000;
-    static final int MAX_TRACKED_IPS = 5_000;
+    static final int MAX_TRACKED_NETWORKS = 5_000;
 
     /**
      * Intervalo minimo entre limpezas de entradas expiradas.
@@ -83,8 +84,8 @@ public class LoginAttemptLimiter {
      */
     static final Duration SWEEP_INTERVAL = Duration.ofSeconds(10);
 
-    private final Bucket byEmailAndIp = new Bucket(MAX_FAILURES, MAX_TRACKED_KEYS);
-    private final Bucket byIp = new Bucket(MAX_ATTEMPTS_PER_IP, MAX_TRACKED_IPS);
+    private final Bucket byEmailAndNetwork = new Bucket(MAX_FAILURES, MAX_TRACKED_KEYS);
+    private final Bucket byNetwork = new Bucket(MAX_ATTEMPTS_PER_NETWORK, MAX_TRACKED_NETWORKS);
 
     private final Clock clock;
 
@@ -108,14 +109,15 @@ public class LoginAttemptLimiter {
     public boolean tryAcquire(String email, String clientIp) {
         Instant now = clock.instant();
         Instant cutoff = now.minus(WINDOW);
+        String network = ClientNetwork.of(clientIp);
 
-        // O limite por IP e avaliado primeiro: e ele que impede uma origem de
-        // criar chaves sem limite variando o e-mail.
-        if (!byIp.tryAcquire(clientIp, now, cutoff)) {
+        // O limite por rede e avaliado primeiro: e ele que impede uma origem de
+        // criar chaves sem limite variando o e-mail ou o endereco.
+        if (!byNetwork.tryAcquire(network, now, cutoff)) {
             return false;
         }
 
-        return byEmailAndIp.tryAcquire(key(email, clientIp), now, cutoff);
+        return byEmailAndNetwork.tryAcquire(key(email, network), now, cutoff);
     }
 
     /**
@@ -126,21 +128,21 @@ public class LoginAttemptLimiter {
      * justamente o padrao que se quer continuar limitando.
      */
     public void recordSuccess(String email, String clientIp) {
-        byEmailAndIp.release(key(email, clientIp));
+        byEmailAndNetwork.release(key(email, ClientNetwork.of(clientIp)));
     }
 
     /** Somente para teste. */
     int trackedKeys() {
-        return byEmailAndIp.size();
+        return byEmailAndNetwork.size();
     }
 
     /** Somente para teste. */
-    int trackedIps() {
-        return byIp.size();
+    int trackedNetworks() {
+        return byNetwork.size();
     }
 
-    private String key(String email, String clientIp) {
-        return email + '|' + clientIp;
+    private String key(String email, String network) {
+        return email + '|' + network;
     }
 
     /**
@@ -189,10 +191,20 @@ public class LoginAttemptLimiter {
             // limite e a contabilizacao acontecem sob a mesma trava.
             entries.compute(key, (unusedKey, current) -> {
                 if (current == null && entries.size() >= maxKeys) {
-                    // No teto e sem espaco descartavel. Recusar a tentativa e
-                    // preferivel a abrir espaco removendo bloqueios ativos, que
-                    // seria um bypass do proprio limite.
-                    acquired[0] = false;
+                    // No teto e sem espaco descartavel, a tentativa passa sem
+                    // ser rastreada.
+                    //
+                    // Recusar aqui seria pior: um atacante encheria o mapa de
+                    // entradas bloqueadas e, a partir dai, nenhum usuario
+                    // legitimo conseguiria entrar — bloqueio global de login a
+                    // custo baixo. Tambem nao se abre espaco removendo
+                    // bloqueios ativos, que seria bypass do proprio limite.
+                    //
+                    // O que continua valendo nesse estado: bloqueios ja
+                    // registrados permanecem (a credencial sob ataque tem
+                    // entrada e continua barrada), e o limite por rede, avaliado
+                    // antes deste, ainda limita o volume total.
+                    acquired[0] = true;
                     return null;
                 }
 
