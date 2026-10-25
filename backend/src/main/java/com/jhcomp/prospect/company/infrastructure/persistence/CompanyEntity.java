@@ -1,0 +1,224 @@
+package com.jhcomp.prospect.company.infrastructure.persistence;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+/**
+ * Empresa: cadastro mestre (RF-010, doc 06 §1).
+ *
+ * <p>Uma empresa pode existir sem oportunidade ativa. Company e Lead nao sao
+ * sinonimos.
+ *
+ * <p>As colunas normalizadas sao derivadas pelo {@link ContactNormalizer}
+ * dentro desta classe, e nao pelo chamador: deixar a derivacao do lado de fora
+ * permitiria gravar um registro com normalizacao divergente, e a deduplicacao e
+ * o bloqueio de contato dependem dela (decisao D10).
+ *
+ * <p>Nunca exposta diretamente na API (doc 03 §5).
+ */
+@Entity
+@Table(name = "company")
+public class CompanyEntity {
+
+    @Id
+    private UUID id;
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private UUID organizationId;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(name = "normalized_name", nullable = false)
+    private String normalizedName;
+
+    @Column(name = "trade_name")
+    private String tradeName;
+
+    private String segment;
+
+    @Column(nullable = false)
+    private String city;
+
+    @Column(nullable = false, length = 2)
+    private String state;
+
+    @Column(name = "website_url")
+    private String websiteUrl;
+
+    @Column(name = "normalized_domain")
+    private String normalizedDomain;
+
+    @Column(name = "instagram_url")
+    private String instagramUrl;
+
+    private String phone;
+
+    @Column(name = "normalized_phone")
+    private String normalizedPhone;
+
+    @Column(name = "business_email")
+    private String businessEmail;
+
+    private String address;
+
+    private String notes;
+
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    protected CompanyEntity() {
+        // Exigido pelo JPA.
+    }
+
+    public CompanyEntity(UUID id, UUID organizationId, CompanyData data, Instant now) {
+        this.id = id;
+        this.organizationId = organizationId;
+        this.updatedAt = now;
+        apply(data);
+    }
+
+    /** Dados editaveis de uma empresa. */
+    public record CompanyData(
+            String name,
+            String tradeName,
+            String segment,
+            String city,
+            String state,
+            String websiteUrl,
+            String instagramUrl,
+            String phone,
+            String businessEmail,
+            String address,
+            String notes) {}
+
+    public void update(CompanyData data, Instant now) {
+        apply(data);
+        this.updatedAt = now;
+    }
+
+    private void apply(CompanyData data) {
+        this.name = data.name().strip();
+        this.tradeName = blankToNull(data.tradeName());
+        this.segment = blankToNull(data.segment());
+        this.city = data.city().strip();
+        this.state = data.state().strip().toUpperCase(java.util.Locale.ROOT);
+        this.websiteUrl = blankToNull(data.websiteUrl());
+        this.instagramUrl = blankToNull(data.instagramUrl());
+        this.phone = blankToNull(data.phone());
+        this.businessEmail = ContactNormalizer.email(data.businessEmail()).orElse(null);
+        this.address = blankToNull(data.address());
+        this.notes = blankToNull(data.notes());
+
+        // Derivados. Nulos quando o valor informado nao permite normalizacao
+        // confiavel; um palpite aproximaria registros distintos.
+        this.normalizedName = ContactNormalizer.name(this.name).orElseThrow(
+                () -> new IllegalArgumentException("Company name cannot be normalized"));
+        this.normalizedDomain = ContactNormalizer.domain(this.websiteUrl).orElse(null);
+        this.normalizedPhone = ContactNormalizer.phone(this.phone).orElse(null);
+    }
+
+    public void archive(Instant now) {
+        if (this.archivedAt == null) {
+            this.archivedAt = now;
+            this.updatedAt = now;
+        }
+    }
+
+    public boolean isArchived() {
+        return archivedAt != null;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.strip();
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getOrganizationId() {
+        return organizationId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getNormalizedName() {
+        return normalizedName;
+    }
+
+    public String getTradeName() {
+        return tradeName;
+    }
+
+    public String getSegment() {
+        return segment;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public String getWebsiteUrl() {
+        return websiteUrl;
+    }
+
+    public String getNormalizedDomain() {
+        return normalizedDomain;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getNormalizedPhone() {
+        return normalizedPhone;
+    }
+
+    public String getBusinessEmail() {
+        return businessEmail;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public Instant getArchivedAt() {
+        return archivedAt;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+}

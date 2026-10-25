@@ -333,12 +333,34 @@ trocaria de endereco a cada tentativa, contornando o limite e enchendo o
 rastreamento. IPv4 permanece exato, porque agrupar por `/24` atingiria
 usuarios legitimos sem relacao com o atacante.
 
-**Sem recusa por saturacao.** Ao atingir o teto, tentativas de chaves novas
-passam sem ser rastreadas, em vez de serem recusadas. Recusar transformaria o
-teto em bloqueio global de login: bastaria encher o mapa de entradas
-bloqueadas para impedir qualquer operador de entrar. No estado saturado,
-bloqueios ja registrados continuam valendo e o limite por rede ainda limita o
-volume total.
+**Saturacao encarecida, nao tolerada.** Ao atingir o teto, tentativas de
+credenciais ainda nao vistas sao recusadas. Permiti-las seria bypass: o limite
+por credencial deixaria de valer a partir da saturacao. Recusar tem custo de
+disponibilidade, e o que torna esse custo aceitavel e a saturacao ser
+inalcancavel para uma origem unica:
+
+- o agrupamento e por `/48`, nao por `/64` nem por endereco, portanto uma
+  origem nao multiplica entradas trocando de endereco;
+- cada rede so cria tantas chaves quantas tentativas lhe sao permitidas (50),
+  de modo que `MAX_TRACKED_KEYS` e dimensionado como
+  `MAX_TRACKED_NETWORKS x MAX_ATTEMPTS_PER_NETWORK`;
+- chegar a recusa exige, portanto, mil blocos `/48` distintos, de operadores
+  diferentes.
+
+A saturacao e registrada em log de erro, uma vez por janela: sem isso, o
+sintoma observado seria apenas "ninguem consegue entrar", sem causa aparente.
+
+**Limite deste desenho.** Sob ataque realmente distribuido, limitador em
+memoria nao e a defesa adequada; o caminho e filtragem na borda. Esta decisao
+escolhe deliberadamente proteger a senha em vez da disponibilidade nesse
+cenario extremo, e registra a escolha em vez de esconde-la.
+
+**Historico desta decisao.** Quatro revisoes de seguranca apontaram problemas
+em sequencia nesta classe: condicao de corrida, memoria sem limite, descarte de
+bloqueio ativo, contorno por rotacao de IPv6 e, por fim, a oscilacao entre
+recusar e permitir na saturacao. A oscilacao se resolveu ao perceber que a
+escolha entre falhar fechado e falhar aberto so era dolorosa porque saturar era
+barato; encarecer a saturacao dissolve o dilema.
 
 **Limite conhecido:** o contador e em memoria e vale por instancia. Se o
 backend passar a rodar replicado, precisa migrar para armazenamento

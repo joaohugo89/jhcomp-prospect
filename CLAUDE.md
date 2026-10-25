@@ -116,6 +116,9 @@ Cada uma custou tempo real. Não reintroduzir.
 - **MockMvc não aplica o `context-path`**, então `instance` sai como
   `/auth/login`, sem `/api/v1`. No servidor real o prefixo aparece. Não
   "corrigir" o código por causa disso.
+- **`char(n)` no SQL vira `bpchar` e quebra a validação de schema** do
+  Hibernate, que espera `varchar(n)` para um campo `String`. Usar `varchar`
+  sempre. O `ddl-auto: validate` pega isso no primeiro teste de contexto.
 - **`inet` não aceita parâmetro do driver JDBC** (chega como `varchar` e não há
   conversão implícita). Ver D18.
 - **O cookie CSRF precisa de `setCookiePath("/")`.** Sem isso herda o
