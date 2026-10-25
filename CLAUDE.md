@@ -172,7 +172,16 @@ sessão expirar. Não substitua isso por cache sem reler a decisão D21.
 
 O limitador de login usa **reserva atômica** (`tryAcquire`, D20). Nunca
 reintroduzir um par `isBlocked()`/`recordFailure()`: entre a verificação e a
-contabilização, requisições concorrentes furam o limite.
+contabilização, requisições concorrentes furam o limite. O descarte por teto
+**nunca remove entrada bloqueada** — sem isso, inundar o limitador apaga o
+próprio bloqueio e devolve tentativas ilimitadas ao atacante. Há também um
+limite por IP, porque o e-mail é escolhido por quem chama.
+
+**Teste de limite precisa ser validado ao contrário:** remova a proteção e
+confirme que o teste falha. Três versões do teste do limitador passavam sem a
+proteção — uma não alcançava o teto, outra esgotava o teto de IPs primeiro,
+outra usava relógio congelado, que deixa todas as entradas com o mesmo instante
+e torna "mais antiga" sem significado.
 
 ## Versões fixadas (Etapa 2, consultadas nos registries em 2026-11-04)
 

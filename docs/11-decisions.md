@@ -301,10 +301,31 @@ atomico por chave. A tentativa e cobrada adiantado; `recordSuccess` devolve a
 cota. O mapa tem teto de 20.000 chaves, com remocao das entradas expiradas e,
 se necessario, descarte das mais antigas.
 
-**Tradeoff aceito:** sob ataque intenso, registros antigos podem ser
-descartados antes de expirar. Preferiu-se isso a consumir memoria sem limite
-(indisponibilidade total) ou a recusar logins legitimos ao atingir o teto. Um
-teste garante que inundar o limitador nao apaga um bloqueio ativo.
+**Dois limites, nao um.** Limite por e-mail e IP (5 por janela) e limite por IP
+(50 por janela). O limite por credencial sozinho nao basta: o e-mail compoe a
+chave e e escolhido por quem chama, de modo que uma origem unica tentaria
+e-mails sempre diferentes sem nunca ser barrada, e ainda encheria o
+rastreamento. O limite por IP fecha essa saida.
+
+**Teto de memoria sem abrir bypass.** Ao atingir o teto, removem-se as entradas
+expiradas e, depois, as mais antigas **que nao estejam bloqueadas**. Nao ha
+descarte de entrada bloqueada: seria bypass direto — bastaria inundar o
+limitador para apagar o proprio bloqueio e recomecar, obtendo tentativas
+ilimitadas. Sem candidato descartavel, novas chaves sao recusadas.
+
+**Varredura espacada.** Acima do limiar, a limpeza de expirados ocorre no
+maximo a cada 10 segundos. Varrer o mapa a cada tentativa custaria O(n) por
+requisicao justamente sob ataque. O descarte por teto nao respeita o intervalo,
+porque o limite de memoria precisa valer de imediato.
+
+**Correcao de uma afirmacao anterior.** A primeira versao desta decisao dizia
+que um teste garantia que inundar o limitador nao apagava bloqueio ativo. Nao
+garantia: o teste inundava 10.100 chaves, enquanto o descarte so dispara em
+20.000, portanto exercitava apenas a limpeza de expirados. Duas tentativas
+seguintes de corrigir o teste tambem nao exercitavam o descarte — uma por
+esgotar o teto de IPs antes do teto de chaves, outra por usar relogio
+congelado, que torna "mais antiga" indefinido. A versao atual foi validada
+removendo a protecao e confirmando que o teste falha.
 
 **Limite conhecido:** o contador e em memoria e vale por instancia. Se o
 backend passar a rodar replicado, precisa migrar para armazenamento

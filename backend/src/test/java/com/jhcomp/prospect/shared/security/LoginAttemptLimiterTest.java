@@ -181,23 +181,65 @@ class LoginAttemptLimiterTest {
     }
 
     /**
-     * O e-mail compoe a chave e e escolhido por quem chama, a partir de uma
-     * rota publica. Sem teto, e-mails distintos fariam o mapa crescer
-     * indefinidamente ate exaurir a memoria.
+     * Inunda o mapa de chaves ate passar do teto.
+     *
+     * <p>Usa poucos IPs com muitos e-mails cada, e nao um IP por chave: com um
+     * IP por chave, o teto de IPs barraria a inundacao antes de o mapa de
+     * chaves alcancar o seu proprio teto, e o descarte nunca seria exercitado.
+     * Cada IP respeita {@code MAX_ATTEMPTS_PER_IP}.
+     */
+    private static void flood(LoginAttemptLimiter limiter, int keys) {
+        int perIp = LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP;
+        int ips = keys / perIp + 1;
+
+        for (int ipIndex = 0; ipIndex < ips; ipIndex++) {
+            String ip = "198.51." + (ipIndex / 250) + "." + (ipIndex % 250);
+            for (int emailIndex = 0; emailIndex < perIp; emailIndex++) {
+                limiter.tryAcquire("ruido-" + ipIndex + "-" + emailIndex + "@exemplo.test", ip);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("limite por IP impede varrer e-mails de uma mesma origem")
+    void perIpLimitStopsEmailSweep() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        int allowed = 0;
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP * 4; i++) {
+            if (limiter.tryAcquire("varredura-" + i + "@exemplo.test", IP)) {
+                allowed++;
+            }
+        }
+
+        // Sem limite por IP, cada e-mail novo seria uma chave nova e a origem
+        // tentaria indefinidamente, pois o limite por credencial nunca seria
+        // atingido.
+        assertThat(allowed)
+                .describedAs("tentativas permitidas de um unico IP")
+                .isEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP);
+        assertThat(limiter.trackedKeys())
+                .describedAs("chaves criadas por um unico IP")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_IP);
+    }
+
+    /**
+     * Sem teto, chaves distintas fariam o mapa crescer indefinidamente ate
+     * exaurir a memoria, a partir de uma rota publica.
      */
     @Test
-    @DisplayName("mapa nao cresce indefinidamente com chaves distintas")
+    @DisplayName("mapa nao cresce indefinidamente, mesmo com muitas origens")
     void trackedKeysStayBounded() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
-        int attempts = LoginAttemptLimiter.MAX_TRACKED_KEYS + 5_000;
-        for (int i = 0; i < attempts; i++) {
-            limiter.tryAcquire("atacante-" + i + "@exemplo.test", IP);
-        }
+        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 5_000);
 
         assertThat(limiter.trackedKeys())
-                .describedAs("chaves rastreadas depois de %d e-mails distintos", attempts)
+                .describedAs("chaves rastreadas")
                 .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
+        assertThat(limiter.trackedIps())
+                .describedAs("IPs rastreados")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_IPS);
     }
 
     @Test
@@ -206,41 +248,61 @@ class LoginAttemptLimiterTest {
         var clock = new MutableClock();
         var limiter = new LoginAttemptLimiter(clock);
 
-        // Enche acima do limiar que dispara a limpeza.
-        for (int i = 0; i < LoginAttemptLimiter.SWEEP_THRESHOLD + 100; i++) {
-            limiter.tryAcquire("antigo-" + i + "@exemplo.test", IP);
-        }
+        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS / 2 + 100);
         int beforeExpiry = limiter.trackedKeys();
 
         clock.advance(LoginAttemptLimiter.WINDOW.plusMinutes(1));
 
         // Uma chamada apos a expiracao dispara a limpeza das entradas antigas.
-        limiter.tryAcquire("novo@exemplo.test", IP);
+        limiter.tryAcquire("novo@exemplo.test", "192.0.2.1");
 
         assertThat(limiter.trackedKeys())
                 .describedAs("entradas restantes apos a janela expirar (antes: %d)", beforeExpiry)
                 .isLessThan(beforeExpiry);
     }
 
+    /**
+     * O descarte por antiguidade nunca pode remover um bloqueio ativo.
+     *
+     * <p>Se removesse, o bypass seria direto: o atacante queima as tentativas
+     * contra a vitima, inunda o limitador ate o teto, o seu proprio bloqueio
+     * sai por ser o mais antigo e ele recomeca. Repetindo, obtem tentativas
+     * ilimitadas.
+     *
+     * <p>A inundacao precisa de fato alcancar o teto de chaves, senao o
+     * descarte nunca roda e o teste nao prova nada. Ver o comentario de
+     * {@code flood}: foi exatamente essa a falha das duas versoes anteriores
+     * deste teste.
+     */
     @Test
-    @DisplayName("o bloqueio continua valendo apos uma limpeza")
-    void cleanupDoesNotClearActiveBlocks() {
+    @DisplayName("descarte por antiguidade nao remove bloqueio ativo")
+    void evictionNeverRemovesActiveBlock() {
         var clock = new MutableClock();
         var limiter = new LoginAttemptLimiter(clock);
 
+        // Bloqueia a credencial da vitima.
         for (int attempt = 0; attempt < LoginAttemptLimiter.MAX_FAILURES; attempt++) {
             limiter.tryAcquire(EMAIL, IP);
         }
-        assertThat(limiter.tryAcquire(EMAIL, IP)).isFalse();
-
-        // Pressiona o mapa para disparar a limpeza; um atacante nao deve
-        // conseguir apagar o proprio bloqueio inundando o limitador.
-        for (int i = 0; i < LoginAttemptLimiter.SWEEP_THRESHOLD + 100; i++) {
-            limiter.tryAcquire("ruido-" + i + "@exemplo.test", IP);
-        }
-
         assertThat(limiter.tryAcquire(EMAIL, IP))
-                .describedAs("bloqueio preservado apos limpeza")
+                .describedAs("bloqueio estabelecido")
+                .isFalse();
+
+        // Avanca menos que a janela: a entrada da vitima passa a ser
+        // estritamente a mais antiga, sem expirar. Sem este avanco todas as
+        // entradas teriam o mesmo instante, "mais antiga" nao significaria nada
+        // e a ordem do descarte seria arbitraria — o teste poderia passar por
+        // sorte mesmo com a protecao removida.
+        clock.advance(java.time.Duration.ofMinutes(1));
+
+        // Inunda acima do teto para forcar o descarte por antiguidade.
+        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 2_000);
+
+        assertThat(limiter.trackedKeys())
+                .describedAs("teto respeitado durante a inundacao")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
+        assertThat(limiter.tryAcquire(EMAIL, IP))
+                .describedAs("bloqueio preservado apos o descarte")
                 .isFalse();
     }
 }
