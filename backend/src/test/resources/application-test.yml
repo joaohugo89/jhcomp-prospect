@@ -1,0 +1,15 @@
+# Perfil de teste. A conexao vem do Testcontainers via @ServiceConnection,
+# por isso nenhuma URL de banco e definida aqui.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    clean-disabled: true
+
+logging:
+  level:
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN
+    org.flywaydb: INFO
