@@ -60,4 +60,26 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
               and o.status = com.jhcomp.prospect.identity.domain.OrganizationStatus.ACTIVE
             """)
     java.util.List<OrganizationMemberEntity> findActiveMembershipsByEmail(@Param("email") String email);
+
+    /**
+     * Associacao ativa de um usuario, usada para revalidar a sessao.
+     *
+     * <p>Exige usuario ativo, associacao ativa e organizacao ativa. Se
+     * qualquer um dos tres deixar de valer, a consulta retorna vazio e a
+     * sessao deve ser encerrada.
+     *
+     * <p>Retorna lista, e nao Optional: duas associacoes ativas tornariam a
+     * organizacao ambigua, e o chamador precisa poder recusar esse caso em vez
+     * de receber uma excecao.
+     */
+    @Query("""
+            select m from OrganizationMemberEntity m
+            join fetch m.organization o
+            join fetch m.user u
+            where u.id = :userId
+              and m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE
+              and o.status = com.jhcomp.prospect.identity.domain.OrganizationStatus.ACTIVE
+              and u.status = com.jhcomp.prospect.identity.domain.UserStatus.ACTIVE
+            """)
+    java.util.List<OrganizationMemberEntity> findActiveMembershipsByUserId(@Param("userId") UUID userId);
 }

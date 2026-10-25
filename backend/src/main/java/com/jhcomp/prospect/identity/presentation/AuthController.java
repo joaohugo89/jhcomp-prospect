@@ -68,7 +68,11 @@ public class AuthController {
         String email = MembershipUserDetailsService.normalizeEmail(request.email());
         String clientIp = ClientIpResolver.resolve(httpRequest);
 
-        if (loginAttemptLimiter.isBlocked(email, clientIp)) {
+        // Reserva e contabiliza a tentativa no mesmo passo atomico. Verificar
+        // o limite e so depois registrar a falha permitiria que requisicoes
+        // concorrentes passassem todas pela verificacao antes de qualquer uma
+        // ser contabilizada.
+        if (!loginAttemptLimiter.tryAcquire(email, clientIp)) {
             auditService.record(AuditService.AuditEntry.loginFailure(clientIp, "RATE_LIMITED"));
             throw new TooManyAttemptsException();
         }
@@ -78,7 +82,7 @@ public class AuthController {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, request.password()));
         } catch (AuthenticationException exception) {
-            loginAttemptLimiter.recordFailure(email, clientIp);
+            // A tentativa ja foi contabilizada na reserva; nada a registrar aqui.
             // Motivo generico: distinguir "e-mail inexistente" de "senha
             // errada" na auditoria seria inofensivo, mas manter um unico
             // caminho reduz a chance de a diferenca escapar para a resposta.

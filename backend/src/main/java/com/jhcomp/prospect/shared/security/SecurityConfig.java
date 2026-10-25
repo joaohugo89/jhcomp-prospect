@@ -22,6 +22,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
+import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMemberRepository;
 import com.jhcomp.prospect.shared.web.ApiErrorResponse;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
@@ -65,6 +66,10 @@ public class SecurityConfig {
      * {@code X-XSRF-TOKEN}. A protecao continua valendo porque um site
      * atacante nao consegue ler cookies de outra origem.
      */
+    /** Nome do cookie e do cabecalho do token CSRF. Ver o comentario do bean. */
+    public static final String CSRF_COOKIE_NAME = "JH_XSRF";
+    public static final String CSRF_HEADER_NAME = "X-JH-XSRF";
+
     @Bean
     public CsrfTokenRepository csrfTokenRepository() {
         CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
@@ -74,6 +79,20 @@ public class SecurityConfig {
         // cabecalho e seria recusado com 403 no navegador, ainda que os testes
         // de API passassem.
         repository.setCookiePath("/");
+
+        // Nome proprio do projeto, e nao o padrao XSRF-TOKEN, por dois motivos
+        // concretos:
+        //
+        // 1. Cookie nao e isolado por porta. Todos os servicos em localhost
+        //    compartilham o mesmo conjunto de cookies, portanto um nome
+        //    generico colide com qualquer outro projeto rodando na mesma
+        //    maquina, e o navegador passa a enviar dois cookies de mesmo nome.
+        // 2. O servidor le apenas o primeiro cookie com aquele nome. Havendo
+        //    duplicata — por colisao entre projetos ou por residuo de um path
+        //    anterior — ele compara o cabecalho contra o cookie errado e
+        //    recusa a requisicao com 403, sem mensagem util.
+        repository.setCookieName(CSRF_COOKIE_NAME);
+        repository.setHeaderName(CSRF_HEADER_NAME);
 
         return repository;
     }
@@ -101,6 +120,7 @@ public class SecurityConfig {
             HttpSecurity http,
             SecurityContextRepository securityContextRepository,
             CsrfTokenRepository csrfTokenRepository,
+            OrganizationMemberRepository memberRepository,
             ObjectMapper objectMapper) throws Exception {
 
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
@@ -114,6 +134,12 @@ public class SecurityConfig {
                 // XSRF-TOKEN so apareceria depois de alguem le-lo, e o
                 // frontend nao teria o que enviar no primeiro POST.
                 .addFilterAfter(new CsrfCookieFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
+                // Antes da autorizacao: o papel e a organizacao precisam estar
+                // atualizados quando as regras de acesso forem avaliadas, senao
+                // revogar permissao nao surtiria efeito enquanto a sessao durar.
+                .addFilterBefore(
+                        new MembershipRevalidationFilter(memberRepository, securityContextRepository),
+                        org.springframework.security.web.access.intercept.AuthorizationFilter.class)
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 // A protecao contra fixacao de sessao e feita no proprio
                 // endpoint de login, que troca o id da sessao apos autenticar.
