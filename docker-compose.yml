@@ -1,0 +1,98 @@
+# JH.COMP Prospect — ambiente completo.
+#
+# Uso:
+#   cp .env.example .env            (uma vez; defina LOCAL_ADMIN_PASSWORD)
+#   docker compose up -d --build
+#   docker compose logs -f backend
+#   docker compose down             # para, preservando os dados
+#   docker compose down -v          # apaga o volume do banco
+#
+# Aplicacao em http://localhost:8090
+#
+# O frontend e o unico ponto de entrada: o nginx dele faz proxy de /api/v1 para
+# o backend, mantendo os dois na mesma origem, o que a decisao D1 exige para o
+# cookie de sessao SameSite=Lax.
+#
+# A porta 8081 do backend tambem fica publicada para depuracao direta com curl.
+# Em producao ela nao deve ser exposta: o acesso passa pelo proxy.
+
+name: jhcomp-prospect
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: jhcomp-prospect-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jhcomp_prospect}
+      POSTGRES_USER: ${POSTGRES_USER:-jhcomp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      # RNF-009: timestamps persistidos em UTC.
+      TZ: UTC
+      PGTZ: UTC
+      # Collation determinística para que a normalização de nomes usada na
+      # deduplicação (doc 06 §4) se comporte igual em todos os ambientes.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      # Exposto apenas em loopback: o banco não deve ficar acessível na rede local.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
+    volumes:
+      # PostgreSQL 18+ espera um único mount em /var/lib/postgresql, e coloca os
+      # dados em um subdiretório por versão maior. Montar diretamente em
+      # /var/lib/postgresql/data faz a imagem recusar a inicializar.
+      # Ver docker-library/postgres#1259.
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jhcomp} -d ${POSTGRES_DB:-jhcomp_prospect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    # Limites modestos: o Testcontainers subirá instâncias próprias em paralelo.
+    shm_size: 256mb
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jhcomp-prospect-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        # Espera o banco aceitar conexão, não apenas o container existir.
+        condition: service_healthy
+    environment:
+      # Dentro da rede do Compose o host do banco é o nome do serviço.
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-jhcomp_prospect}
+      POSTGRES_USER: ${POSTGRES_USER:-jhcomp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      BACKEND_PORT: 8081
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      # false porque o acesso local é HTTP; em produção é obrigatoriamente true.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Cria organização e administrador iniciais no primeiro start (D19).
+      # Sem senha definida, nada é criado e a aplicação registra um aviso.
+      LOCAL_ADMIN_EMAIL: ${LOCAL_ADMIN_EMAIL:-admin@jhcomp.local}
+      LOCAL_ADMIN_PASSWORD: ${LOCAL_ADMIN_PASSWORD:-}
+      LOCAL_ORGANIZATION_NAME: ${LOCAL_ORGANIZATION_NAME:-JH.COMP}
+    ports:
+      # Apenas loopback, e apenas para depuração.
+      - "127.0.0.1:${BACKEND_PORT:-8081}:8081"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: jhcomp-prospect-web
+    restart: unless-stopped
+    depends_on:
+      backend:
+        # Sem isso, o nginx subiria antes da API e as primeiras chamadas
+        # falhariam com 502.
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${APP_PORT:-8090}:80"
+
+volumes:
+  postgres_data:
+    name: jhcomp-prospect-postgres-data

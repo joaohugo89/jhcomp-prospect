@@ -1,0 +1,155 @@
+# JH.COMP Prospect — pipeline mínimo (doc 10 §9).
+#
+# Esqueleto da Etapa 1: ainda não existem backend nem frontend, por isso cada
+# job detecta se o seu projeto já foi criado e se autopula enquanto não houver.
+# A Etapa 2 cria backend/pom.xml e frontend/package.json e os jobs passam a
+# executar de verdade, sem necessidade de editar este arquivo.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancela execuções antigas da mesma branch/PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Detecta quais partes do repositório já existem.
+  detect:
+    name: Detectar projetos
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.check.outputs.backend }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if [ -f backend/pom.xml ]; then echo "backend=true" >> "$GITHUB_OUTPUT"; else echo "backend=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -f frontend/package.json ]; then echo "frontend=true" >> "$GITHUB_OUTPUT"; else echo "frontend=false" >> "$GITHUB_OUTPUT"; fi
+
+  # Roda sempre: garante que nenhum segredo seja versionado (RNF-006).
+  hygiene:
+    name: Higiene do repositório
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Nenhum arquivo .env versionado
+        run: |
+          if git ls-files --error-unmatch .env 2>/dev/null; then
+            echo "::error::.env está versionado. Remova-o do controle de versão."
+            exit 1
+          fi
+          # Qualquer .env* exceto .env.example
+          offenders=$(git ls-files | grep -E '(^|/)\.env' | grep -v '\.env\.example$' || true)
+          if [ -n "$offenders" ]; then
+            echo "::error::Arquivos de ambiente versionados:"; echo "$offenders"; exit 1
+          fi
+          echo "Nenhum arquivo de ambiente versionado."
+
+      - name: Nenhum material de chave versionado
+        run: |
+          offenders=$(git ls-files | grep -E '\.(pem|key|p12|jks)$' || true)
+          if [ -n "$offenders" ]; then
+            echo "::error::Material criptográfico versionado:"; echo "$offenders"; exit 1
+          fi
+          echo "Nenhum material de chave versionado."
+
+      - name: .env.example existe
+        run: test -f .env.example || { echo "::error::.env.example ausente."; exit 1; }
+
+  backend:
+    name: Backend (build e testes)
+    needs: detect
+    if: needs.detect.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # Inclui os testes de integração com Testcontainers; o runner do GitHub
+      # já dispõe de Docker (doc 10 §2).
+      - name: Build e testes
+        working-directory: backend
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      - name: Publicar relatórios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: backend/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  frontend:
+    name: Frontend (lint, testes e build)
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configurar Node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint --if-present
+
+      - name: Verificação de tipos
+        working-directory: frontend
+        run: npm run typecheck --if-present
+
+      - name: Testes
+        working-directory: frontend
+        run: npm test --if-present -- --run
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  # Porta de qualidade: falha se qualquer job obrigatório falhar.
+  # Jobs pulados (projeto ainda não criado) não bloqueiam.
+  gate:
+    name: Resultado do CI
+    needs: [hygiene, backend, frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar resultados
+        run: |
+          echo "hygiene=${{ needs.hygiene.result }}"
+          echo "backend=${{ needs.backend.result }}"
+          echo "frontend=${{ needs.frontend.result }}"
+          for r in "${{ needs.hygiene.result }}" "${{ needs.backend.result }}" "${{ needs.frontend.result }}"; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::Job obrigatório não passou: $r"; exit 1 ;;
+            esac
+          done
+          echo "CI aprovado."

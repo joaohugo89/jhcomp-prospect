@@ -1,0 +1,27 @@
+# Normaliza fim de linha. Sem isto, o Windows grava CRLF na copia de trabalho e
+# cada maquina produz diffs de fim de linha em arquivos que ninguem editou.
+# O repositorio sempre armazena LF, coerente com o .editorconfig.
+* text=auto eol=lf
+
+# Arquivos que precisam de CRLF para funcionar no Windows.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios: nunca converter.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.jar binary
+*.zip binary
+*.gz binary
+
+# Lockfiles sao gerados: nao poluem a revisao de codigo no GitHub.
+package-lock.json -diff linguist-generated

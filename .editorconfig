@@ -1,0 +1,33 @@
+# JH.COMP Prospect — convenções de formatação
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.java]
+indent_size = 4
+max_line_length = 120
+
+[*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css,scss,html,yml,yaml}]
+indent_size = 2
+
+[*.{xml,pom}]
+indent_size = 2
+
+[*.sql]
+indent_size = 2
+
+[*.md]
+# Markdown usa dois espaços finais para quebra de linha
+trim_trailing_whitespace = false
+
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab

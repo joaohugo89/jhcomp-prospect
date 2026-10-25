@@ -1,0 +1,79 @@
+# ---- Segredos (RNF-006: segredos nunca no código-fonte) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+
+# ---- Java / Maven ----
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+*.class
+*.jar
+*.war
+hs_err_pid*
+replay_pid*
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+coverage/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# ---- Testes ----
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+/frontend/.playwright/
+
+# ---- IDE ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.sample.json
+.settings/
+.classpath
+.project
+nbproject/
+
+# ---- OS ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ---- Dados locais / importações (doc 10 §10: nunca versionar dados reais) ----
+/data/
+*.dump
+*.sql.gz
+/uploads/
+/imports/*.csv
+!/imports/exemplo-*.csv
+
+# ---- Skills instaladas (reproduzidas por skills-lock.json) ----
+# O CLI instala em .agents/skills/ e cria symlinks em .claude/skills/.
+# Versionar as duas arvores duplicaria ~600K de conteudo de terceiros.
+# Para restaurar em um clone: npx skills install
+.agents/
+.claude/skills/
+
+# ---- Artefatos de build do TypeScript ----
+*.tsbuildinfo
