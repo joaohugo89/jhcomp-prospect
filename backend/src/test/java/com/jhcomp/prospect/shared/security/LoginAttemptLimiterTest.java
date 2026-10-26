@@ -180,22 +180,29 @@ class LoginAttemptLimiterTest {
                 .isEqualTo(LoginAttemptLimiter.MAX_FAILURES);
     }
 
-    /**
-     * Inunda o mapa de chaves ate passar do teto.
-     *
-     * <p>Usa poucos IPs com muitos e-mails cada, e nao um IP por chave: com um
-     * IP por chave, o teto de IPs barraria a inundacao antes de o mapa de
-     * chaves alcancar o seu proprio teto, e o descarte nunca seria exercitado.
-     * Cada IP respeita {@code MAX_ATTEMPTS_PER_NETWORK}.
-     */
-    private static void flood(LoginAttemptLimiter limiter, int keys) {
-        int perIp = LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK;
-        int ips = keys / perIp + 1;
+    /** Endereco do assinante {@code subscriber} dentro do site {@code site}. */
+    private static String ipv6(int site, int subscriber) {
+        return "2001:db8:" + Integer.toHexString(site) + ":" + Integer.toHexString(subscriber) + "::1";
+    }
 
-        for (int ipIndex = 0; ipIndex < ips; ipIndex++) {
-            String ip = "198.51." + (ipIndex / 250) + "." + (ipIndex % 250);
-            for (int emailIndex = 0; emailIndex < perIp; emailIndex++) {
-                limiter.tryAcquire("ruido-" + ipIndex + "-" + emailIndex + "@exemplo.test", ip);
+    /**
+     * Inunda o limitador com chaves de credencial, usando a cota inteira de
+     * cada site: dois assinantes por {@code /48}, cada um com a sua cota.
+     *
+     * <p>Usa poucas redes com muitos e-mails cada, e nao uma rede por chave:
+     * com uma rede por chave, o teto de sites barraria a inundacao muito antes.
+     */
+    private static void floodKeys(LoginAttemptLimiter limiter, int keys) {
+        int perSubscriber = LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK;
+        int subscribersPerSite = LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE / perSubscriber;
+        int sites = keys / LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE + 1;
+
+        for (int site = 0; site < sites; site++) {
+            for (int subscriber = 0; subscriber < subscribersPerSite; subscriber++) {
+                String address = ipv6(site + 1, subscriber + 1);
+                for (int email = 0; email < perSubscriber; email++) {
+                    limiter.tryAcquire("ruido-" + site + "-" + subscriber + "-" + email + "@exemplo.test", address);
+                }
             }
         }
     }
@@ -212,7 +219,7 @@ class LoginAttemptLimiterTest {
             }
         }
 
-        // Sem limite por IP, cada e-mail novo seria uma chave nova e a origem
+        // Sem limite por rede, cada e-mail novo seria uma chave nova e a origem
         // tentaria indefinidamente, pois o limite por credencial nunca seria
         // atingido.
         assertThat(allowed)
@@ -224,22 +231,25 @@ class LoginAttemptLimiterTest {
     }
 
     /**
-     * Sem teto, chaves distintas fariam o mapa crescer indefinidamente ate
+     * Sem teto, chaves distintas fariam os mapas crescerem indefinidamente ate
      * exaurir a memoria, a partir de uma rota publica.
      */
     @Test
-    @DisplayName("mapa nao cresce indefinidamente, mesmo com muitas origens")
-    void trackedKeysStayBounded() {
+    @DisplayName("mapas nao crescem indefinidamente, mesmo com muitas origens")
+    void trackedEntriesStayBounded() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
-        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 5_000);
+        floodKeys(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 5_000);
 
         assertThat(limiter.trackedKeys())
                 .describedAs("chaves rastreadas")
                 .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
-        assertThat(limiter.trackedNetworks())
-                .describedAs("IPs rastreados")
-                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_NETWORKS);
+        assertThat(limiter.trackedSubscribers())
+                .describedAs("assinantes rastreados")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
+        assertThat(limiter.trackedSites())
+                .describedAs("sites rastreados")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_SITES);
     }
 
     @Test
@@ -248,7 +258,7 @@ class LoginAttemptLimiterTest {
         var clock = new MutableClock();
         var limiter = new LoginAttemptLimiter(clock);
 
-        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS / 2 + 100);
+        floodKeys(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS / 2 + 100);
         int beforeExpiry = limiter.trackedKeys();
 
         clock.advance(LoginAttemptLimiter.WINDOW.plusMinutes(1));
@@ -264,15 +274,20 @@ class LoginAttemptLimiterTest {
     /**
      * O descarte por antiguidade nunca pode remover um bloqueio ativo.
      *
-     * <p>Se removesse, o bypass seria direto: o atacante queima as tentativas
-     * contra a vitima, inunda o limitador ate o teto, o seu proprio bloqueio
-     * sai por ser o mais antigo e ele recomeca. Repetindo, obtem tentativas
-     * ilimitadas.
+     * <p>Se removesse, o bypass seria direto: o atacante esgota a cota, inunda
+     * o limitador ate o teto, o seu proprio bloqueio sai por ser o mais antigo
+     * e ele recomeca. Repetindo, obtem tentativas ilimitadas.
      *
-     * <p>A inundacao precisa de fato alcancar o teto de chaves, senao o
-     * descarte nunca roda e o teste nao prova nada. Ver o comentario de
-     * {@code flood}: foi exatamente essa a falha das duas versoes anteriores
-     * deste teste.
+     * <p>O teste bloqueia um site, e nao uma credencial, porque o mapa de sites
+     * e o unico que uma inundacao consegue levar ao teto: os demais sao
+     * dimensionados para nunca saturar antes dele. O descarte e o mesmo
+     * codigo nos tres mapas.
+     *
+     * <p>A inundacao precisa de fato alcancar o teto, senao o descarte nunca
+     * roda e o teste nao prova nada; e o relogio precisa avancar, senao todas
+     * as entradas teriam o mesmo instante e "mais antiga" nao significaria
+     * nada. Foram essas as falhas de versoes anteriores deste teste. Validado
+     * removendo o filtro de bloqueados no descarte e vendo o teste falhar.
      */
     @Test
     @DisplayName("descarte por antiguidade nao remove bloqueio ativo")
@@ -280,69 +295,111 @@ class LoginAttemptLimiterTest {
         var clock = new MutableClock();
         var limiter = new LoginAttemptLimiter(clock);
 
-        // Bloqueia a credencial da vitima.
-        for (int attempt = 0; attempt < LoginAttemptLimiter.MAX_FAILURES; attempt++) {
-            limiter.tryAcquire(EMAIL, IP);
+        // Esgota a cota do site da vitima, variando o assinante.
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE; i++) {
+            limiter.tryAcquire("alvo-" + i + "@exemplo.test", ipv6(0xbad, i + 1));
         }
-        assertThat(limiter.tryAcquire(EMAIL, IP))
-                .describedAs("bloqueio estabelecido")
+        assertThat(limiter.tryAcquire(EMAIL, ipv6(0xbad, 0xffff)))
+                .describedAs("bloqueio do site estabelecido")
                 .isFalse();
 
-        // Avanca menos que a janela: a entrada da vitima passa a ser
-        // estritamente a mais antiga, sem expirar. Sem este avanco todas as
-        // entradas teriam o mesmo instante, "mais antiga" nao significaria nada
-        // e a ordem do descarte seria arbitraria — o teste poderia passar por
-        // sorte mesmo com a protecao removida.
-        clock.advance(java.time.Duration.ofMinutes(1));
+        // A entrada bloqueada passa a ser estritamente a mais antiga, sem
+        // expirar.
+        clock.advance(Duration.ofMinutes(1));
 
-        // Inunda acima do teto para forcar o descarte por antiguidade.
-        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 2_000);
+        // Mais sites que o teto, uma tentativa cada: nenhum fica bloqueado, e
+        // todos sao candidatos ao descarte.
+        for (int i = 0; i < LoginAttemptLimiter.MAX_TRACKED_SITES + 200; i++) {
+            limiter.tryAcquire("ruido-" + i + "@exemplo.test", "198.51." + (i / 250) + "." + (i % 250));
+        }
 
-        assertThat(limiter.trackedKeys())
-                .describedAs("teto respeitado durante a inundacao")
-                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);
-        assertThat(limiter.tryAcquire(EMAIL, IP))
-                .describedAs("bloqueio preservado apos o descarte")
+        assertThat(limiter.trackedSites())
+                .describedAs("teto de sites respeitado durante a inundacao")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_SITES);
+        assertThat(limiter.tryAcquire(EMAIL, ipv6(0xbad, 0xfffe)))
+                .describedAs("bloqueio do site preservado apos o descarte")
                 .isFalse();
     }
 
     @Test
-    @DisplayName("trocar de endereco dentro do mesmo /48 nao renova a cota")
-    void ipv6RotationWithinPrefixDoesNotBypass() {
+    @DisplayName("trocar de endereco dentro do mesmo /64 nao renova a cota")
+    void rotationWithinSubscriberDoesNotBypass() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
         int allowed = 0;
-        // Quem tem um /48 dispoe de 65.536 blocos /64. Se o limite fosse por
-        // endereco, ou mesmo por /64, bastaria variar o quarto grupo para
-        // renovar a cota a cada tentativa.
         for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK * 3; i++) {
-            String address = "2001:db8:abcd:" + Integer.toHexString(i + 1) + "::1";
+            String address = "2001:db8:abcd:1:" + Integer.toHexString(i + 1) + "::1";
             if (limiter.tryAcquire("alvo-" + i + "@exemplo.test", address)) {
                 allowed++;
             }
         }
 
         assertThat(allowed)
-                .describedAs("tentativas permitidas de um unico /48")
+                .describedAs("tentativas permitidas de um unico /64")
                 .isEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK);
-        assertThat(limiter.trackedNetworks())
-                .describedAs("redes rastreadas para um unico /48")
-                .isEqualTo(1);
+        assertThat(limiter.trackedSubscribers()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("trocar de /64 dentro do mesmo /48 esbarra no teto do site")
+    void rotationWithinSiteHitsSiteCap() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        int allowed = 0;
+        // Quem tem um /48 dispoe de 65.536 blocos /64. Sem o teto do site,
+        // bastaria variar o quarto grupo para renovar a cota a cada tentativa.
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE * 3; i++) {
+            if (limiter.tryAcquire("alvo-" + i + "@exemplo.test", ipv6(0xabcd, i + 1))) {
+                allowed++;
+            }
+        }
+
+        assertThat(allowed)
+                .describedAs("tentativas permitidas de um unico /48")
+                .isEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE);
+        assertThat(limiter.trackedSites()).isEqualTo(1);
+        assertThat(limiter.trackedSubscribers())
+                .describedAs("assinantes criados por um unico /48")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE);
+    }
+
+    /**
+     * Um assinante abusivo nao pode travar o vizinho do mesmo {@code /48}.
+     *
+     * <p>Era o efeito colateral do agrupamento apenas por {@code /48}: num
+     * provedor que distribui {@code /64} a partir de um mesmo {@code /48},
+     * um cliente esgotava a cota de todos os outros.
+     */
+    @Test
+    @DisplayName("assinante abusivo nao trava vizinho do mesmo /48")
+    void abusiveSubscriberDoesNotBlockNeighbor() {
+        var limiter = new LoginAttemptLimiter(new MutableClock());
+
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK * 2; i++) {
+            limiter.tryAcquire("varredura-" + i + "@exemplo.test", ipv6(0x1111, 1));
+        }
+
+        assertThat(limiter.tryAcquire("x@exemplo.test", ipv6(0x1111, 1)))
+                .describedAs("assinante abusivo bloqueado")
+                .isFalse();
+        assertThat(limiter.tryAcquire(EMAIL, ipv6(0x1111, 2)))
+                .describedAs("vizinho no mesmo /48")
+                .isTrue();
     }
 
     @Test
     @DisplayName("/48 diferentes sao contados separadamente")
-    void differentPrefixesAreIndependent() {
+    void differentSitesAreIndependent() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
-        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK; i++) {
-            limiter.tryAcquire("a-" + i + "@exemplo.test", "2001:db8:1111:1111::5");
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE; i++) {
+            limiter.tryAcquire("a-" + i + "@exemplo.test", ipv6(0x1111, i + 1));
         }
 
-        assertThat(limiter.tryAcquire("b@exemplo.test", "2001:db8:1111:1111::9"))
-                .describedAs("mesmo /48, cota esgotada")
+        assertThat(limiter.tryAcquire("b@exemplo.test", ipv6(0x1111, 0xfff0)))
+                .describedAs("mesmo /48, teto esgotado")
                 .isFalse();
-        assertThat(limiter.tryAcquire("b@exemplo.test", "2001:db8:2222:2222::9"))
+        assertThat(limiter.tryAcquire("b@exemplo.test", ipv6(0x2222, 1)))
                 .describedAs("/48 distinto")
                 .isTrue();
     }
@@ -350,34 +407,28 @@ class LoginAttemptLimiterTest {
     /**
      * Encher o rastreamento tem de ser caro.
      *
-     * <p>Este limitador recusa tentativas de credenciais ainda nao vistas
-     * quando o mapa satura, porque permiti-las seria bypass do limite por
-     * credencial. Recusar tem custo de disponibilidade, e o que torna esse
-     * custo aceitavel e a saturacao ser inalcancavel para uma origem unica: os
-     * tetos sao dimensionados de modo que cada rede so cria tantas chaves
-     * quantas tentativas lhe sao permitidas.
-     *
-     * <p>Antes do agrupamento por {@code /48}, uma unica origem com um bloco
-     * IPv6 saturava o mapa de graca, e a recusa virava bloqueio global de
-     * login a custo baixo.
+     * <p>Este limitador recusa tentativas de chaves ainda nao vistas quando um
+     * mapa satura, porque permiti-las seria bypass. Recusar tem custo de
+     * disponibilidade, e o que torna esse custo aceitavel e a saturacao ser
+     * inalcancavel para uma origem unica.
      */
     @Test
     @DisplayName("uma origem unica nao satura o rastreamento, por mais que tente")
     void singleOriginCannotSaturateTracking() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
-        // Um /48 inteiro a disposicao, variando endereco a cada tentativa.
-        for (int i = 0; i < LoginAttemptLimiter.MAX_TRACKED_KEYS * 2; i++) {
-            limiter.tryAcquire(
-                    "alvo-" + i + "@exemplo.test", "2001:db8:9999:" + Integer.toHexString(i % 65_536) + "::1");
+        // Um /48 inteiro a disposicao, variando assinante e endereco.
+        for (int i = 0; i < LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE * 100; i++) {
+            limiter.tryAcquire("alvo-" + i + "@exemplo.test", ipv6(0x9999, (i % 65_535) + 1));
         }
 
-        assertThat(limiter.trackedNetworks())
-                .describedAs("redes rastreadas a partir de um unico /48")
-                .isEqualTo(1);
+        assertThat(limiter.trackedSites()).isEqualTo(1);
+        assertThat(limiter.trackedSubscribers())
+                .describedAs("assinantes criados por uma origem unica")
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE);
         assertThat(limiter.trackedKeys())
                 .describedAs("chaves criadas por uma origem unica")
-                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_NETWORK);
+                .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_ATTEMPTS_PER_SITE);
 
         // E o operador legitimo, em outra rede, continua entrando.
         assertThat(limiter.tryAcquire("operador@jhcomp.local", "192.0.2.77"))
@@ -386,16 +437,16 @@ class LoginAttemptLimiterTest {
     }
 
     @Test
-    @DisplayName("saturar o rastreamento exige muitas redes distintas")
-    void saturationRequiresManyDistinctNetworks() {
+    @DisplayName("saturar o rastreamento exige o teto inteiro de sites")
+    void saturationRequiresManyDistinctSites() {
         var limiter = new LoginAttemptLimiter(new MutableClock());
 
-        flood(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 2_000);
+        floodKeys(limiter, LoginAttemptLimiter.MAX_TRACKED_KEYS + 2_000);
 
-        // A inundacao so chega perto do teto usando o teto de redes inteiro.
-        assertThat(limiter.trackedNetworks())
-                .describedAs("redes necessarias para pressionar o teto de chaves")
-                .isGreaterThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_NETWORKS / 2);
+        // O mapa de chaves so chega ao teto quando o de sites ja chegou.
+        assertThat(limiter.trackedSites())
+                .describedAs("sites necessarios para pressionar o teto de chaves")
+                .isEqualTo(LoginAttemptLimiter.MAX_TRACKED_SITES);
         assertThat(limiter.trackedKeys())
                 .describedAs("teto de chaves respeitado")
                 .isLessThanOrEqualTo(LoginAttemptLimiter.MAX_TRACKED_KEYS);

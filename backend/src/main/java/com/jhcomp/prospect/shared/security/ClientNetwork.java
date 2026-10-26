@@ -7,88 +7,85 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Agrupa enderecos de origem pela rede a que pertencem, para fins de limite de
- * tentativas.
+ * Redes de origem de um endereco, em dois niveis, para fins de limite de
+ * tentativas (D20).
  *
- * <p>Limitar por endereco exato nao funciona com IPv6. Uma conexao domestica
- * costuma receber um bloco {@code /64}, com 2^64 enderecos, e um provedor de
- * nuvem entrega blocos ainda maiores. Trocar de endereco dentro do proprio
- * bloco nao custa nada ao atacante, de modo que um limite por endereco exato
- * seria contornado trivialmente e, pior, cada endereco novo criaria uma entrada
- * no rastreamento.
+ * <p>Limitar por endereco exato nao funciona com IPv6: um assinante recebe um
+ * bloco {@code /64} inteiro e troca de endereco dentro dele sem custo. Por
+ * isso o IPv6 e agrupado em dois niveis:
  *
- * <p>Por isso o IPv6 e agrupado pelo prefixo {@code /48}, a alocacao tipica de
- * um site. O IPv4 permanece exato: blocos IPv4 sao escassos e agrupar por
+ * <ul>
+ *   <li>{@code subscriber}: o {@code /64}, que corresponde a um assinante. Leva
+ *       a cota normal, de modo que um assinante abusivo nao atinge os
+ *       vizinhos.
+ *   <li>{@code site}: o {@code /48}, alocacao tipica de um site. Quem tem um
+ *       {@code /48} dispoe de 65.536 blocos {@code /64}; o teto agregado impede
+ *       que ele multiplique cotas e entradas de rastreamento trocando de bloco.
+ * </ul>
+ *
+ * <p>O IPv4 e exato nos dois niveis: blocos IPv4 sao escassos e agrupar por
  * {@code /24} atingiria usuarios legitimos sem relacao com o atacante.
+ *
+ * @param subscriber chave do assinante: IPv4 exato ou prefixo {@code /64}
+ * @param site chave do site: IPv4 exato ou prefixo {@code /48}
  */
-public final class ClientNetwork {
+public record ClientNetwork(String subscriber, String site) {
 
-    /**
-     * Bytes do prefixo IPv6 agrupado: 48 bits.
-     *
-     * <p>Agrupar em {@code /64} nao basta. Um {@code /48} e a alocacao tipica
-     * de um site, e quem tem um {@code /48} dispoe de 65.536 blocos
-     * {@code /64}: com agrupamento em {@code /64}, encher o rastreamento sairia
-     * barato, e e justamente o custo de encher o rastreamento que sustenta o
-     * resto do desenho deste limitador.
-     *
-     * <p>Agrupar mais que isso atingiria redes sem relacao entre si.
-     */
-    private static final int IPV6_PREFIX_BYTES = 6;
+    private static final int SUBSCRIBER_PREFIX_BYTES = 8;
+    private static final int SITE_PREFIX_BYTES = 6;
 
     private static final Pattern IPV4_LITERAL = Pattern.compile("^\\d{1,3}(\\.\\d{1,3}){3}$");
 
-    private ClientNetwork() {
-    }
-
     /**
-     * Chave de rede para o endereco informado.
+     * Redes do endereco informado.
      *
      * <p>Nunca resolve nome: so interpreta literais de IP. Um valor que nao seja
-     * literal e devolvido como veio, para que uma entrada desconhecida continue
-     * sendo contabilizada em vez de escapar do limite.
+     * literal e usado como veio nos dois niveis, para que uma entrada
+     * desconhecida continue sendo contabilizada em vez de escapar do limite.
      */
-    public static String of(String clientIp) {
+    public static ClientNetwork of(String clientIp) {
         if (clientIp == null || clientIp.isBlank()) {
-            return "unknown";
+            return exact("unknown");
         }
 
         String address = clientIp.strip().toLowerCase(Locale.ROOT);
 
         // Forma IPv4 mapeada em IPv6, comum em servidores com dual stack.
         if (address.startsWith("::ffff:") && IPV4_LITERAL.matcher(address.substring(7)).matches()) {
-            return address.substring(7);
+            return exact(address.substring(7));
         }
 
-        if (IPV4_LITERAL.matcher(address).matches()) {
-            return address;
+        if (IPV4_LITERAL.matcher(address).matches() || address.indexOf(':') < 0) {
+            // IPv4, ou valor que nao e literal de IP. Nao se tenta resolver:
+            // resolucao de nome numa rota publica permitiria induzir consultas
+            // DNS externas.
+            return exact(address);
         }
 
-        if (address.indexOf(':') < 0) {
-            // Nao e literal de IP. Nao se tenta resolver: resolucao de nome
-            // numa rota publica permitiria induzir consultas DNS externas.
-            return address;
-        }
-
-        return ipv6Prefix(address);
+        return ipv6(address);
     }
 
-    private static String ipv6Prefix(String address) {
+    private static ClientNetwork exact(String address) {
+        return new ClientNetwork(address, address);
+    }
+
+    private static ClientNetwork ipv6(String address) {
         byte[] bytes;
         try {
             // Literal IPv6: getByName nao faz consulta de nome neste caso.
             bytes = InetAddress.getByName(address).getAddress();
         } catch (UnknownHostException exception) {
-            return address;
+            return exact(address);
         }
 
         if (bytes.length != 16) {
-            return address;
+            return exact(address);
         }
 
-        byte[] prefix = new byte[IPV6_PREFIX_BYTES];
-        System.arraycopy(bytes, 0, prefix, 0, IPV6_PREFIX_BYTES);
+        return new ClientNetwork(prefix(bytes, SUBSCRIBER_PREFIX_BYTES), prefix(bytes, SITE_PREFIX_BYTES));
+    }
 
-        return HexFormat.of().formatHex(prefix) + "::/48";
+    private static String prefix(byte[] bytes, int length) {
+        return HexFormat.of().formatHex(bytes, 0, length) + "::/" + (length * 8);
     }
 }

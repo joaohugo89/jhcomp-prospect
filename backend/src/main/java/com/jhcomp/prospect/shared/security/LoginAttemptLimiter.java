@@ -15,26 +15,30 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Limita tentativas de login (doc 07 §4, doc 05 §12).
+ * Limita tentativas de login (doc 07 §4, doc 05 §12, D20).
  *
- * <p>Aplica dois limites independentes, nesta ordem:
+ * <p>Aplica tres limites independentes, nesta ordem:
  *
  * <ol>
- *   <li><b>Por IP</b> ({@link #MAX_ATTEMPTS_PER_IP} por janela): limita o
- *       volume total de tentativas de uma origem, qualquer que seja o e-mail.
- *   <li><b>Por e-mail e IP</b> ({@link #MAX_FAILURES} por janela): bloqueia a
- *       insistencia contra uma credencial especifica.
+ *   <li><b>Por site</b> ({@link #MAX_ATTEMPTS_PER_SITE} por janela): teto
+ *       agregado do {@code /48} IPv6. Impede quem tem um bloco inteiro de
+ *       multiplicar cotas trocando de {@code /64}.
+ *   <li><b>Por assinante</b> ({@link #MAX_ATTEMPTS_PER_NETWORK} por janela):
+ *       {@code /64} IPv6 ou IPv4 exato. Limita o volume de uma origem,
+ *       qualquer que seja o e-mail, sem atingir os vizinhos do mesmo
+ *       {@code /48}.
+ *   <li><b>Por e-mail e assinante</b> ({@link #MAX_FAILURES} por janela):
+ *       bloqueia a insistencia contra uma credencial especifica.
  * </ol>
  *
  * <p>O limite por credencial sozinho nao basta: o e-mail faz parte da chave e e
  * escolhido por quem chama, de modo que uma origem unica poderia tentar
  * e-mails sempre diferentes sem nunca ser barrada, e ainda encher o
- * rastreamento. O limite por IP fecha essa saida, porque o endereco de origem
- * nao e livremente escolhido por um atacante nao distribuido.
+ * rastreamento. Os limites de rede fecham essa saida.
  *
- * <p>A chave do segundo limite combina e-mail e IP, e nao apenas e-mail:
- * bloquear so por e-mail permitiria a um atacante travar a conta de um
- * terceiro de proposito.
+ * <p>A chave do limite por credencial combina e-mail e rede, e nao apenas
+ * e-mail: bloquear so por e-mail permitiria a um atacante travar a conta de
+ * um terceiro de proposito.
  *
  * <p><b>Reserva atomica.</b> A unica operacao de entrada e
  * {@link #tryAcquire(String, String)}, que verifica o limite e contabiliza a
@@ -60,12 +64,12 @@ public class LoginAttemptLimiter {
 
     private static final Logger log = LoggerFactory.getLogger(LoginAttemptLimiter.class);
 
-    /** Tentativas por e-mail e rede dentro da janela. */
+    /** Tentativas por e-mail e assinante dentro da janela. */
     static final int MAX_FAILURES = 5;
 
     /**
-     * Tentativas por rede de origem dentro da janela, qualquer que seja o
-     * e-mail.
+     * Tentativas por assinante ({@code /64} ou IPv4) dentro da janela,
+     * qualquer que seja o e-mail.
      *
      * <p>Dez vezes o limite por credencial: sobra folga para o operador errar a
      * senha algumas vezes, e ainda assim uma origem nao consegue varrer
@@ -73,27 +77,41 @@ public class LoginAttemptLimiter {
      */
     static final int MAX_ATTEMPTS_PER_NETWORK = 50;
 
+    /**
+     * Tentativas por site ({@code /48}) dentro da janela, somando todos os seus
+     * assinantes.
+     *
+     * <p>O dobro da cota de um assinante: um vizinho abusivo no mesmo
+     * {@code /48} nao trava os demais, e quem controla o bloco inteiro obtem so
+     * o dobro de uma origem comum, nao 65.536 vezes. Para IPv4 site e
+     * assinante coincidem, e vale a cota do assinante.
+     */
+    static final int MAX_ATTEMPTS_PER_SITE = 2 * MAX_ATTEMPTS_PER_NETWORK;
+
     static final Duration WINDOW = Duration.ofMinutes(15);
 
     /**
-     * Teto de redes rastreadas.
+     * Teto de sites rastreados.
      *
-     * <p>Mil blocos {@code /48} distintos nao sao obtidos por rotacao de
-     * endereco: exigem redes de operadores diferentes.
+     * <p>Mil blocos {@code /48} ou IPv4 distintos nao sao obtidos por rotacao
+     * de endereco: exigem redes de operadores diferentes.
      */
-    static final int MAX_TRACKED_NETWORKS = 1_000;
+    static final int MAX_TRACKED_SITES = 1_000;
 
     /**
-     * Teto de chaves de credencial rastreadas.
+     * Teto de assinantes e de chaves de credencial rastreados.
      *
-     * <p>Dimensionado como {@link #MAX_TRACKED_NETWORKS} x
-     * {@link #MAX_ATTEMPTS_PER_NETWORK}: cada rede so consegue criar tantas
-     * chaves quantas tentativas lhe sao permitidas, portanto este mapa nao
-     * satura antes do mapa de redes. E esse dimensionamento que faz a recusa
-     * por saturacao ser um estado de ataque severo, e nao algo alcancavel por
-     * uma origem unica.
+     * <p>Dimensionado como {@link #MAX_TRACKED_SITES} x
+     * {@link #MAX_ATTEMPTS_PER_SITE}: cada tentativa cria no maximo uma entrada
+     * em cada mapa, e cada site so dispoe de {@link #MAX_ATTEMPTS_PER_SITE}
+     * tentativas, portanto nenhum destes mapas satura antes do mapa de sites.
+     * E esse dimensionamento que faz a recusa por saturacao ser um estado de
+     * ataque severo, e nao algo alcancavel por uma origem unica.
+     *
+     * <p>A memoria acompanha o total de tentativas, nao o de chaves: no pior
+     * caso, cem mil instantes por mapa.
      */
-    static final int MAX_TRACKED_KEYS = MAX_TRACKED_NETWORKS * MAX_ATTEMPTS_PER_NETWORK;
+    static final int MAX_TRACKED_KEYS = MAX_TRACKED_SITES * MAX_ATTEMPTS_PER_SITE;
 
     /**
      * Intervalo minimo entre limpezas de entradas expiradas.
@@ -105,8 +123,9 @@ public class LoginAttemptLimiter {
      */
     static final Duration SWEEP_INTERVAL = Duration.ofSeconds(10);
 
-    private final Bucket byEmailAndNetwork = new Bucket(MAX_FAILURES, MAX_TRACKED_KEYS);
-    private final Bucket byNetwork = new Bucket(MAX_ATTEMPTS_PER_NETWORK, MAX_TRACKED_NETWORKS);
+    private final Bucket bySite = new Bucket("sites", MAX_ATTEMPTS_PER_SITE, MAX_TRACKED_SITES);
+    private final Bucket bySubscriber = new Bucket("assinantes", MAX_ATTEMPTS_PER_NETWORK, MAX_TRACKED_KEYS);
+    private final Bucket byCredential = new Bucket("credenciais", MAX_FAILURES, MAX_TRACKED_KEYS);
 
     private final Clock clock;
 
@@ -125,45 +144,62 @@ public class LoginAttemptLimiter {
      * cobrar adiantado e o que torna a operacao atomica. Um login bem sucedido
      * devolve a cota da credencial por meio de {@link #recordSuccess}.
      *
+     * <p>Os limites sao avaliados do mais amplo ao mais estreito: e o mais
+     * amplo que impede uma origem de criar entradas nos seguintes. Uma recusa
+     * num nivel nao devolve o que ja foi cobrado nos anteriores, de proposito:
+     * a tentativa aconteceu e conta para o volume da origem.
+     *
      * @return {@code true} se a tentativa pode prosseguir
      */
     public boolean tryAcquire(String email, String clientIp) {
         Instant now = clock.instant();
         Instant cutoff = now.minus(WINDOW);
-        String network = ClientNetwork.of(clientIp);
+        ClientNetwork network = ClientNetwork.of(clientIp);
 
-        // O limite por rede e avaliado primeiro: e ele que impede uma origem de
-        // criar chaves sem limite variando o e-mail ou o endereco.
-        if (!byNetwork.tryAcquire(network, now, cutoff)) {
+        if (!bySite.tryAcquire(network.site(), now, cutoff)) {
             return false;
         }
 
-        return byEmailAndNetwork.tryAcquire(key(email, network), now, cutoff);
+        if (!bySubscriber.tryAcquire(network.subscriber(), now, cutoff)) {
+            // Estorna o site: um assinante ja bloqueado que continua insistindo
+            // nao pode drenar a cota compartilhada e travar os vizinhos. Trocar
+            // de /64 continua custando ao site, porque cada /64 novo passa por
+            // aqui com cota livre.
+            bySite.refund(network.site(), now);
+            return false;
+        }
+
+        return byCredential.tryAcquire(key(email, network), now, cutoff);
     }
 
     /**
      * Login bem-sucedido devolve a cota daquela credencial.
      *
-     * <p>A cota do IP nao e devolvida de proposito: ela mede o volume de
-     * tentativas da origem, e um acerto depois de muitas tentativas e
+     * <p>As cotas de rede nao sao devolvidas de proposito: elas medem o volume
+     * de tentativas da origem, e um acerto depois de muitas tentativas e
      * justamente o padrao que se quer continuar limitando.
      */
     public void recordSuccess(String email, String clientIp) {
-        byEmailAndNetwork.release(key(email, ClientNetwork.of(clientIp)));
+        byCredential.release(key(email, ClientNetwork.of(clientIp)));
     }
 
     /** Somente para teste. */
     int trackedKeys() {
-        return byEmailAndNetwork.size();
+        return byCredential.size();
     }
 
     /** Somente para teste. */
-    int trackedNetworks() {
-        return byNetwork.size();
+    int trackedSubscribers() {
+        return bySubscriber.size();
     }
 
-    private String key(String email, String network) {
-        return email + '|' + network;
+    /** Somente para teste. */
+    int trackedSites() {
+        return bySite.size();
+    }
+
+    private static String key(String email, ClientNetwork network) {
+        return email + '|' + network.subscriber();
     }
 
     /**
@@ -190,6 +226,7 @@ public class LoginAttemptLimiter {
      */
     private static final class Bucket {
 
+        private final String name;
         private final Map<String, Attempts> entries = new ConcurrentHashMap<>();
         private final AtomicBoolean cleaning = new AtomicBoolean(false);
         private volatile Instant lastSweepAt;
@@ -198,7 +235,8 @@ public class LoginAttemptLimiter {
         private final int maxKeys;
         private final int sweepThreshold;
 
-        Bucket(int maxAttempts, int maxKeys) {
+        Bucket(String name, int maxAttempts, int maxKeys) {
+            this.name = name;
             this.maxAttempts = maxAttempts;
             this.maxKeys = maxKeys;
             this.sweepThreshold = maxKeys / 2;
@@ -216,15 +254,15 @@ public class LoginAttemptLimiter {
                     // No teto e sem espaco descartavel, a tentativa e recusada.
                     //
                     // Permitir tentativa nao rastreada aqui seria bypass: a
-                    // partir da saturacao, o limite por credencial deixaria de
-                    // valer para contas ainda nao vistas.
+                    // partir da saturacao, o limite deixaria de valer para
+                    // chaves ainda nao vistas.
                     //
                     // Recusar tem custo de disponibilidade, e por isso a
                     // saturacao foi encarecida em vez de tolerada: os tetos sao
                     // dimensionados para que chegar aqui exija
-                    // MAX_TRACKED_NETWORKS blocos /48 distintos, de operadores
+                    // MAX_TRACKED_SITES redes distintas, de operadores
                     // diferentes. Uma origem unica, mesmo com um /48 inteiro a
-                    // disposicao, e barrada muito antes pelo limite por rede.
+                    // disposicao, e barrada muito antes pelo teto do site.
                     //
                     // Nesse estado, um limitador em memoria ja nao e a defesa
                     // adequada: o caminho e filtragem na borda. Ver D20.
@@ -256,6 +294,15 @@ public class LoginAttemptLimiter {
             entries.remove(key);
         }
 
+        /** Desfaz uma tentativa cobrada em {@code at}, se ainda estiver la. */
+        void refund(String key, Instant at) {
+            entries.computeIfPresent(key, (unusedKey, current) -> {
+                List<Instant> remaining = new ArrayList<>(current.timestamps());
+                remaining.remove(at);
+                return remaining.isEmpty() ? null : new Attempts(List.copyOf(remaining));
+            });
+        }
+
         /**
          * Registra a saturacao, no maximo uma vez por janela.
          *
@@ -270,9 +317,10 @@ public class LoginAttemptLimiter {
             }
             lastSaturationLogAt = now;
             log.error(
-                    "Limitador de login saturado: {} chaves rastreadas, teto {}. "
-                            + "Tentativas de credenciais ainda nao vistas serao recusadas. "
+                    "Limitador de login saturado ({}): {} entradas rastreadas, teto {}. "
+                            + "Tentativas de chaves ainda nao vistas serao recusadas. "
                             + "Indica ataque distribuido; avaliar filtragem na borda.",
+                    name,
                     entries.size(),
                     maxKeys);
         }
@@ -306,7 +354,7 @@ public class LoginAttemptLimiter {
             }
 
             // Uma limpeza por vez: varias threads varrendo o mapa ao mesmo
-            // tempo apenas desperdiçariam CPU no pior momento possivel.
+            // tempo apenas desperdicariam CPU no pior momento possivel.
             if (!cleaning.compareAndSet(false, true)) {
                 return;
             }

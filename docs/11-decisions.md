@@ -333,19 +333,42 @@ trocaria de endereco a cada tentativa, contornando o limite e enchendo o
 rastreamento. IPv4 permanece exato, porque agrupar por `/24` atingiria
 usuarios legitimos sem relacao com o atacante.
 
+**Agrupamento hierarquico (revisado em 2026-11-05).** A versao anterior
+agrupava o IPv6 apenas por `/48`. Isso impedia a rotacao, mas fazia um
+assinante abusivo travar todos os vizinhos de um provedor que distribui `/64`
+a partir do mesmo `/48`. Agora sao tres limites, do mais amplo ao mais
+estreito:
+
+| Nivel | Chave | Cota na janela |
+|---|---|---|
+| Site | `/48` IPv6 ou IPv4 exato | 100 (`MAX_ATTEMPTS_PER_SITE`) |
+| Assinante | `/64` IPv6 ou IPv4 exato | 50 (`MAX_ATTEMPTS_PER_NETWORK`) |
+| Credencial | e-mail + assinante | 5 (`MAX_FAILURES`) |
+
+Quando o assinante recusa, a cobrança no site e **estornada**: sem o estorno,
+um `/64` ja bloqueado que continua insistindo drenaria a cota compartilhada e
+travaria os vizinhos de qualquer forma. Trocar de `/64` continua custando ao
+site, porque cada `/64` novo e aceito no nivel do assinante. Recusa no nivel
+da credencial nao e estornada: a tentativa aconteceu e conta para o volume da
+origem.
+
 **Saturacao encarecida, nao tolerada.** Ao atingir o teto, tentativas de
-credenciais ainda nao vistas sao recusadas. Permiti-las seria bypass: o limite
-por credencial deixaria de valer a partir da saturacao. Recusar tem custo de
+chaves ainda nao vistas sao recusadas. Permiti-las seria bypass: o limite
+deixaria de valer a partir da saturacao. Recusar tem custo de
 disponibilidade, e o que torna esse custo aceitavel e a saturacao ser
 inalcancavel para uma origem unica:
 
-- o agrupamento e por `/48`, nao por `/64` nem por endereco, portanto uma
-  origem nao multiplica entradas trocando de endereco;
-- cada rede so cria tantas chaves quantas tentativas lhe sao permitidas (50),
-  de modo que `MAX_TRACKED_KEYS` e dimensionado como
-  `MAX_TRACKED_NETWORKS x MAX_ATTEMPTS_PER_NETWORK`;
-- chegar a recusa exige, portanto, mil blocos `/48` distintos, de operadores
-  diferentes.
+- quem controla um `/48` inteiro obtem 100 tentativas na janela, o dobro de
+  uma origem comum, e nao 65.536 vezes isso;
+- cada tentativa cria no maximo uma entrada em cada mapa, entao os mapas de
+  assinantes e de credenciais tem teto `MAX_TRACKED_SITES x
+  MAX_ATTEMPTS_PER_SITE` (100.000) e nunca saturam antes do mapa de sites;
+- chegar a recusa exige, portanto, mil sites distintos (`/48` ou IPv4), de
+  operadores diferentes.
+
+Consequencia para os testes: so o mapa de sites alcanca o teto por inundacao,
+e e nele que o teste de "descarte nao remove bloqueio ativo" e exercitado. O
+descarte e o mesmo codigo nos tres mapas.
 
 A saturacao e registrada em log de erro, uma vez por janela: sem isso, o
 sintoma observado seria apenas "ninguem consegue entrar", sem causa aparente.
