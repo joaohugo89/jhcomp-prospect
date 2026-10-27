@@ -74,7 +74,7 @@ public class CompanyEntity {
     @Column(name = "archived_at")
     private Instant archivedAt;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
@@ -87,6 +87,7 @@ public class CompanyEntity {
     public CompanyEntity(UUID id, UUID organizationId, CompanyData data, Instant now) {
         this.id = id;
         this.organizationId = organizationId;
+        this.createdAt = now;
         this.updatedAt = now;
         apply(data);
     }
