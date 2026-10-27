@@ -3,6 +3,7 @@ package com.jhcomp.prospect.lead.infrastructure.persistence;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.jhcomp.prospect.company.infrastructure.persistence.CompanyEntity;
 import com.jhcomp.prospect.lead.domain.LeadPriority;
 import com.jhcomp.prospect.lead.domain.LeadStatus;
 import com.jhcomp.prospect.lead.domain.LeadStatusTransitions;
@@ -11,7 +12,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
@@ -34,6 +38,14 @@ public class LeadEntity {
     @Column(name = "company_id", nullable = false, updatable = false)
     private UUID companyId;
 
+    /**
+     * Empresa, somente leitura: a coluna e gravada por {@code companyId}. Existe
+     * para filtrar e exibir a listagem sem uma consulta por linha.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", insertable = false, updatable = false)
+    private CompanyEntity company;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LeadStatus status;
@@ -50,7 +62,7 @@ public class LeadEntity {
     @Column(name = "assigned_user_id")
     private UUID assignedUserId;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
@@ -63,12 +75,21 @@ public class LeadEntity {
         // Exigido pelo JPA.
     }
 
-    public LeadEntity(UUID id, UUID organizationId, UUID companyId, LeadPriority priority, Instant now) {
+    /**
+     * Abre uma oportunidade para a empresa.
+     *
+     * <p>Recebe a empresa, e nao seu id solto: a organizacao do lead e
+     * derivada dela, e assim nao ha como montar um lead de uma organizacao
+     * apontando para empresa de outra (a V4 tambem recusa no banco).
+     */
+    public LeadEntity(UUID id, CompanyEntity company, LeadPriority priority, Instant now) {
         this.id = id;
-        this.organizationId = organizationId;
-        this.companyId = companyId;
+        this.organizationId = company.getOrganizationId();
+        this.companyId = company.getId();
+        this.company = company;
         this.status = LeadStatusTransitions.initial();
         this.priority = priority;
+        this.createdAt = now;
         this.updatedAt = now;
     }
 
@@ -117,6 +138,10 @@ public class LeadEntity {
 
     public UUID getCompanyId() {
         return companyId;
+    }
+
+    public CompanyEntity getCompany() {
+        return company;
     }
 
     public LeadStatus getStatus() {
