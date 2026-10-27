@@ -11,9 +11,8 @@ interface LoginFormProps {
 /**
  * Formulário de login (RF-001).
  *
- * Provisório: a Etapa 4 substitui esta tela pelo AppShell e pelo layout
- * definido no doc 08. Existe agora para permitir testar manualmente a
- * autenticação entregue na Etapa 3.
+ * A mensagem de falha é a mesma para qualquer credencial inválida: distinguir
+ * "e-mail inexistente" de "senha errada" permitiria enumerar contas.
  */
 export function LoginForm({ onAuthenticated }: LoginFormProps): React.JSX.Element {
   const [email, setEmail] = useState('');

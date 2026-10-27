@@ -128,6 +128,14 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   });
 
   if (!response.ok) {
+    // 401 fora de /auth significa que a sessão que a tela pressupunha não
+    // existe mais. As rotas de /auth tratam o 401 elas mesmas: no login é
+    // credencial inválida, em /auth/me é apenas "não autenticado".
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      for (const listener of sessionExpiredListeners) {
+        listener();
+      }
+    }
     throw await toHttpError(response);
   }
 
@@ -136,4 +144,34 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   return (await response.json()) as T;
+}
+
+const sessionExpiredListeners = new Set<() => void>();
+
+/**
+ * Avisa quando a API responde que a sessão expirou (doc 08 §11).
+ *
+ * Um único ponto, em vez de cada tela tratar o 401: a resposta é sempre a
+ * mesma, voltar ao login explicando o motivo.
+ *
+ * @returns função que cancela a inscrição
+ */
+export function onSessionExpired(listener: () => void): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
+/** Monta a query string omitindo valores vazios, para não enviar filtro sem efeito. */
+export function toQuery(params: Readonly<Record<string, string | number | boolean | undefined>>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === '' || value === false) {
+      continue;
+    }
+    search.set(key, String(value));
+  }
+  const text = search.toString();
+  return text === '' ? '' : `?${text}`;
 }

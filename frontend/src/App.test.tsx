@@ -1,53 +1,26 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+import { fakeApi, json, lead, page, session } from './test/fakeApi';
+
+const unauthenticated = (): Response => json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401);
 
 /**
- * Cobre os estados de interface exigidos pelo doc 08 §11 e o fluxo de
- * autenticação da Etapa 3. O `fetch` é substituído por mock: teste de frontend
- * não depende de rede nem do backend.
+ * Fluxo de autenticação, estrutura da aplicação e estados globais (doc 08 §11).
  */
 describe('App', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  function json(body: unknown, status = 200): Response {
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const health = { status: 'UP', version: '0.1.0-TEST', checkedAt: '2026-01-15T12:00:00Z' };
-
-  const session = {
-    userId: 'u-1',
-    email: 'admin@jhcomp.local',
-    displayName: 'Administrador',
-    organizationId: 'org-1',
-    role: 'ADMIN' as const,
-  };
-
-  /** Responde por rota, para que cada teste descreva só o que lhe interessa. */
-  function stubRoutes(routes: Record<string, () => Response>): void {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string) => {
-        const path = url.replace('/api/v1', '');
-        const handler = Object.entries(routes).find(([route]) => path.startsWith(route))?.[1];
-        return Promise.resolve(handler ? handler() : json({}, 404));
-      }),
-    );
-  }
-
-  it('mostra o formulario de login quando nao ha sessao', async () => {
-    stubRoutes({
-      '/auth/me': () => json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401),
-      '/health': () => json(health),
-    });
+  it('mostra o login quando nao ha sessao', async () => {
+    fakeApi({ 'GET /auth/me': unauthenticated });
 
     render(<App />);
 
@@ -56,50 +29,45 @@ describe('App', () => {
     expect(screen.getByLabelText('Senha')).toBeInTheDocument();
   });
 
-  it('mostra a sessao e os membros quando ja esta autenticado', async () => {
-    stubRoutes({
-      '/auth/me': () => json(session),
-      '/health': () => json(health),
-      '/organizations/members': () =>
-        json({
-          content: [
-            {
-              memberId: 'm-1',
-              userId: 'u-1',
-              email: 'admin@jhcomp.local',
-              displayName: 'Administrador',
-              role: 'ADMIN',
-              status: 'ACTIVE',
-              createdAt: '2026-01-15T12:00:00Z',
-            },
-          ],
-          page: 0,
-          size: 20,
-          totalElements: 1,
-          totalPages: 1,
-          hasNext: false,
-        }),
+  it('autenticado, abre a lista de leads dentro da estrutura da aplicacao', async () => {
+    fakeApi({
+      'GET /auth/me': () => json(session),
+      'GET /leads': () => json(page([lead])),
     });
 
     render(<App />);
 
-    expect(await screen.findByText('Administrador')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument();
-    expect(screen.getByText('org-1')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Barbearia Ficticia' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Leads' })).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
+    expect(nav).toHaveTextContent('Empresas');
+    expect(nav).toHaveTextContent('Membros');
+    expect(screen.getByRole('link', { name: 'Leads' })).toHaveAttribute('aria-current', 'page');
+    // Status com texto, não só cor (doc 08 §12).
+    expect(within(screen.getByRole('table')).getByText('Contato aprovado')).toBeInTheDocument();
   });
 
-  it('autentica e troca para o painel de sessao', async () => {
+  it('operador nao ve o item de membros', async () => {
+    fakeApi({
+      'GET /auth/me': () => json({ ...session, role: 'OPERATOR' }),
+      'GET /leads': () => json(page([])),
+    });
+
+    render(<App />);
+
+    await screen.findByRole('heading', { level: 1, name: 'Leads' });
+    expect(screen.getByRole('navigation', { name: 'Principal' })).not.toHaveTextContent('Membros');
+  });
+
+  it('autentica e entra na aplicacao', async () => {
     let authenticated = false;
-    stubRoutes({
-      '/auth/me': () =>
-        authenticated ? json(session) : json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401),
-      '/auth/login': () => {
+    fakeApi({
+      'GET /auth/me': () => (authenticated ? json(session) : unauthenticated()),
+      'POST /auth/login': () => {
         authenticated = true;
         return json(session);
       },
-      '/health': () => json(health),
-      '/organizations/members': () =>
-        json({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, hasNext: false }),
+      'GET /leads': () => json(page([])),
     });
 
     render(<App />);
@@ -109,14 +77,13 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
     expect(await screen.findByRole('button', { name: 'Sair' })).toBeInTheDocument();
+    expect(await screen.findByText('Nenhum lead ainda.')).toBeInTheDocument();
   });
 
   it('mostra mensagem generica quando a credencial e invalida', async () => {
-    stubRoutes({
-      '/auth/me': () => json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401),
-      '/auth/login': () =>
-        json({ type: 'INVALID_CREDENTIALS', title: 'Invalid credentials', status: 401 }, 401),
-      '/health': () => json(health),
+    fakeApi({
+      'GET /auth/me': unauthenticated,
+      'POST /auth/login': () => json({ type: 'INVALID_CREDENTIALS', title: 'Invalid credentials', status: 401 }, 401),
     });
 
     render(<App />);
@@ -129,21 +96,15 @@ describe('App', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('E-mail ou senha inválidos.');
     expect(alert.textContent).not.toContain('não encontrado');
+    // Falha de login não é "sessão expirada".
+    expect(screen.queryByText(/sessão expirou/)).not.toBeInTheDocument();
   });
 
   it('associa erro de validacao ao campo correspondente', async () => {
-    stubRoutes({
-      '/auth/me': () => json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401),
-      '/auth/login': () =>
-        json(
-          {
-            type: 'VALIDATION_ERROR',
-            status: 400,
-            errors: [{ field: 'email', message: 'must be a valid email' }],
-          },
-          400,
-        ),
-      '/health': () => json(health),
+    fakeApi({
+      'GET /auth/me': unauthenticated,
+      'POST /auth/login': () =>
+        json({ type: 'VALIDATION_ERROR', status: 400, errors: [{ field: 'email', message: 'must be a valid email' }] }, 400),
     });
 
     render(<App />);
@@ -160,10 +121,9 @@ describe('App', () => {
   });
 
   it('avisa sobre excesso de tentativas', async () => {
-    stubRoutes({
-      '/auth/me': () => json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401),
-      '/auth/login': () => json({ type: 'TOO_MANY_REQUESTS', status: 429 }, 429),
-      '/health': () => json(health),
+    fakeApi({
+      'GET /auth/me': unauthenticated,
+      'POST /auth/login': () => json({ type: 'TOO_MANY_REQUESTS', status: 429 }, 429),
     });
 
     render(<App />);
@@ -175,15 +135,64 @@ describe('App', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Muitas tentativas');
   });
 
-  it('operador ve aviso em vez de erro ao nao poder listar membros', async () => {
-    stubRoutes({
-      '/auth/me': () => json({ ...session, role: 'OPERATOR' }),
-      '/health': () => json(health),
-      '/organizations/members': () => json({ type: 'FORBIDDEN', status: 403 }, 403),
+  it('volta ao login explicando quando a sessao expira durante o uso', async () => {
+    fakeApi({
+      'GET /auth/me': () => json(session),
+      'GET /leads': unauthenticated,
     });
 
     render(<App />);
 
-    expect(await screen.findByText(/não permite listar membros/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sua sessão expirou/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+  });
+
+  it('navega pelo menu sem recarregar a pagina', async () => {
+    fakeApi({
+      'GET /auth/me': () => json(session),
+      'GET /leads': () => json(page([])),
+      'GET /companies': () => json(page([])),
+    });
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Empresas' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Empresas' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/companies');
+    expect(await screen.findByText('Nenhuma empresa cadastrada ainda.')).toBeInTheDocument();
+  });
+
+  it('rota desconhecida mostra pagina nao encontrada', async () => {
+    window.history.replaceState(null, '', '/nao-existe');
+    fakeApi({ 'GET /auth/me': () => json(session) });
+
+    render(<App />);
+
+    expect(await screen.findByText('Página não encontrada.')).toBeInTheDocument();
+  });
+
+  it('lead de outra organizacao aparece como nao encontrado', async () => {
+    window.history.replaceState(null, '', `/leads/${lead.id}`);
+    fakeApi({
+      'GET /auth/me': () => json(session),
+      'GET /leads/': () => json({ type: 'RESOURCE_NOT_FOUND', status: 404 }, 404),
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText('Lead não encontrado.')).toBeInTheDocument();
+  });
+
+  it('operador que abre membros pelo endereco ve aviso de permissao', async () => {
+    window.history.replaceState(null, '', '/settings/members');
+    fakeApi({
+      'GET /auth/me': () => json({ ...session, role: 'OPERATOR' }),
+      'GET /organizations/members': () => json({ type: 'FORBIDDEN', status: 403 }, 403),
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText('Sem permissão')).toBeInTheDocument();
   });
 });

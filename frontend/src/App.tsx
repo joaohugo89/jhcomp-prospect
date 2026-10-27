@@ -1,27 +1,29 @@
 import { useEffect, useState } from 'react';
 
-import { LoginForm } from './modules/auth/LoginForm';
-import { SessionPanel } from './modules/auth/SessionPanel';
-import { fetchSession } from './services/authService';
-import { fetchHealth } from './services/healthService';
-import type { Health } from './types/health';
+import { Link, useRoute, type Route } from './app/router';
+import { AppShell } from './components/AppShell';
+import { EmptyState, LoadingState } from './components/States';
+import { buttonPrimary } from './components/styles';
+import { LoginPage } from './modules/auth/LoginPage';
+import { CompaniesPage } from './modules/companies/CompaniesPage';
+import { CompanyDetailPage } from './modules/companies/CompanyDetailPage';
+import { CompanyNewPage } from './modules/companies/CompanyNewPage';
+import { LeadDetailPage } from './modules/leads/LeadDetailPage';
+import { LeadsPage } from './modules/leads/LeadsPage';
+import { MembersPage } from './modules/members/MembersPage';
+import { fetchSession, logout } from './services/authService';
+import { onSessionExpired } from './services/httpClient';
 import type { Session } from './types/session';
 
 type AuthState =
   | { readonly kind: 'checking' }
-  | { readonly kind: 'anonymous' }
+  | { readonly kind: 'anonymous'; readonly expired: boolean }
   | { readonly kind: 'authenticated'; readonly session: Session };
 
-/**
- * Casca provisória da aplicação.
- *
- * A Etapa 4 substitui esta tela pelo AppShell, pela Sidebar e pelo Dashboard
- * do doc 08. Por ora ela permite verificar manualmente o que a Etapa 3
- * entregou: login, contexto de organização, restrição por papel e logout.
- */
+/** Raiz da aplicação: sessão, roteamento e estrutura comum. */
 export function App(): React.JSX.Element {
   const [auth, setAuth] = useState<AuthState>({ kind: 'checking' });
-  const [health, setHealth] = useState<Health | null>(null);
+  const route = useRoute();
 
   // A sessão é verificada no servidor, e não a partir de algo guardado no
   // navegador: o cookie é HttpOnly e o cliente não tem como inspecioná-lo.
@@ -36,14 +38,8 @@ export function App(): React.JSX.Element {
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          setAuth({ kind: 'anonymous' });
+          setAuth({ kind: 'anonymous', expired: false });
         }
-      });
-
-    fetchHealth(controller.signal)
-      .then(setHealth)
-      .catch(() => {
-        // Indicador auxiliar; a falha dele não deve atrapalhar o login.
       });
 
     return () => {
@@ -51,51 +47,79 @@ export function App(): React.JSX.Element {
     };
   }, []);
 
-  return (
-    <main className="min-h-dvh bg-slate-50 px-4 py-10 text-slate-900">
-      <div className="mx-auto max-w-xl">
-        <header>
-          <h1 className="text-2xl font-semibold tracking-tight">JH.COMP Prospect</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Ambiente de desenvolvimento. Interface provisória da Etapa 3.
-          </p>
-        </header>
-
-        <div className="mt-8 rounded-lg border border-slate-200 bg-white p-6">
-          {auth.kind === 'checking' && <p className="text-slate-600">Verificando sessão…</p>}
-
-          {auth.kind === 'anonymous' && (
-            <>
-              <h2 className="mb-4 text-lg font-medium">Entrar</h2>
-              <LoginForm
-                onAuthenticated={(session) => {
-                  setAuth({ kind: 'authenticated', session });
-                }}
-              />
-            </>
-          )}
-
-          {auth.kind === 'authenticated' && (
-            <SessionPanel
-              session={auth.session}
-              onSignedOut={() => {
-                setAuth({ kind: 'anonymous' });
-              }}
-            />
-          )}
-        </div>
-
-        <footer className="mt-6 text-xs text-slate-500">
-          API:{' '}
-          {health === null ? (
-            <span>indisponível</span>
-          ) : (
-            <span>
-              {health.status} · versão {health.version}
-            </span>
-          )}
-        </footer>
-      </div>
-    </main>
+  // Sessão revogada ou expirada no meio do uso (D21): volta ao login com o
+  // motivo, em vez de cada tela mostrar um erro genérico.
+  useEffect(
+    () =>
+      onSessionExpired(() => {
+        setAuth({ kind: 'anonymous', expired: true });
+      }),
+    [],
   );
+
+  if (auth.kind === 'checking') {
+    return (
+      <main className="min-h-dvh bg-slate-50">
+        <LoadingState label="Verificando sessão…" />
+      </main>
+    );
+  }
+
+  if (auth.kind === 'anonymous') {
+    return (
+      <LoginPage
+        sessionExpired={auth.expired}
+        onAuthenticated={(session) => {
+          setAuth({ kind: 'authenticated', session });
+        }}
+      />
+    );
+  }
+
+  return (
+    <AppShell
+      session={auth.session}
+      route={route}
+      onSignOut={async () => {
+        try {
+          await logout();
+        } finally {
+          // Mesmo que a chamada falhe, a interface volta ao login: insistir em
+          // mostrar uma sessão que talvez não exista mais seria pior.
+          setAuth({ kind: 'anonymous', expired: false });
+        }
+      }}
+    >
+      <Screen route={route} />
+    </AppShell>
+  );
+}
+
+function Screen({ route }: { readonly route: Route }): React.JSX.Element {
+  switch (route.name) {
+    case 'leads':
+      return <LeadsPage />;
+    case 'lead':
+      // key: trocar de lead recria a tela, sem herdar estado do anterior.
+      return <LeadDetailPage key={route.id} id={route.id} />;
+    case 'companies':
+      return <CompaniesPage />;
+    case 'companyNew':
+      return <CompanyNewPage />;
+    case 'company':
+      return <CompanyDetailPage key={route.id} id={route.id} />;
+    case 'members':
+      return <MembersPage />;
+    case 'notFound':
+      return (
+        <EmptyState
+          title="Página não encontrada."
+          action={
+            <Link to="/leads" className={buttonPrimary}>
+              Ir para leads
+            </Link>
+          }
+        />
+      );
+  }
 }

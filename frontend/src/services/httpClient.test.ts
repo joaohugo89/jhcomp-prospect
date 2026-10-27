@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { HttpError, request } from './httpClient';
+import { HttpError, onSessionExpired, request, toQuery } from './httpClient';
 
 /** Cliente HTTP centralizado: sessao por cookie e token CSRF (decisao D1). */
 describe('httpClient', () => {
@@ -83,5 +83,30 @@ describe('httpClient', () => {
 
     expect(error.status).toBe(502);
     expect(error.type).toBe('UNEXPECTED_ERROR');
+  });
+
+  it('avisa sessao expirada em 401 fora de /auth, e nao no login', async () => {
+    const listener = vi.fn();
+    const unsubscribe = onSessionExpired(listener);
+
+    stubFetch(jsonResponse({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401));
+    await request('/auth/login', { method: 'POST', body: {} }).catch(() => undefined);
+    expect(listener).not.toHaveBeenCalled();
+
+    stubFetch(jsonResponse({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401));
+    await request('/leads').catch(() => undefined);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    stubFetch(jsonResponse({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401));
+    await request('/leads').catch(() => undefined);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('monta query string sem valores vazios', () => {
+    expect(toQuery({ search: 'salão & cia', city: '', archived: false, page: 0, x: undefined })).toBe(
+      '?search=sal%C3%A3o+%26+cia&page=0',
+    );
+    expect(toQuery({ city: '' })).toBe('');
   });
 });

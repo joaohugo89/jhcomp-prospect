@@ -121,6 +121,21 @@ Cada uma custou tempo real. Não reintroduzir.
   sempre. O `ddl-auto: validate` pega isso no primeiro teste de contexto.
 - **`inet` não aceita parâmetro do driver JDBC** (chega como `varchar` e não há
   conversão implícita). Ver D18.
+- **Jackson 3 recusa primitivo ausente no JSON** (`FAIL_ON_NULL_FOR_PRIMITIVES`
+  agora é `true`). Um `boolean` opcional num record de request faz a rota
+  responder 400 quando o campo não vem. Usar `Boolean` e tratar `null`.
+- **`created_at` com `insertable = false` volta nulo após o `save`**: o valor
+  vem do `DEFAULT now()` do banco e não é relido. A resposta do POST sai sem a
+  data. As entidades preenchem `createdAt` pelo `Clock` no construtor.
+- **Validar URL por regex é frágil.** A primeira versão aceitava
+  `javascript:1,alert(1)`. Usar `@WebUrl` (parsing com `java.net.URI`) no
+  backend e `safeHref` no frontend antes de montar qualquer `href`.
+- **Teste de integração que faz login deve usar `TestSessions.login`.** O
+  limitador é bean do contexto compartilhado entre classes; logins todos de
+  127.0.0.1 esgotam a cota por rede conforme a suíte cresce, e os testes
+  passam a falhar com 429 em ordem imprevisível.
+- **`typescript-eslint` não suporta TypeScript 7** (peer `<6.1.0` em
+  2026-11-05). Não forçar com `--legacy-peer-deps`; ver pendência da Etapa 4.
 - **O cookie CSRF precisa de `setCookiePath("/")`.** Sem isso herda o
   context-path `/api/v1`, e o JavaScript da página servida em `/` não o vê: o
   login falha com 403 **no navegador**, embora todo teste de API passe. Há
