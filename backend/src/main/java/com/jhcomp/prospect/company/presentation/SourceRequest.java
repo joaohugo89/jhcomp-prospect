@@ -4,11 +4,10 @@ import java.time.Instant;
 
 import com.jhcomp.prospect.company.domain.SourceType;
 import com.jhcomp.prospect.company.infrastructure.persistence.LeadSourceEntity.SourceData;
-import com.jhcomp.prospect.shared.web.InputPatterns;
+import com.jhcomp.prospect.shared.web.WebUrl;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -21,7 +20,7 @@ import jakarta.validation.constraints.Size;
 public record SourceRequest(
         @NotBlank @Size(max = 120) String name,
         @Size(max = 300) String reference,
-        @Size(max = 1000) @Pattern(regexp = InputPatterns.WEB_URL, message = "must be an http or https URL") String url,
+        @Size(max = 1000) @WebUrl String url,
         @PastOrPresent Instant collectedAt,
         @Size(max = 1000) String note) {
 

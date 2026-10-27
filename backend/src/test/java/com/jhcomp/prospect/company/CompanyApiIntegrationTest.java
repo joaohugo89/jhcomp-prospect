@@ -142,7 +142,8 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         @Test
         @DisplayName("recusa URL com esquema que nao seja http ou https")
         void rejectsUnsafeUrlScheme() throws Exception {
-            for (String url : new String[] {"javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,x"}) {
+            for (String url : new String[] {
+                "javascript:alert(1)", "JavaScript:alert(1)", "javascript:1,alert(1)", "data:text/html,x"}) {
                 createCompany("""
                         {"name": "Loja Ficticia", "city": "Cidade Exemplo", "state": "MG", "websiteUrl": "%s"}
                         """.formatted(url))

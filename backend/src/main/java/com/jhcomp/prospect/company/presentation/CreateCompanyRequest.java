@@ -2,6 +2,7 @@ package com.jhcomp.prospect.company.presentation;
 
 import com.jhcomp.prospect.company.infrastructure.persistence.CompanyEntity.CompanyData;
 import com.jhcomp.prospect.shared.web.InputPatterns;
+import com.jhcomp.prospect.shared.web.WebUrl;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -20,10 +21,8 @@ public record CreateCompanyRequest(
         @Size(max = 80) String segment,
         @NotBlank @Size(max = 120) String city,
         @NotBlank @Pattern(regexp = InputPatterns.STATE, message = "must be a two-letter state code") String state,
-        @Size(max = 500) @Pattern(regexp = InputPatterns.WEB_URL, message = "must be an http or https URL")
-                String websiteUrl,
-        @Size(max = 500) @Pattern(regexp = InputPatterns.WEB_URL, message = "must be an http or https URL")
-                String instagramUrl,
+        @Size(max = 500) @WebUrl String websiteUrl,
+        @Size(max = 500) @WebUrl String instagramUrl,
         @Pattern(regexp = InputPatterns.PHONE, message = "must be a phone number") String phone,
         @Email @Size(max = 254) String businessEmail,
         @Size(max = 300) String address,
