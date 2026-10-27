@@ -59,6 +59,8 @@ Parâmetros opcionais: `from`, `to`, `segment`, `city`.
 | GET | `/companies/{companyId}` | Detalhar |
 | PATCH | `/companies/{companyId}` | Atualizar |
 | POST | `/companies/{companyId}/archive` | Arquivar |
+| GET | `/companies/{companyId}/sources` | Histórico de origem (RF-022), paginado |
+| GET | `/companies/{companyId}/duplicates` | Possíveis duplicatas (RF-014) |
 
 Exemplo de criação:
 
@@ -71,9 +73,37 @@ Exemplo de criação:
   "state": "MG",
   "websiteUrl": null,
   "instagramUrl": null,
-  "phone": null
+  "phone": null,
+  "source": {
+    "name": "Pesquisa no mapa",
+    "url": "https://exemplo.test/local",
+    "reference": null,
+    "collectedAt": "2026-11-05T12:00:00Z",
+    "note": null
+  }
 }
 ```
+
+Contrato implementado na Etapa 4:
+
+- **Origem.** `source` é opcional; ausente, registra-se "Cadastro manual" com
+  a data atual. Por esta rota o tipo é sempre `MANUAL`: o cliente não informa
+  tipo, para não registrar como importação um dado digitado à mão.
+  `collectedAt` no futuro é recusado.
+- **URLs** (`websiteUrl`, `instagramUrl`, `source.url`) aceitam `http`, `https`
+  ou nenhum esquema. Qualquer outro esquema (`javascript:`, `data:`…) é
+  recusado com `VALIDATION_ERROR`, porque a URL vira link na interface.
+- **PATCH parcial.** Campo ausente mantém o valor; texto vazio limpa um campo
+  opcional. `name`, `city` e `state` não podem ser limpos. Empresa arquivada
+  responde `409 CONFLICT`.
+- **Listagem.** Filtros `search` (nome, ignorando acento e caixa), `segment`,
+  `city`, `state`, `includeArchived` (padrão `false`). Ordenação `sort=campo,asc|desc`
+  com `name`, `city`, `createdAt`, `updatedAt`; outro campo responde `400`.
+  `size` máximo 100.
+- **Duplicatas.** Sinais `DOMAIN`, `PHONE` e `NAME_CITY_STATE` (nome
+  normalizado idêntico na mesma cidade e estado), no máximo dez por sinal,
+  sempre da mesma organização. É sugestão para revisão: nada é mesclado.
+- A resposta nunca expõe `organizationId` nem as colunas normalizadas.
 
 ## 5. Leads
 
@@ -88,6 +118,27 @@ Exemplo de criação:
 | GET | `/leads/{leadId}/timeline` | Histórico consolidado |
 
 Filtros sugeridos: `status`, `priority`, `segment`, `city`, `scoreMin`, `scoreMax`, `source`, `search`.
+
+Contrato implementado na Etapa 4:
+
+- **Criação:** `{"companyId": "...", "priority": "HIGH", "source": {...}}`.
+  `priority` ausente vira `MEDIUM`; `source` segue a mesma regra de empresas.
+  O lead nasce `NEW`, com o primeiro evento no histórico. Empresa de outra
+  organização responde `404`; arquivada, ou com oportunidade aberta, `409`.
+- **Status:** `{"status": "QUALIFIED", "reason": "...", "contactConfirmed": false}`.
+  Transição fora de `LeadStatusTransitions` responde `409`. Ir para
+  `CONTACTED` exige `contactConfirmed: true` (doc 06 §2); sem isso, `400`.
+  Reenviar o status atual não gera evento. `WON`/`LOST` preenchem `closedAt`.
+- **PATCH `/leads/{id}`:** `{"assignedUserId": "..."}`; `null` remove o
+  responsável. Usuário que não é membro ativo da organização responde `404`.
+- **Resposta:** inclui `company` resumida e `allowedTransitions`, que orienta a
+  interface; a regra continua no servidor. `score` ausente significa sem
+  análise, nunca zero (D7).
+- **Timeline:** eventos `STATUS_CHANGE` e `SOURCE`, do mais recente ao mais
+  antigo, paginados numa única ordem.
+- **Listagem:** `scoreMin`/`scoreMax` não incluem lead sem score;
+  `scoreMin > scoreMax` responde `400`. Ordenação por `createdAt`, `updatedAt`,
+  `score` ou `companyName`.
 
 ## 6. Importação
 
