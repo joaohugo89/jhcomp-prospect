@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -66,6 +67,30 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request.getRequestURI());
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    /**
+     * Restricao do banco violada.
+     *
+     * <p>Os casos de uso verificam as regras antes de gravar, mas duas
+     * requisicoes simultaneas podem passar juntas pela verificacao; o banco e
+     * a ultima trava, e a corrida deve chegar ao cliente como conflito, nao
+     * como falha inesperada. A mensagem do banco nao e repassada: cita nomes de
+     * tabela e restricao.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrity(
+            DataIntegrityViolationException exception, HttpServletRequest request) {
+
+        log.warn("Violacao de integridade em {}", request.getRequestURI());
+
+        ApiErrorResponse body = ApiErrorResponse.of(
+                ApiErrorType.CONFLICT,
+                HttpStatus.CONFLICT.value(),
+                "The operation conflicts with the current state of the data",
+                request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     /** Validacao de DTO: um item por campo invalido, como no exemplo do doc 05 §1. */

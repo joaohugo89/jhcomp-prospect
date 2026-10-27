@@ -82,4 +82,19 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
               and u.status = com.jhcomp.prospect.identity.domain.UserStatus.ACTIVE
             """)
     java.util.List<OrganizationMemberEntity> findActiveMembershipsByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Usuario e membro ativo da organizacao, com conta ativa.
+     *
+     * <p>Usado para validar atribuicao: um UUID de usuario vindo do cliente nao
+     * prova que ele pertence a organizacao de quem pede (doc 04 §4).
+     */
+    @Query("""
+            select count(m) > 0 from OrganizationMemberEntity m
+            where m.organization.id = :organizationId
+              and m.user.id = :userId
+              and m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE
+              and m.user.status = com.jhcomp.prospect.identity.domain.UserStatus.ACTIVE
+            """)
+    boolean existsActiveMember(@Param("organizationId") UUID organizationId, @Param("userId") UUID userId);
 }

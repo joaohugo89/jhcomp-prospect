@@ -48,4 +48,10 @@ public class MemberQueryService {
                 .findByIdAndOrganization(memberId, organizationContext.requireOrganizationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Member"));
     }
+
+    /** Usuario e membro ativo da organizacao ativa. */
+    @Transactional(readOnly = true)
+    public boolean isActiveMember(UUID userId) {
+        return memberRepository.existsActiveMember(organizationContext.requireOrganizationId(), userId);
+    }
 }

@@ -76,6 +76,16 @@ public final class ContactNormalizer {
 
         String digits = NON_DIGITS.matcher(rawPhone).replaceAll("");
 
+        // Com "+" explicito, o que vem a seguir e o DDI. So o do Brasil, com
+        // DDD e numero completos, e aceito: sem esta regra, "+1 415 555 0100"
+        // tem 11 digitos e seria lido como DDD 14, colidindo com um numero
+        // brasileiro valido, inclusive na lista de nao contato.
+        if (rawPhone.strip().startsWith("+")) {
+            return digits.startsWith("55") && (digits.length() == 12 || digits.length() == 13)
+                    ? Optional.of("+" + digits)
+                    : Optional.empty();
+        }
+
         // Zero de operadora antes do DDD: 035..., 0xx35...
         if (digits.startsWith("0")) {
             digits = digits.replaceFirst("^0+", "");
