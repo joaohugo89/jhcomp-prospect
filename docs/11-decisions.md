@@ -31,6 +31,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D20 | Limitador de login com reserva atomica e teto de memoria | Aprovada | 3 |
 | D21 | Revalidacao da associacao a cada requisicao | Aprovada | 3 |
 | D22 | Nomes de cookie proprios do projeto | Aprovada | 3 |
+| D23 | Importacao CSV em duas fases | Proposta | 5 |
 
 ---
 
@@ -429,3 +430,47 @@ ser irrelevante, sem exigir limpeza manual no navegador de ninguem.
 navegador, que continua sendo enviado. Testar com o residuo presente, e nao
 apenas com pote de cookies limpo. Teste de API com `curl` nao reproduz as
 regras de path e de duplicidade que o navegador aplica.
+
+## D23 — Importacao CSV em duas fases · Proposta (Etapa 5)
+
+`docs/04` nao define entidade de importacao, e `docs/05` §6 lista apenas envio,
+consulta e relatorio. O roadmap pede, porem, "revisar e persistir registros
+validos", e o RF-014 proibe descartar registro em silencio.
+
+**Proposta:** importar em duas fases, com duas tabelas novas (V5).
+
+1. `POST /imports/csv` **analisa**: le o arquivo, reconhece os cabecalhos
+   (ou aplica o mapeamento enviado), valida cada linha com as mesmas regras do
+   cadastro manual e classifica duplicatas contra a base e dentro do proprio
+   arquivo. Grava `import_batch` e uma `import_row` por registro. **Nao cria
+   empresa.**
+2. `POST /imports/{id}/confirm` **importa** as linhas validas e as duplicatas
+   que o operador escolheu, opcionalmente abrindo um lead por empresa. Antes de
+   gravar, reclassifica as validas contra a base: empresa cadastrada entre a
+   analise e a confirmacao vira linha pulada, visivel no relatorio, e nao
+   duplicata silenciosa.
+3. `POST /imports/{id}/discard` desiste e apaga os valores das linhas
+   (minimizacao, doc 07 §2), mantendo os totais.
+
+**Regras:**
+
+- Limites da D14: 2 MB, 2.000 linhas, 50 colunas. Arquivo acima do limite e
+  recusado inteiro; nunca importado pela metade.
+- UTF-8 obrigatorio. Decodificar no charset errado nao falha: troca acentos por
+  lixo em silencio. Delimitador `;`, `,` ou tabulacao, detectado pelo cabecalho.
+- Colunas que nao correspondem a campo da empresa sao ignoradas e listadas na
+  resposta; nao sao guardadas. A linha bruta do arquivo tambem nao e guardada.
+- Confirmacao numa unica transacao, com transicao de status atomica
+  (`ANALYZED` para `IMPORTING`): duas confirmacoes simultaneas nao importam em
+  dobro, e uma falha desfaz tudo.
+- Proveniencia por empresa: origem `CSV_IMPORT`, nome informado pelo operador
+  (ou "Importacao CSV: arquivo"), referencia "Importacao {id}, linha N" e data
+  da analise como data de coleta.
+- Reenvio do mesmo arquivo e identificado pelo SHA-256 do conteudo e avisado
+  (`previousImportId`); as linhas ja importadas aparecem como duplicatas.
+- Importacao so cria registros novos, nunca altera existentes: nao tem como
+  remover bloqueio de contato (doc 10 §6).
+
+**Fora do escopo:** mesclar duplicata com a empresa existente. A linha
+escolhida e importada como empresa nova; mesclagem exige revisao propria
+(doc 06 §4) e fica para quando houver necessidade real.

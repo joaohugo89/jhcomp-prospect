@@ -28,6 +28,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <springdoc.version>3.2.0</springdoc.version>
     <testcontainers.version>2.0.5</testcontainers.version>
+    <commons-csv.version>1.14.1</commons-csv.version>
   </properties>
 
   <dependencyManagement>
@@ -97,6 +98,17 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>${springdoc.version}</version>
+    </dependency>
+
+    <!--
+      Leitura de CSV na importacao (RF-015). Campos entre aspas, aspas
+      escapadas e quebra de linha dentro de celula sao comuns em planilha
+      exportada; um parser proprio erraria justamente nesses casos.
+    -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>${commons-csv.version}</version>
     </dependency>
 
     <!-- Testes -->

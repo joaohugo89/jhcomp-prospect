@@ -48,6 +48,14 @@ spring:
     virtual:
       enabled: true
 
+  # Importacao CSV sincrona limitada a 2 MB (D14). O teto do multipart fica um
+  # pouco acima para que o caso de uso responda com erro de validacao claro,
+  # e nao o container com 413 generico, ate esse ponto.
+  servlet:
+    multipart:
+      max-file-size: 3MB
+      max-request-size: 3MB
+
 server:
   port: ${BACKEND_PORT:8081}
   servlet:

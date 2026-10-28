@@ -1,5 +1,6 @@
 package com.jhcomp.prospect.company.infrastructure.persistence;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,4 +33,13 @@ public interface CompanyRepository
 
     List<CompanyEntity> findTop10ByOrganizationIdAndNormalizedNameAndCityIgnoreCaseAndStateAndIdNot(
             UUID organizationId, String normalizedName, String city, String state, UUID excludedId);
+
+    // Variantes em lote, para a importacao: uma consulta por sinal para o
+    // arquivo inteiro, em vez de tres por linha.
+
+    List<CompanyEntity> findByOrganizationIdAndNormalizedDomainIn(UUID organizationId, Collection<String> domains);
+
+    List<CompanyEntity> findByOrganizationIdAndNormalizedPhoneIn(UUID organizationId, Collection<String> phones);
+
+    List<CompanyEntity> findByOrganizationIdAndNormalizedNameIn(UUID organizationId, Collection<String> names);
 }

@@ -41,7 +41,7 @@ public class WebUrlValidator implements ConstraintValidator<WebUrl, String> {
         return isWebUrl(value);
     }
 
-    static boolean isWebUrl(String value) {
+    public static boolean isWebUrl(String value) {
         if (FORBIDDEN_CHARACTERS.matcher(value).find()) {
             return false;
         }

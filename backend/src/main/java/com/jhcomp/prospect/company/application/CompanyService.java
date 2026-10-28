@@ -2,6 +2,7 @@ package com.jhcomp.prospect.company.application;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -166,6 +167,34 @@ public class CompanyService {
             throw new ConflictException("Company is archived");
         }
         return company;
+    }
+
+    /**
+     * Empresas da organizacao ativa com algum dos valores normalizados
+     * informados, inclusive arquivadas: uma empresa arquivada continua sendo a
+     * mesma empresa.
+     *
+     * <p>Usado pela importacao para classificar o arquivo inteiro com tres
+     * consultas, em vez de tres por linha.
+     */
+    @Transactional(readOnly = true)
+    public List<CompanyEntity> findByNormalizedValues(
+            Collection<String> domains, Collection<String> phones, Collection<String> names) {
+        UUID organizationId = organizationContext.requireOrganizationId();
+        Map<UUID, CompanyEntity> found = new LinkedHashMap<>();
+        if (!domains.isEmpty()) {
+            companyRepository.findByOrganizationIdAndNormalizedDomainIn(organizationId, domains)
+                    .forEach(company -> found.putIfAbsent(company.getId(), company));
+        }
+        if (!phones.isEmpty()) {
+            companyRepository.findByOrganizationIdAndNormalizedPhoneIn(organizationId, phones)
+                    .forEach(company -> found.putIfAbsent(company.getId(), company));
+        }
+        if (!names.isEmpty()) {
+            companyRepository.findByOrganizationIdAndNormalizedNameIn(organizationId, names)
+                    .forEach(company -> found.putIfAbsent(company.getId(), company));
+        }
+        return List.copyOf(found.values());
     }
 
     /** Registra uma origem ligada a uma oportunidade (RF-011: lead tem origem). */

@@ -144,11 +144,34 @@ Contrato implementado na Etapa 4:
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| POST | `/imports/csv` | Enviar CSV |
-| GET | `/imports/{importId}` | Consultar status |
-| GET | `/imports/{importId}/report` | Consultar erros e resultados |
+| POST | `/imports/csv` | Enviar CSV e analisar (não cria empresa) |
+| GET | `/imports` | Listar importações, paginado |
+| GET | `/imports/{importId}` | Consultar status e totais |
+| GET | `/imports/{importId}/report` | Resultado por linha, paginado, filtro `status` |
+| POST | `/imports/{importId}/confirm` | Importar as linhas aceitas |
+| POST | `/imports/{importId}/discard` | Desistir sem importar |
 
 Para arquivos grandes, usar processamento assíncrono. Validar tamanho, encoding, colunas e conteúdo. Não executar fórmulas de planilha; proteger exportações contra CSV injection.
+
+Contrato implementado na Etapa 5 (D14, D23):
+
+- **Envio:** `multipart/form-data` com `file` (`.csv` ou `.txt`, UTF-8, até
+  2 MB e 2.000 linhas), `sourceName` e `datasetNote` opcionais e `mapping`
+  opcional, um JSON `{"name": "Coluna", "city": "Coluna", ...}` com as chaves
+  do cadastro de empresa. Sem `mapping`, os cabeçalhos são reconhecidos por
+  apelido (`Razão Social`, `Município`, `UF`, `Telefone`…). `name`, `city` e
+  `state` precisam de coluna; sem elas, `400`.
+- **Resposta da análise:** `201` com status `ANALYZED`, totais
+  (`totalRows = validRows + rejectedRows + duplicateRows`), `columnMapping`,
+  `ignoredColumns` e `previousImportId` quando o mesmo arquivo já foi enviado.
+- **Linha do relatório:** `rowNumber` (cabeçalho é a linha 1), `status`
+  (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `SKIPPED`), `values`,
+  `errors` no mesmo formato de erro de campo da API, e para duplicatas
+  `duplicateOfCompanyId` ou `duplicateOfRowNumber` com `duplicateSignals`.
+- **Confirmação:** `{"includeDuplicateRows": [6], "createLeads": true}`.
+  Incluir linha que não é possível duplicata responde `400`; confirmar ou
+  descartar importação que não está `ANALYZED` responde `409`.
+- Importação de outra organização responde `404` em todas as rotas.
 
 ## 7. Discovery
 
