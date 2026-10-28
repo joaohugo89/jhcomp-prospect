@@ -1,5 +1,6 @@
 package com.jhcomp.prospect.discovery;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,8 +19,12 @@ interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, UUID> {
     Page<ImportBatchEntity> findByOrganizationIdOrderByCreatedAtDescIdAsc(UUID organizationId, Pageable pageable);
 
     /** Importacao anterior do mesmo arquivo, para avisar reenvio (doc 10 §4). */
-    Optional<ImportBatchEntity> findFirstByOrganizationIdAndFileSha256AndIdNotAndStatusNotOrderByCreatedAtDesc(
-            UUID organizationId, String fileSha256, UUID excludedId, ImportBatchEntity.Status excludedStatus);
+    Optional<ImportBatchEntity> findFirstByOrganizationIdAndFileSha256AndIdNotAndCreatedAtBeforeAndStatusNotOrderByCreatedAtDesc(
+            UUID organizationId,
+            String fileSha256,
+            UUID excludedId,
+            Instant createdBefore,
+            ImportBatchEntity.Status excludedStatus);
 
     /**
      * Passa de {@code from} para {@code to} so se ainda estiver em {@code from}.

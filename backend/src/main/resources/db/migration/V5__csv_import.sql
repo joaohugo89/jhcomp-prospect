@@ -21,6 +21,9 @@ CREATE TABLE import_batch (
     -- Cabecalho do arquivo -> campo da empresa, como JSON. Texto, e nao jsonb:
     -- so e lido e escrito inteiro pela aplicacao, nunca consultado por chave.
     column_mapping      text        NOT NULL,
+    -- Cabecalhos do arquivo que nao viraram campo, como JSON. Guardados para o
+    -- operador conferir o mapeamento; os valores dessas colunas nao sao lidos.
+    ignored_columns     text        NOT NULL,
 
     status              text        NOT NULL,
     total_rows          integer     NOT NULL,

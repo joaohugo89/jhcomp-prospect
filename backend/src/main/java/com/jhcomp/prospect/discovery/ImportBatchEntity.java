@@ -47,6 +47,9 @@ public class ImportBatchEntity {
     @Column(name = "column_mapping", nullable = false, updatable = false)
     private String columnMapping;
 
+    @Column(name = "ignored_columns", nullable = false, updatable = false)
+    private String ignoredColumns;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
@@ -90,6 +93,7 @@ public class ImportBatchEntity {
             String sourceName,
             String datasetNote,
             String columnMapping,
+            String ignoredColumns,
             int validRows,
             int rejectedRows,
             int duplicateRows,
@@ -102,6 +106,7 @@ public class ImportBatchEntity {
         this.sourceName = sourceName;
         this.datasetNote = datasetNote;
         this.columnMapping = columnMapping;
+        this.ignoredColumns = ignoredColumns;
         this.status = Status.ANALYZED;
         this.totalRows = validRows + rejectedRows + duplicateRows;
         this.validRows = validRows;
@@ -157,6 +162,10 @@ public class ImportBatchEntity {
 
     public String getColumnMapping() {
         return columnMapping;
+    }
+
+    public String getIgnoredColumns() {
+        return ignoredColumns;
     }
 
     public Status getStatus() {

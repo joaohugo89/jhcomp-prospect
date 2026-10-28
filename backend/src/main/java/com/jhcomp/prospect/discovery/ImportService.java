@@ -57,6 +57,7 @@ public class ImportService {
 
     private static final TypeReference<List<ImportRowValidator.RowError>> ERRORS_TYPE = new TypeReference<>() {};
     private static final TypeReference<LinkedHashMap<String, String>> MAPPING_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<String>> IGNORED_TYPE = new TypeReference<>() {};
 
     private final ImportBatchRepository batchRepository;
     private final ImportRowRepository rowRepository;
@@ -90,11 +91,8 @@ public class ImportService {
     public record AnalyzeCommand(
             String fileName, byte[] content, String sourceName, String datasetNote, Map<String, String> mapping) {}
 
-    /** Resultado da analise, com informacoes que so existem neste momento. */
-    public record Analysis(ImportBatchEntity batch, List<String> ignoredColumns, UUID previousImportId) {}
-
     @Transactional
-    public Analysis analyze(AnalyzeCommand command) {
+    public ImportBatchEntity analyze(AnalyzeCommand command) {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
         CsvTable table = CsvTable.parse(command.content());
         Map<ImportField, Integer> columns = resolveMapping(table.headers(), command.mapping());
@@ -116,32 +114,25 @@ public class ImportService {
         int duplicates = DuplicateClassifier.classify(rows, companyService, true);
         int rejected = (int) rows.stream().filter(row -> row.getStatus() == ImportRowEntity.Status.REJECTED).count();
 
-        String sha256 = sha256(command.content());
+        List<String> ignored = new ArrayList<>(table.headers());
+        columns.values().forEach(column -> ignored.remove(table.headers().get(column)));
+
         ImportBatchEntity batch = batchRepository.save(new ImportBatchEntity(
                 importId,
                 user.organizationId(),
                 cleanFileName(command.fileName()),
-                sha256,
+                sha256(command.content()),
                 sourceName(command),
                 blankToNull(command.datasetNote()),
                 objectMapper.writeValueAsString(toMappingJson(table.headers(), columns)),
+                objectMapper.writeValueAsString(ignored),
                 rows.size() - rejected - duplicates,
                 rejected,
                 duplicates,
                 user.userId(),
                 clock.instant()));
         rowRepository.saveAll(rows);
-
-        UUID previous = batchRepository
-                .findFirstByOrganizationIdAndFileSha256AndIdNotAndStatusNotOrderByCreatedAtDesc(
-                        user.organizationId(), sha256, importId, ImportBatchEntity.Status.DISCARDED)
-                .map(ImportBatchEntity::getId)
-                .orElse(null);
-
-        List<String> ignored = new ArrayList<>(table.headers());
-        columns.values().forEach(column -> ignored.remove(table.headers().get(column)));
-
-        return new Analysis(batch, List.copyOf(ignored), previous);
+        return batch;
     }
 
     /**
@@ -253,6 +244,24 @@ public class ImportService {
 
     public List<ImportRowValidator.RowError> errorsOf(ImportRowEntity row) {
         return row.getErrors() == null ? List.of() : objectMapper.readValue(row.getErrors(), ERRORS_TYPE);
+    }
+
+    public List<String> ignoredColumnsOf(ImportBatchEntity batch) {
+        return objectMapper.readValue(batch.getIgnoredColumns(), IGNORED_TYPE);
+    }
+
+    /** Importacao anterior, nao descartada, do mesmo arquivo na mesma organizacao (doc 10 §4). */
+    @Transactional(readOnly = true)
+    public UUID previousImportOf(ImportBatchEntity batch) {
+        return batchRepository
+                .findFirstByOrganizationIdAndFileSha256AndIdNotAndCreatedAtBeforeAndStatusNotOrderByCreatedAtDesc(
+                        batch.getOrganizationId(),
+                        batch.getFileSha256(),
+                        batch.getId(),
+                        batch.getCreatedAt(),
+                        ImportBatchEntity.Status.DISCARDED)
+                .map(ImportBatchEntity::getId)
+                .orElse(null);
     }
 
     public Map<String, String> mappingOf(ImportBatchEntity batch) {

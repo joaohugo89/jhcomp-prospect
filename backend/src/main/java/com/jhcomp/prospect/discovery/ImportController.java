@@ -85,10 +85,8 @@ public class ImportController {
             throw new InvalidRequestException("datasetNote must have at most 1000 characters");
         }
 
-        var analysis = importService.analyze(new ImportService.AnalyzeCommand(
-                fileName, file.getBytes(), sourceName, datasetNote, parseMapping(mapping)));
-        return ImportResponse.from(analysis.batch(), importService.mappingOf(analysis.batch()),
-                analysis.ignoredColumns(), analysis.previousImportId());
+        return detailed(importService.analyze(new ImportService.AnalyzeCommand(
+                fileName, file.getBytes(), sourceName, datasetNote, parseMapping(mapping))));
     }
 
     @GetMapping
@@ -96,13 +94,13 @@ public class ImportController {
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         var pageable = PageRequests.of(page, size, null, Map.of(), Sort.unsorted());
         return PageResponse.from(importService.list(pageable),
-                batch -> ImportResponse.from(batch, importService.mappingOf(batch), null, null));
+                batch -> ImportResponse.from(
+                        batch, importService.mappingOf(batch), importService.ignoredColumnsOf(batch), null));
     }
 
     @GetMapping("/{importId}")
     public ImportResponse get(@PathVariable UUID importId) {
-        var batch = importService.find(importId);
-        return ImportResponse.from(batch, importService.mappingOf(batch), null, null);
+        return detailed(importService.find(importId));
     }
 
     /** Resultado por linha (aceite do RF-015), filtravel por status. */
@@ -119,17 +117,24 @@ public class ImportController {
 
     @PostMapping("/{importId}/confirm")
     public ImportResponse confirm(@PathVariable UUID importId, @Valid @RequestBody ConfirmImportRequest request) {
-        var batch = importService.confirm(
+        return detailed(importService.confirm(
                 importId,
                 request.includeDuplicateRows() == null ? Set.of() : request.includeDuplicateRows(),
-                Boolean.TRUE.equals(request.createLeads()));
-        return ImportResponse.from(batch, importService.mappingOf(batch), null, null);
+                Boolean.TRUE.equals(request.createLeads())));
     }
 
     @PostMapping("/{importId}/discard")
     public ImportResponse discard(@PathVariable UUID importId) {
-        var batch = importService.discard(importId);
-        return ImportResponse.from(batch, importService.mappingOf(batch), null, null);
+        return detailed(importService.discard(importId));
+    }
+
+    /** Resposta completa, com o aviso de reenvio do mesmo arquivo. */
+    private ImportResponse detailed(ImportBatchEntity batch) {
+        return ImportResponse.from(
+                batch,
+                importService.mappingOf(batch),
+                importService.ignoredColumnsOf(batch),
+                importService.previousImportOf(batch));
     }
 
     private Map<String, String> parseMapping(String mapping) {
