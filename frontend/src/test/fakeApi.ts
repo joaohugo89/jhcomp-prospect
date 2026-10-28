@@ -13,6 +13,8 @@ export interface RecordedCall {
   readonly path: string;
   readonly query: URLSearchParams;
   readonly body: unknown;
+  /** Corpo multipart, quando a chamada envia arquivo. */
+  readonly form: FormData | undefined;
 }
 
 type Handler = (call: RecordedCall) => Response;
@@ -44,7 +46,8 @@ export function fakeApi(routes: Readonly<Record<string, Handler>>): RecordedCall
       const path = parsed.pathname.replace(/^\/api\/v1/, '');
       const method = init?.method ?? 'GET';
       const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
-      const call: RecordedCall = { method, path, query: parsed.searchParams, body };
+      const form = init?.body instanceof FormData ? init.body : undefined;
+      const call: RecordedCall = { method, path, query: parsed.searchParams, body, form };
       calls.push(call);
 
       const handler = ordered.find(([route]) => {

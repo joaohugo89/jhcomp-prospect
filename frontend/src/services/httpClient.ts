@@ -113,6 +113,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   // Metodos que alteram estado exigem o token CSRF; GET nao.
   const csrfToken = UNSAFE_METHODS.has(method) ? readCsrfToken() : undefined;
 
+  // FormData vai como multipart: o navegador define o Content-Type com o
+  // boundary, que não pode ser escrito à mão.
+  const isForm = body instanceof FormData;
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
     // A sessão é um cookie HttpOnly (decisão D1), por isso credentials é
@@ -120,10 +124,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     credentials: 'include',
     headers: {
       Accept: 'application/json',
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(body === undefined || isForm ? {} : { 'Content-Type': 'application/json' }),
       ...(csrfToken === undefined ? {} : { [CSRF_HEADER]: csrfToken }),
     },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    ...(body === undefined ? {} : { body: isForm ? body : JSON.stringify(body) }),
     signal: combinedSignal,
   });
 

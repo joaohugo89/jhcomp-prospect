@@ -136,6 +136,16 @@ Cada uma custou tempo real. Não reintroduzir.
   passam a falhar com 429 em ordem imprevisível.
 - **`typescript-eslint` não suporta TypeScript 7** (peer `<6.1.0` em
   2026-11-05). Não forçar com `--legacy-peer-deps`; ver pendência da Etapa 4.
+- **nginx corta corpo acima de 1 MB por padrão** (`client_max_body_size`), com
+  413 antes de chegar ao backend. A importação aceita 2 MB (D14); o limite está
+  em `frontend/nginx.conf`. Teste de upload só pelo MockMvc não pega isso.
+- **Spring Data ignora repositório declarado como interface aninhada**
+  (`considerNestedRepositories = false`). Um arquivo por repositório.
+- **JSX descarta espaço no fim de linha seguido de quebra.** `{a}: ` numa linha
+  e `{b}` na seguinte renderiza `a:b`. Montar o texto numa template string.
+- **`curl -F file=@/c/...` no Git Bash não traduz o caminho do Windows**: a
+  requisição falha sem mensagem. Rodar de dentro da pasta, com caminho
+  relativo.
 - **O cookie CSRF precisa de `setCookiePath("/")`.** Sem isso herda o
   context-path `/api/v1`, e o JavaScript da página servida em `/` não o vê: o
   login falha com 403 **no navegador**, embora todo teste de API passe. Há

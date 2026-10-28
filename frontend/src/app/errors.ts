@@ -13,6 +13,7 @@ const FIELD_MESSAGES: readonly [RegExp, string][] = [
   [/email address/, 'Informe um e-mail válido.'],
   [/size must be between/, 'Texto longo demais.'],
   [/past or in the present/, 'A data não pode estar no futuro.'],
+  [/more cells than the header/, 'A linha tem mais colunas que o cabeçalho. Verifique delimitadores dentro de valores sem aspas.'],
 ];
 
 export function fieldMessage(message: string): string {

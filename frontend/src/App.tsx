@@ -8,6 +8,8 @@ import { LoginPage } from './modules/auth/LoginPage';
 import { CompaniesPage } from './modules/companies/CompaniesPage';
 import { CompanyDetailPage } from './modules/companies/CompanyDetailPage';
 import { CompanyNewPage } from './modules/companies/CompanyNewPage';
+import { ImportDetailPage } from './modules/imports/ImportDetailPage';
+import { ImportsPage } from './modules/imports/ImportsPage';
 import { LeadDetailPage } from './modules/leads/LeadDetailPage';
 import { LeadsPage } from './modules/leads/LeadsPage';
 import { MembersPage } from './modules/members/MembersPage';
@@ -108,6 +110,10 @@ function Screen({ route }: { readonly route: Route }): React.JSX.Element {
       return <CompanyNewPage />;
     case 'company':
       return <CompanyDetailPage key={route.id} id={route.id} />;
+    case 'imports':
+      return <ImportsPage />;
+    case 'import':
+      return <ImportDetailPage key={route.id} id={route.id} />;
     case 'members':
       return <MembersPage />;
     case 'notFound':

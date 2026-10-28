@@ -14,6 +14,8 @@ export type Route =
   | { readonly name: 'company'; readonly id: string }
   | { readonly name: 'leads' }
   | { readonly name: 'lead'; readonly id: string }
+  | { readonly name: 'imports' }
+  | { readonly name: 'import'; readonly id: string }
   | { readonly name: 'members' }
   | { readonly name: 'notFound' };
 
@@ -29,6 +31,8 @@ const PATTERNS: readonly [RegExp, (match: RegExpMatchArray) => Route][] = [
   [/^\/companies\/?$/, () => ({ name: 'companies' })],
   [/^\/companies\/new\/?$/, () => ({ name: 'companyNew' })],
   [new RegExp(`^/companies/${ID}/?$`), (match) => ({ name: 'company', id: match[1] ?? '' })],
+  [/^\/imports\/?$/, () => ({ name: 'imports' })],
+  [new RegExp(`^/imports/${ID}/?$`), (match) => ({ name: 'import', id: match[1] ?? '' })],
   [/^\/settings\/members\/?$/, () => ({ name: 'members' })],
 ];
 
