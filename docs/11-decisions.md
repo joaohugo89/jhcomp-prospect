@@ -12,15 +12,15 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D1 | Estratégia de autenticação | Aprovada | 3 |
 | D2 | Estado do lead vs. etapa do deal | Aprovada | 7 |
 | D3 | Onde o score é calculado e persistido | Proposta | 6 |
-| D4 | `Company.normalized_name` | Proposta | 4 |
-| D5 | `CompanyContact` fora do P0 | Proposta | 4 |
-| D6 | `LeadSource.company_id` obrigatório | Proposta | 4 |
+| D4 | `Company.normalized_name` | Aprovada | 4 |
+| D5 | `CompanyContact` fora do P0 | Aprovada | 4 |
+| D6 | `LeadSource.company_id` obrigatório | Aprovada | 4 |
 | D7 | Score sem análise (baseline) | Proposta | 6 |
 | D8 | Ownership em `/findings/{id}/review` | Proposta | 6 |
 | D9 | Pipeline semeada, sem CRUD | Proposta | 7 |
-| D10 | Normalização compartilhada | Proposta | 4 |
+| D10 | Normalização compartilhada | Aprovada | 4 |
 | D11 | `WebsiteTemplate` é entidade global | Proposta | pós-MVP |
-| D12 | Verificação de dado de `Company` | Proposta | 4 |
+| D12 | Verificação de dado de `Company` | Aprovada | 4 |
 | D13 | Website Studio fora do MVP | Aprovada | pós-MVP |
 | D14 | Importação CSV síncrona no MVP | Proposta | 5 |
 | D15 | Tabela de jobs em vez de `@Async` | Proposta | 6 |
@@ -31,7 +31,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D20 | Limitador de login com reserva atomica e teto de memoria | Aprovada | 3 |
 | D21 | Revalidacao da associacao a cada requisicao | Aprovada | 3 |
 | D22 | Nomes de cookie proprios do projeto | Aprovada | 3 |
-| D23 | Importacao CSV em duas fases | Proposta | 5 |
+| D23 | Importacao CSV em duas fases | Aprovada | 5 |
 
 ---
 
@@ -83,7 +83,7 @@ O score aparece em três lugares: `AnalysisFinding.points_awarded`,
 critérios independentes de análise (ver D7). Revisar um achado recalcula a cadeia
 inteira de forma reproduzível.
 
-## D4 — `normalized_name` é coluna persistida · Proposta (Etapa 4)
+## D4 — `normalized_name` é coluna persistida · Aprovada (Etapa 4, 2026-11-05)
 
 `docs/04` §2 cita `(organization_id, normalized_name, city, state)` como índice
 sugerido, mas `normalized_name` não consta na lista de campos de `Company`.
@@ -92,7 +92,7 @@ sugerido, mas `normalized_name` não consta na lista de campos de `Company`.
 D10. Calcular em memória impediria o índice, e a deduplicação depende dele.
 O nome original é sempre preservado, conforme `docs/04` §2.
 
-## D5 — `CompanyContact` fora do P0 · Proposta (Etapa 4)
+## D5 — `CompanyContact` fora do P0 · Aprovada (Etapa 4, 2026-11-05)
 
 Telefone e e-mail existem em `Company` **e** em `CompanyContact`, tornando
 ambígua a deduplicação por telefone (`docs/06` §4) e a checagem de bloqueio.
@@ -103,7 +103,7 @@ necessidade real de múltiplos contatos por empresa, momento em que `Company`
 mantém o contato principal (exibição e dedup) e `CompanyContact` passa a ser a
 lista completa.
 
-## D6 — `LeadSource.company_id` obrigatório · Proposta (Etapa 4)
+## D6 — `LeadSource.company_id` obrigatório · Aprovada (Etapa 4, 2026-11-05)
 
 `docs/04` §2 define `lead_id` e `company_id` ambos nullable, permitindo registro
 de proveniência órfão.
@@ -138,7 +138,7 @@ de escrita em `docs/05` nem tela em `docs/08`.
 etapas de `docs/06` §3 alinhadas a `Lead.status` (ver D2). Sem CRUD e sem tela de
 administração no MVP.
 
-## D10 — Componente único de normalização · Proposta (Etapa 4)
+## D10 — Componente único de normalização · Aprovada (Etapa 4, 2026-11-05)
 
 A normalização de telefone aparece como regra da deduplicação (`docs/06` §4) e,
 separadamente, como `contact_identifier_normalized` da lista de não contato
@@ -160,7 +160,7 @@ entidades. `docs/04` §2 já trata isso como intencional.
 não seja alcançada pelo filtro automático de organização nem confundida com dado
 privado, conforme `docs/03` §8.
 
-## D12 — Verificação de dado vive na análise · Proposta (Etapa 4)
+## D12 — Verificação de dado vive na análise · Aprovada (Etapa 4, 2026-11-05)
 
 RF-023 exige "não sobrescrever silenciosamente informação confirmada por outra
 fonte", mas não existe status de verificação em `Company`: os estados de
@@ -431,7 +431,7 @@ navegador, que continua sendo enviado. Testar com o residuo presente, e nao
 apenas com pote de cookies limpo. Teste de API com `curl` nao reproduz as
 regras de path e de duplicidade que o navegador aplica.
 
-## D23 — Importacao CSV em duas fases · Proposta (Etapa 5)
+## D23 — Importacao CSV em duas fases · Aprovada (Etapa 5, 2026-11-05)
 
 `docs/04` nao define entidade de importacao, e `docs/05` §6 lista apenas envio,
 consulta e relatorio. O roadmap pede, porem, "revisar e persistir registros

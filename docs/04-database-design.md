@@ -44,25 +44,32 @@ Restrição única: `(organization_id, user_id)`.
 - `id`
 - `organization_id`
 - `name`
+- `normalized_name` (D4: persistido, para a deduplicação usar índice)
 - `trade_name` nullable
 - `segment` nullable
 - `city`
 - `state`
 - `website_url` nullable
 - `instagram_url` nullable
+- `normalized_domain` nullable (D10)
 - `phone` nullable
+- `normalized_phone` nullable, E.164 (D10)
 - `business_email` nullable
 - `address` nullable
 - `notes` nullable
+- `archived_at` nullable
 - `created_at`
 - `updated_at`
+
+As colunas normalizadas são preenchidas pelo componente único de normalização (D10), o mesmo usado pela lista de não contato.
+Não há verificação por campo em `Company`: o estado de verificação vive na análise e em `LeadSource` (D12).
 
 Índices sugeridos:
 - `(organization_id, normalized_name, city, state)`
 - `(organization_id, segment)`
 - `(organization_id, city, state)`
 
-`normalized_name` pode ser coluna calculada pela aplicação ou persistida para facilitar comparação. Não deve substituir o nome original.
+`normalized_name` é persistido (D4) e nunca substitui nem é exibido no lugar do nome original.
 
 ### Lead
 - `id`
@@ -83,7 +90,7 @@ Um lead representa uma oportunidade comercial, não necessariamente uma empresa 
 - `id`
 - `organization_id`
 - `lead_id` nullable
-- `company_id` nullable
+- `company_id` obrigatório (D6)
 - `source_type`
 - `source_name`
 - `source_reference` nullable
@@ -95,6 +102,9 @@ Um lead representa uma oportunidade comercial, não necessariamente uma empresa 
 Registrar a origem sem copiar conteúdo protegido ou dados além do necessário.
 
 ### CompanyContact
+
+**Fora do MVP (D5).** O contato principal fica em `Company`. Reintroduzir quando houver necessidade real de vários contatos por empresa.
+
 - `id`
 - `organization_id`
 - `company_id`
@@ -287,14 +297,43 @@ Templates globais devem ser explicitamente separados dos templates privados de u
 - `status`
 - `deployed_at` nullable
 
+### ImportBatch (D23)
+- `id`
+- `organization_id`
+- `file_name`
+- `file_sha256` (identifica reenvio do mesmo arquivo)
+- `source_name`
+- `dataset_note` nullable
+- `column_mapping`, `ignored_columns`
+- `status` (`ANALYZED`, `IMPORTING`, `COMPLETED`, `DISCARDED`)
+- totais: `total_rows`, `valid_rows`, `rejected_rows`, `duplicate_rows`, `imported_rows`, `merged_rows`, `leads_created`
+- `created_by_user_id`
+- `created_at`
+- `completed_at` nullable
+
+### ImportRow (D23)
+- `id`
+- `organization_id`
+- `import_id`
+- `row_number`
+- `status` (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`)
+- campos mapeados da empresa (nulos após descarte)
+- `errors` nullable
+- `duplicate_of_company_id`, `duplicate_of_row_number`, `duplicate_signals` nullable
+- `merged_fields` nullable
+- `company_id`, `lead_id` nullable
+
+Não guarda a linha bruta do arquivo nem colunas que não viram campo.
+
 ## 3. Relacionamentos
 
 - Organization 1:N OrganizationMember.
 - User 1:N OrganizationMember.
 - Organization 1:N Company.
 - Company 1:N Lead.
-- Company 1:N CompanyContact.
+- Company 1:N CompanyContact (fora do MVP, D5).
 - Company/Lead 1:N LeadSource.
+- ImportBatch 1:N ImportRow (D23).
 - Lead 1:N LeadAnalysis.
 - LeadAnalysis 1:N AnalysisFinding.
 - AnalysisFinding 1:N AnalysisEvidence.
@@ -315,7 +354,7 @@ Templates globais devem ser explicitamente separados dos templates privados de u
 - Não confiar em UUID enviado pelo frontend como prova de autorização.
 - Consultas devem sempre incluir escopo da organização.
 - Testar acesso cruzado entre organizações.
-- Considerar chaves estrangeiras compostas ou validação transacional para impedir associações entre tenants diferentes.
+- Chaves estrangeiras compostas com `organization_id` impedem associações entre tenants diferentes (V4); toda tabela nova segue o mesmo padrão.
 
 ## 5. Deduplicação
 

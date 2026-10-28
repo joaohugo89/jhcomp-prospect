@@ -35,6 +35,9 @@ já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
   `Deal` guarda só valor, serviço, resultado e motivo de perda.
 - **D13** Website Studio está fora do MVP. Não criar `WebsiteTemplate`,
   `WebsiteProject` nem `WebsiteDeployment`.
+- **D23** Importação CSV em duas fases: analisar não cria empresa; confirmar
+  importa válidas, duplicatas escolhidas e completa empresas existentes só nos
+  campos vazios. Limites da D14: 2 MB, 2.000 linhas.
 - **D16** 8 módulos, não 12: `enrichment` dentro de `company`, `organization`
   dentro de `identity`. As 4 camadas completas só em `company`, `lead`,
   `analysis` e `outreach`; `discovery` e `dashboard` são planos.
@@ -69,7 +72,7 @@ docker compose up -d postgres         # só o banco
 cd backend  && mvn verify                 # compila + testes (sobe Postgres via Testcontainers)
 cd backend  && mvn spring-boot:run        # API em :8081, base path /api/v1
 cd frontend && npm run dev                # UI em :5174
-cd frontend && npm run typecheck && npm test -- --run && npm run build
+cd frontend && npm run typecheck && npm run lint && npm test -- --run && npm run build
 ```
 
 Conferência rápida: `curl http://localhost:8081/api/v1/health`.
@@ -135,7 +138,9 @@ Cada uma custou tempo real. Não reintroduzir.
   127.0.0.1 esgotam a cota por rede conforme a suíte cresce, e os testes
   passam a falhar com 429 em ordem imprevisível.
 - **`typescript-eslint` não suporta TypeScript 7** (peer `<6.1.0` em
-  2026-11-05). Não forçar com `--legacy-peer-deps`; ver pendência da Etapa 4.
+  2026-11-05). O lint é o `oxlint` (`npm run lint`, avisos tratados como
+  erro), que não depende do compilador. Não forçar ESLint com
+  `--legacy-peer-deps`.
 - **nginx corta corpo acima de 1 MB por padrão** (`client_max_body_size`), com
   413 antes de chegar ao backend. A importação aceita 2 MB (D14); o limite está
   em `frontend/nginx.conf`. Teste de upload só pelo MockMvc não pega isso.
