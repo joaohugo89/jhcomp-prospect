@@ -48,6 +48,16 @@ function csvFile(content: string, name = 'empresas.csv'): File {
   return new File([content], name, { type: 'text/csv' });
 }
 
+  function routes(overrides: Record<string, () => Response> = {}) {
+    return fakeApi({
+      'GET /imports/': () => json(batch),
+      [`GET /imports/${IMPORT_ID}/report`]: () => json(page(rows)),
+      [`POST /imports/${IMPORT_ID}/confirm`]: () => json({ ...batch, status: 'COMPLETED', importedRows: 3, leadsCreated: 3 }),
+      [`POST /imports/${IMPORT_ID}/discard`]: () => json({ ...batch, status: 'DISCARDED' }),
+      ...overrides,
+    });
+  }
+
 describe('parseHeaderLine', () => {
   it('le ponto e virgula, BOM e aspas como o backend', () => {
     expect(parseHeaderLine('﻿Razão Social;"Cidade; UF";Site\r\nA;B;C')).toEqual(['Razão Social', 'Cidade; UF', 'Site']);
@@ -135,15 +145,6 @@ describe('Importações', () => {
   });
 
   describe('revisao', () => {
-    function routes(overrides: Record<string, () => Response> = {}) {
-      return fakeApi({
-        'GET /imports/': () => json(batch),
-        [`GET /imports/${IMPORT_ID}/report`]: () => json(page(rows)),
-        [`POST /imports/${IMPORT_ID}/confirm`]: () => json({ ...batch, status: 'COMPLETED', importedRows: 3, leadsCreated: 3 }),
-        [`POST /imports/${IMPORT_ID}/discard`]: () => json({ ...batch, status: 'DISCARDED' }),
-        ...overrides,
-      });
-    }
 
     it('mostra totais, colunas ignoradas e o erro de cada linha em portugues', async () => {
       routes();

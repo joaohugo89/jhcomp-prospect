@@ -26,36 +26,40 @@ export function useLoad<T>(
   key: string,
   loader: (signal: AbortSignal) => Promise<T>,
 ): readonly [Load<T>, () => void] {
-  const [state, setState] = useState<Load<T>>({ kind: 'loading' });
   const [version, setVersion] = useState(0);
+  const requestKey = `${key}#${version}`;
+  // Resultado guardado com a chave que o produziu. Enquanto a chave atual não
+  // tiver resultado, o estado é "carregando" por derivação, sem setState
+  // síncrono dentro do efeito, que custaria uma renderização extra.
+  const [result, setResult] = useState<{ readonly key: string; readonly load: Load<T> } | null>(null);
 
   // Lê sempre o loader mais recente sem que ele seja dependência do efeito.
   const load = useEffectEvent((signal: AbortSignal) => loader(signal));
 
   useEffect(() => {
     const controller = new AbortController();
-    setState({ kind: 'loading' });
 
     load(controller.signal)
       .then((data) => {
-        setState({ kind: 'ready', data });
+        setResult({ key: requestKey, load: { kind: 'ready', data } });
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) {
           return;
         }
-        setState(toFailure(cause));
+        setResult({ key: requestKey, load: toFailure(cause) });
       });
 
     return () => {
       controller.abort();
     };
-  }, [key, version]);
+  }, [requestKey]);
 
   const reload = useCallback(() => {
     setVersion((current) => current + 1);
   }, []);
 
+  const state: Load<T> = result !== null && result.key === requestKey ? result.load : { kind: 'loading' };
   return [state, reload];
 }
 

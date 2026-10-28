@@ -159,7 +159,7 @@ function ReviewActions({
     setError(null);
     try {
       if (action === 'confirm') {
-        await confirmImport(batch.id, [...included].sort((a, b) => a - b), createLeads);
+        await confirmImport(batch.id, [...included].toSorted((a, b) => a - b), createLeads);
       } else {
         await discardImport(batch.id);
       }
@@ -290,7 +290,8 @@ function Report({
       <h2 id="relatorio" className="mb-3 text-base font-semibold">
         Linhas do arquivo
       </h2>
-      <div role="group" aria-label="Filtrar linhas" className="mb-3 flex flex-wrap gap-2">
+      <fieldset className="mb-3 flex flex-wrap gap-2">
+        <legend className="sr-only">Filtrar linhas</legend>
         {filters.map(([status, label]) => (
           <button
             key={label}
@@ -307,7 +308,7 @@ function Report({
             {label}
           </button>
         ))}
-      </div>
+      </fieldset>
 
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />

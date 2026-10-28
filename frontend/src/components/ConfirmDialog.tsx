@@ -69,6 +69,8 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+      {/* Teclado no próprio diálogo é o padrão de modal do WAI-ARIA: Esc fecha e Tab fica preso dentro. */}
+      {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         ref={dialogRef}
         role="alertdialog"

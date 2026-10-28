@@ -11,7 +11,8 @@
     "build": "tsc --build && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "oxlint -c .oxlintrc.json --deny-warnings src"
   },
   "dependencies": {
     "react": "19.3.1",
@@ -27,6 +28,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.2.1",
     "jsdom": "30.1.3",
+    "oxlint": "1.91.0",
     "tailwindcss": "4.3.4",
     "typescript": "7.0.2",
     "vite": "8.3.5",

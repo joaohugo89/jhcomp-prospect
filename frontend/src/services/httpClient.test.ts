@@ -2,6 +2,30 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HttpError, onSessionExpired, request, toQuery } from './httpClient';
 
+type FetchMock = ReturnType<typeof vi.fn<(url: string, init?: RequestInit) => Promise<Response>>>;
+
+function stubFetch(response: Response): FetchMock {
+  const spy = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(() => Promise.resolve(response));
+  vi.stubGlobal('fetch', spy);
+  return spy;
+}
+
+/** Cabeçalhos enviados na primeira chamada. */
+function sentHeaders(spy: FetchMock): Record<string, string> {
+  const init = spy.mock.calls[0]?.[1];
+  if (init === undefined) {
+    throw new Error('fetch não foi chamado com opções');
+  }
+  return init.headers as Record<string, string>;
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 /** Cliente HTTP centralizado: sessao por cookie e token CSRF (decisao D1). */
 describe('httpClient', () => {
   afterEach(() => {
@@ -9,19 +33,6 @@ describe('httpClient', () => {
     // Limpa o cookie entre testes para nao vazar estado.
     document.cookie = 'JH_XSRF=; Max-Age=0; path=/';
   });
-
-  function stubFetch(response: Response): ReturnType<typeof vi.fn> {
-    const spy = vi.fn(() => Promise.resolve(response));
-    vi.stubGlobal('fetch', spy);
-    return spy;
-  }
-
-  function jsonResponse(body: unknown, status = 200): Response {
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
   it('envia o cookie de sessao em toda requisicao', async () => {
     const spy = stubFetch(jsonResponse({ ok: true }));
@@ -37,7 +48,7 @@ describe('httpClient', () => {
 
     await request('/auth/login', { method: 'POST', body: { email: 'a@b.test' } });
 
-    const headers = (spy.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+    const headers = sentHeaders(spy);
     expect(headers['X-JH-XSRF']).toBe('token-de-teste');
   });
 
@@ -47,7 +58,7 @@ describe('httpClient', () => {
 
     await request('/health');
 
-    const headers = (spy.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+    const headers = sentHeaders(spy);
     expect(headers['X-JH-XSRF']).toBeUndefined();
   });
 
@@ -86,7 +97,7 @@ describe('httpClient', () => {
   });
 
   it('avisa sessao expirada em 401 fora de /auth, e nao no login', async () => {
-    const listener = vi.fn();
+    const listener = vi.fn<() => void>();
     const unsubscribe = onSessionExpired(listener);
 
     stubFetch(jsonResponse({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401));

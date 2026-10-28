@@ -37,7 +37,7 @@ export function page<T>(content: readonly T[], overrides: Partial<{ page: number
 
 export function fakeApi(routes: Readonly<Record<string, Handler>>): RecordedCall[] {
   const calls: RecordedCall[] = [];
-  const ordered = Object.entries(routes).sort(([a], [b]) => b.length - a.length);
+  const ordered = Object.entries(routes).toSorted(([a], [b]) => b.length - a.length);
 
   vi.stubGlobal(
     'fetch',

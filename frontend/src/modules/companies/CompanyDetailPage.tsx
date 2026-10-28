@@ -36,8 +36,8 @@ export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.El
           initial={toInput(company)}
           withSource={false}
           submitLabel="Salvar alterações"
-          onSubmit={async (input) => {
-            await updateCompany(company.id, input);
+          onSubmit={async (values) => {
+            await updateCompany(company.id, values);
             setEditing(false);
             reload();
           }}
@@ -104,7 +104,7 @@ function CompanyData({ company }: { readonly company: Company }): React.JSX.Elem
     [
       'Site',
       website === undefined ? undefined : (
-        <a href={website} target="_blank" rel="noopener noreferrer" className={`${link} break-all`}>
+        <a key="site" href={website} target="_blank" rel="noopener noreferrer" className={`${link} break-all`}>
           {company.websiteUrl}
         </a>
       ),
@@ -112,7 +112,7 @@ function CompanyData({ company }: { readonly company: Company }): React.JSX.Elem
     [
       'Instagram',
       instagram === undefined ? undefined : (
-        <a href={instagram} target="_blank" rel="noopener noreferrer" className={`${link} break-all`}>
+        <a key="instagram" href={instagram} target="_blank" rel="noopener noreferrer" className={`${link} break-all`}>
           {company.instagramUrl}
         </a>
       ),

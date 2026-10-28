@@ -7,6 +7,19 @@ import { CompaniesPage } from './CompaniesPage';
 import { CompanyDetailPage } from './CompanyDetailPage';
 import { CompanyNewPage } from './CompanyNewPage';
 
+  function detailRoutes(overrides: Record<string, () => Response> = {}) {
+    return fakeApi({
+      'GET /companies/': () => json(company),
+      'GET /companies/11111111-1111-4111-8111-111111111111/sources': () =>
+        json(page([{ id: 's-1', type: 'MANUAL', name: 'Cadastro manual', collectedAt: '2026-11-01T12:00:00Z' }])),
+      'GET /companies/11111111-1111-4111-8111-111111111111/duplicates': () =>
+        json([
+          { companyId: 'c-2', name: 'Barbearia Ficticia Centro', city: 'Cidade Exemplo', state: 'MG', archived: false, signals: ['DOMAIN'] },
+        ]),
+      ...overrides,
+    });
+  }
+
 describe('Empresas', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/companies');
@@ -115,18 +128,6 @@ describe('Empresas', () => {
   });
 
   describe('detalhe', () => {
-    function detailRoutes(overrides: Record<string, () => Response> = {}) {
-      return fakeApi({
-        'GET /companies/': () => json(company),
-        'GET /companies/11111111-1111-4111-8111-111111111111/sources': () =>
-          json(page([{ id: 's-1', type: 'MANUAL', name: 'Cadastro manual', collectedAt: '2026-11-01T12:00:00Z' }])),
-        'GET /companies/11111111-1111-4111-8111-111111111111/duplicates': () =>
-          json([
-            { companyId: 'c-2', name: 'Barbearia Ficticia Centro', city: 'Cidade Exemplo', state: 'MG', archived: false, signals: ['DOMAIN'] },
-          ]),
-        ...overrides,
-      });
-    }
 
     it('mostra dados, origem e duplicatas, e monta link seguro para o site', async () => {
       detailRoutes();

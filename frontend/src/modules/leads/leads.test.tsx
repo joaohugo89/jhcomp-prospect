@@ -5,29 +5,29 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LEAD_ID, fakeApi, json, lead, page } from '../../test/fakeApi';
 import { LeadDetailPage } from './LeadDetailPage';
 
+function routes(statusResponse: () => Response = () => json({ ...lead, status: 'CONTACTED' })) {
+  return fakeApi({
+    'GET /leads/': () => json(lead),
+    'GET /leads/22222222-2222-4222-8222-222222222222/timeline': () =>
+      json(
+        page([
+          { type: 'STATUS_CHANGE', id: 'e-1', occurredAt: '2026-11-01T12:00:00Z', actorName: 'Operadora', toStatus: 'NEW' },
+          { type: 'SOURCE', id: 'e-2', occurredAt: '2026-11-01T12:00:00Z', sourceType: 'MANUAL', sourceName: 'Indicacao' },
+        ]),
+      ),
+    'PATCH /leads/': statusResponse,
+  });
+}
+
+async function selectStatus(label: string): Promise<void> {
+  await userEvent.selectOptions(await screen.findByLabelText('Novo status'), label);
+}
+
 /** Mudança de status na tela (doc 06 §2). */
 describe('Detalhe do lead', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
-
-  function routes(statusResponse: () => Response = () => json({ ...lead, status: 'CONTACTED' })) {
-    return fakeApi({
-      'GET /leads/': () => json(lead),
-      'GET /leads/22222222-2222-4222-8222-222222222222/timeline': () =>
-        json(
-          page([
-            { type: 'STATUS_CHANGE', id: 'e-1', occurredAt: '2026-11-01T12:00:00Z', actorName: 'Operadora', toStatus: 'NEW' },
-            { type: 'SOURCE', id: 'e-2', occurredAt: '2026-11-01T12:00:00Z', sourceType: 'MANUAL', sourceName: 'Indicacao' },
-          ]),
-        ),
-      'PATCH /leads/': statusResponse,
-    });
-  }
-
-  async function selectStatus(label: string): Promise<void> {
-    await userEvent.selectOptions(await screen.findByLabelText('Novo status'), label);
-  }
 
   it('so oferece as transicoes permitidas pelo servidor', async () => {
     routes();
