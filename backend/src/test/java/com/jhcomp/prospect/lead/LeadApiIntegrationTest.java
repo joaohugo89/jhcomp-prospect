@@ -9,6 +9,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+import javax.sql.DataSource;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -42,9 +48,15 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private IdentityTestData testData;
 
+    private final JdbcTemplate jdbc;
+
     private OrganizationEntity organization;
     private IdentityTestData.Member operator;
     private MockHttpSession session;
+
+    LeadApiIntegrationTest(@Autowired DataSource dataSource) {
+        this.jdbc = new JdbcTemplate(dataSource);
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -197,6 +209,29 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[0].toStatus").value("QUALIFIED"))
                 .andExpect(jsonPath("$.content[0].reason").value("Perfil compativel"))
                 .andExpect(jsonPath("$.content[0].occurredAt").value(notNullValue()));
+    }
+
+    /**
+     * Empate de instante segue a ordem de gravacao, e nao o id aleatorio.
+     *
+     * <p>O empate e forcado no banco: depender do relogio tornaria o teste
+     * intermitente, que foi exatamente como o problema apareceu.
+     */
+    @Test
+    @DisplayName("eventos no mesmo instante saem na ordem em que foram gravados")
+    void tiesFollowRecordingOrder() throws Exception {
+        String leadId = createLeadFor(createCompany("Loja Ficticia"));
+        changeStatus(leadId, "{\"status\": \"QUALIFIED\"}").andExpect(status().isOk());
+
+        OffsetDateTime sameInstant = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+        UUID lead = UUID.fromString(leadId);
+        jdbc.update("update lead_status_change set changed_at = ? where lead_id = ?", sameInstant, lead);
+        jdbc.update("update lead_source set collected_at = ? where lead_id = ?", sameInstant, lead);
+
+        mockMvc.perform(get("/leads/" + leadId + "/timeline").session(session))
+                .andExpect(jsonPath("$.content[0].toStatus").value("QUALIFIED"))
+                .andExpect(jsonPath("$.content[1].type").value("SOURCE"))
+                .andExpect(jsonPath("$.content[2].toStatus").value("NEW"));
     }
 
     @Test

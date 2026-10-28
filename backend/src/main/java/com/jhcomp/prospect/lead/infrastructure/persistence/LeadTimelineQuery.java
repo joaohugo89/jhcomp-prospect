@@ -20,6 +20,10 @@ import org.springframework.stereotype.Repository;
  * <p>SQL direto porque une duas tabelas numa unica paginacao; com duas
  * consultas paginadas separadas, a ordem entre elas so seria correta pagina a
  * pagina. Ambos os lados filtram por organizacao.
+ *
+ * <p>Empate de instante e desempatado pela ordem de gravacao
+ * ({@code recorded_seq}, V6), e nao pelo id aleatorio: o relogio pode dar o
+ * mesmo instante a eventos gravados em sequencia.
  */
 @Repository
 public class LeadTimelineQuery {
@@ -45,14 +49,15 @@ public class LeadTimelineQuery {
             String sourceReference) {}
 
     private static final String EVENTS = """
-            select 'STATUS_CHANGE' as entry_type, c.id, c.changed_at as occurred_at, u.display_name as actor_name,
+            select 'STATUS_CHANGE' as entry_type, c.id, c.changed_at as occurred_at, c.recorded_seq,
+                   u.display_name as actor_name,
                    c.from_status, c.to_status, c.reason,
                    null as source_type, null as source_name, null as source_url, null as source_reference
               from lead_status_change c
               join app_user u on u.id = c.changed_by_user_id
              where c.organization_id = :organizationId and c.lead_id = :leadId
             union all
-            select 'SOURCE', s.id, s.collected_at, u.display_name,
+            select 'SOURCE', s.id, s.collected_at, s.recorded_seq, u.display_name,
                    null, null, null,
                    s.source_type, s.source_name, s.source_url, s.source_reference
               from lead_source s
@@ -74,7 +79,7 @@ public class LeadTimelineQuery {
                 .addValue("offset", pageable.getOffset());
 
         List<Entry> entries = jdbc.query(
-                "select * from (" + EVENTS + ") events order by occurred_at desc, id limit :limit offset :offset",
+                "select * from (" + EVENTS + ") events order by occurred_at desc, recorded_seq desc limit :limit offset :offset",
                 params,
                 LeadTimelineQuery::toEntry);
 
