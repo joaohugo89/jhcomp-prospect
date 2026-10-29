@@ -42,10 +42,19 @@ export function getImportReport(
   );
 }
 
-export function confirmImport(id: string, includeDuplicateRows: readonly number[], createLeads: boolean): Promise<ImportBatch> {
+/**
+ * @param includeDuplicateRows duplicatas a importar como empresa nova
+ * @param mergeDuplicateRows duplicatas que completam os campos vazios da empresa existente
+ */
+export function confirmImport(
+  id: string,
+  includeDuplicateRows: readonly number[],
+  mergeDuplicateRows: readonly number[],
+  createLeads: boolean,
+): Promise<ImportBatch> {
   return request<ImportBatch>(`/imports/${encodeURIComponent(id)}/confirm`, {
     method: 'POST',
-    body: { includeDuplicateRows, createLeads },
+    body: { includeDuplicateRows, mergeDuplicateRows, createLeads },
     // Confirmar cria uma empresa por linha numa única transação.
     timeoutMs: ANALYSIS_TIMEOUT_MS,
   });

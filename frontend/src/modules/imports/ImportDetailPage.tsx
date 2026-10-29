@@ -16,13 +16,20 @@ import { Pagination } from '../../components/Pagination';
 import { LoadStateView } from '../../components/States';
 import { buttonPrimary, buttonSecondary, link } from '../../components/styles';
 import { confirmImport, discardImport, getImport, getImportReport } from '../../services/importService';
-import { IMPORT_FIELDS, type ImportBatch, type ImportRow, type ImportRowStatus } from '../../types/import';
+import {
+  IMPORT_FIELDS,
+  type DuplicateChoice,
+  type ImportBatch,
+  type ImportField,
+  type ImportRow,
+  type ImportRowStatus,
+} from '../../types/import';
 
 /** Revisão e resultado de uma importação (RF-015, D23). */
 export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [state, reload] = useLoad(id, (signal) => getImport(id, signal));
-  // Duplicatas que o operador decidiu importar. Mantido entre páginas do relatório.
-  const [included, setIncluded] = useState<ReadonlySet<number>>(new Set());
+  // Escolha do operador por possível duplicata. Mantida entre páginas do relatório.
+  const [choices, setChoices] = useState<ReadonlyMap<number, DuplicateChoice>>(new Map());
 
   if (state.kind !== 'ready') {
     return <LoadStateView state={state} onRetry={reload} notFoundMessage="Importação não encontrada." />;
@@ -54,9 +61,9 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
       {reviewing && (
         <ReviewActions
           batch={batch}
-          included={included}
+          choices={choices}
           onDone={() => {
-            setIncluded(new Set());
+            setChoices(new Map());
             reload();
           }}
         />
@@ -70,16 +77,16 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
       {batch.status !== 'DISCARDED' && (
         <Report
           importId={batch.id}
-          version={`${batch.status}:${batch.importedRows}`}
+          version={`${batch.status}:${batch.importedRows}:${batch.mergedRows}`}
           reviewing={reviewing}
-          included={included}
-          onToggle={(rowNumber) => {
-            setIncluded((current) => {
-              const next = new Set(current);
-              if (next.has(rowNumber)) {
+          choices={choices}
+          onChoose={(rowNumber, choice) => {
+            setChoices((current) => {
+              const next = new Map(current);
+              if (choice === null) {
                 next.delete(rowNumber);
               } else {
-                next.add(rowNumber);
+                next.set(rowNumber, choice);
               }
               return next;
             });
@@ -98,11 +105,15 @@ function Summary({ batch }: { readonly batch: ImportBatch }): React.JSX.Element 
     ['Possíveis duplicatas', batch.duplicateRows],
   ];
   if (batch.status === 'COMPLETED') {
-    items.push(['Importadas', batch.importedRows], ['Leads abertos', batch.leadsCreated]);
+    items.push(
+      ['Importadas', batch.importedRows],
+      ['Completadas', batch.mergedRows],
+      ['Leads abertos', batch.leadsCreated],
+    );
   }
 
   return (
-    <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
       {items.map(([label, value]) => (
         <div key={label} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
           <dt className="text-xs text-slate-500">{label}</dt>
@@ -140,11 +151,11 @@ function MappingSummary({ batch }: { readonly batch: ImportBatch }): React.JSX.E
 
 function ReviewActions({
   batch,
-  included,
+  choices,
   onDone,
 }: {
   readonly batch: ImportBatch;
-  readonly included: ReadonlySet<number>;
+  readonly choices: ReadonlyMap<number, DuplicateChoice>;
   readonly onDone: () => void;
 }): React.JSX.Element {
   const [createLeads, setCreateLeads] = useState(false);
@@ -152,14 +163,19 @@ function ReviewActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toImport = batch.validRows + included.size;
+  const rowsWith = (choice: DuplicateChoice): number[] =>
+    [...choices].filter(([, value]) => value === choice).map(([row]) => row).toSorted((a, b) => a - b);
+  const asNew = rowsWith('new');
+  const toMerge = rowsWith('merge');
+  const toCreate = batch.validRows + asNew.length;
+  const summary = describeOutcome(toCreate, toMerge.length);
 
   async function run(action: 'confirm' | 'discard'): Promise<void> {
     setBusy(true);
     setError(null);
     try {
       if (action === 'confirm') {
-        await confirmImport(batch.id, [...included].toSorted((a, b) => a - b), createLeads);
+        await confirmImport(batch.id, asNew, toMerge, createLeads);
       } else {
         await discardImport(batch.id);
       }
@@ -179,8 +195,9 @@ function ReviewActions({
         Revisar e importar
       </h2>
       <p className="mt-1 text-sm text-slate-700">
-        Serão importadas as linhas válidas e as possíveis duplicatas que você marcar abaixo. Rejeitadas nunca são
-        importadas.
+        Serão importadas as linhas válidas e as possíveis duplicatas em que você escolher o que fazer. Completar uma
+        empresa existente só preenche os campos vazios dela; nada que já está cadastrado é alterado. Rejeitadas nunca
+        são importadas.
       </p>
       <label className="mt-3 flex items-center gap-2 text-sm text-slate-800">
         <input
@@ -190,18 +207,18 @@ function ReviewActions({
             setCreateLeads(event.target.checked);
           }}
         />
-        Abrir um lead para cada empresa importada
+        Abrir um lead para cada empresa, se ela ainda não tiver oportunidade aberta
       </label>
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
           className={buttonPrimary}
-          disabled={toImport === 0 || busy}
+          disabled={toCreate + toMerge.length === 0 || busy}
           onClick={() => {
             setDialog('confirm');
           }}
         >
-          Importar {toImport} {toImport === 1 ? 'empresa' : 'empresas'}
+          Confirmar: {summary}
         </button>
         <button
           type="button"
@@ -222,8 +239,8 @@ function ReviewActions({
 
       {dialog === 'confirm' && (
         <ConfirmDialog
-          title={`Importar ${toImport} ${toImport === 1 ? 'empresa' : 'empresas'}?`}
-          description={`As empresas serão criadas com a origem "${batch.sourceName}"${createLeads ? ', cada uma com um lead novo' : ''}. A importação não pode ser repetida a partir desta tela.`}
+          title="Confirmar a importação?"
+          description={`Resultado: ${summary}. A origem registrada será "${batch.sourceName}"${createLeads ? ', com um lead novo para cada empresa sem oportunidade aberta' : ''}. A importação não pode ser repetida a partir desta tela.`}
           confirmLabel="Importar"
           busy={busy}
           onConfirm={() => {
@@ -253,12 +270,21 @@ function ReviewActions({
   );
 }
 
+function describeOutcome(toCreate: number, toMerge: number): string {
+  const created = `${toCreate} ${toCreate === 1 ? 'empresa nova' : 'empresas novas'}`;
+  if (toMerge === 0) {
+    return created;
+  }
+  return `${created} e ${toMerge} ${toMerge === 1 ? 'completada' : 'completadas'}`;
+}
+
 const FILTERS: readonly [ImportRowStatus | '', string][] = [
   ['', 'Todas'],
   ['VALID', 'Válidas'],
   ['DUPLICATE', 'Possíveis duplicatas'],
   ['REJECTED', 'Rejeitadas'],
   ['IMPORTED', 'Importadas'],
+  ['MERGED', 'Completaram empresa'],
   ['SKIPPED', 'Não importadas'],
 ];
 
@@ -266,14 +292,14 @@ function Report({
   importId,
   version,
   reviewing,
-  included,
-  onToggle,
+  choices,
+  onChoose,
 }: {
   readonly importId: string;
   readonly version: string;
   readonly reviewing: boolean;
-  readonly included: ReadonlySet<number>;
-  readonly onToggle: (rowNumber: number) => void;
+  readonly choices: ReadonlyMap<number, DuplicateChoice>;
+  readonly onChoose: (rowNumber: number, choice: DuplicateChoice | null) => void;
 }): React.JSX.Element {
   const [filter, setFilter] = useState<ImportRowStatus | ''>('');
   const [page, setPage] = useState(0);
@@ -282,7 +308,7 @@ function Report({
   );
 
   const filters = FILTERS.filter(([status]) =>
-    reviewing ? status !== 'IMPORTED' && status !== 'SKIPPED' : status !== 'VALID',
+    reviewing ? status !== 'IMPORTED' && status !== 'MERGED' && status !== 'SKIPPED' : status !== 'VALID',
   );
 
   return (
@@ -321,7 +347,12 @@ function Report({
           <ol className="space-y-2">
             {state.data.content.map((row) => (
               <li key={row.rowNumber}>
-                <RowCard row={row} reviewing={reviewing} included={included.has(row.rowNumber)} onToggle={onToggle} />
+                <RowCard
+                  row={row}
+                  reviewing={reviewing}
+                  choice={choices.get(row.rowNumber) ?? null}
+                  onChoose={onChoose}
+                />
               </li>
             ))}
           </ol>
@@ -344,6 +375,7 @@ function errorFieldLabel(field: string): string {
 const ROW_TONE: Readonly<Record<ImportRowStatus, string>> = {
   VALID: 'border-emerald-200',
   IMPORTED: 'border-emerald-200',
+  MERGED: 'border-sky-300',
   REJECTED: 'border-red-200',
   DUPLICATE: 'border-amber-300',
   SKIPPED: 'border-slate-200',
@@ -352,13 +384,13 @@ const ROW_TONE: Readonly<Record<ImportRowStatus, string>> = {
 function RowCard({
   row,
   reviewing,
-  included,
-  onToggle,
+  choice,
+  onChoose,
 }: {
   readonly row: ImportRow;
   readonly reviewing: boolean;
-  readonly included: boolean;
-  readonly onToggle: (rowNumber: number) => void;
+  readonly choice: DuplicateChoice | null;
+  readonly onChoose: (rowNumber: number, choice: DuplicateChoice | null) => void;
 }): React.JSX.Element {
   const shown = IMPORT_FIELDS.filter((field) => row.values[field] !== undefined);
 
@@ -411,16 +443,15 @@ function RowCard({
       )}
 
       {reviewing && row.status === 'DUPLICATE' && (
-        <label className="mt-2 flex items-center gap-2 text-slate-800">
-          <input
-            type="checkbox"
-            checked={included}
-            onChange={() => {
-              onToggle(row.rowNumber);
-            }}
-          />
-          Importar mesmo assim, como empresa nova
-        </label>
+        <DuplicateChoiceControl row={row} choice={choice} onChoose={onChoose} />
+      )}
+
+      {row.mergedFields !== undefined && (
+        <p className="mt-2 text-sky-950">
+          {row.mergedFields.length === 0
+            ? 'A empresa já tinha todos os campos preenchidos; só a origem foi registrada.'
+            : `Campos preenchidos: ${row.mergedFields.map((field: ImportField) => IMPORT_FIELD_LABEL[field]).join(', ')}.`}
+        </p>
       )}
 
       {row.companyId !== undefined && (
@@ -439,5 +470,63 @@ function RowCard({
         </p>
       )}
     </article>
+  );
+}
+
+/**
+ * O que fazer com uma possível duplicata.
+ *
+ * Completar só existe quando a duplicata é de empresa já cadastrada: duplicata
+ * de outra linha do arquivo não tem empresa a completar.
+ */
+function DuplicateChoiceControl({
+  row,
+  choice,
+  onChoose,
+}: {
+  readonly row: ImportRow;
+  readonly choice: DuplicateChoice | null;
+  readonly onChoose: (rowNumber: number, choice: DuplicateChoice | null) => void;
+}): React.JSX.Element {
+  if (row.duplicateOfCompanyId === undefined) {
+    return (
+      <label className="mt-2 flex items-center gap-2 text-slate-800">
+        <input
+          type="checkbox"
+          checked={choice === 'new'}
+          onChange={(event) => {
+            onChoose(row.rowNumber, event.target.checked ? 'new' : null);
+          }}
+        />
+        Importar mesmo assim, como empresa nova
+      </label>
+    );
+  }
+
+  const options: readonly [DuplicateChoice | null, string][] = [
+    [null, 'Não importar'],
+    ['merge', 'Completar os campos vazios da empresa existente'],
+    ['new', 'Importar como empresa nova'],
+  ];
+
+  return (
+    <fieldset className="mt-2">
+      <legend className="sr-only">O que fazer com a linha {row.rowNumber}</legend>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {options.map(([value, label]) => (
+          <label key={label} className="flex items-center gap-2 text-slate-800">
+            <input
+              type="radio"
+              name={`linha-${row.rowNumber}`}
+              checked={choice === value}
+              onChange={() => {
+                onChoose(row.rowNumber, value);
+              }}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

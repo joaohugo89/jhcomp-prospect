@@ -100,6 +100,22 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .content(body));
     }
 
+    private String createExistingCompany(String json) throws Exception {
+        return JsonPath.read(mockMvc.perform(post("/companies")
+                        .session(session)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+    }
+
+    /** Planilha com uma linha que repete o site da empresa existente. */
+    private static final String MERGE_CSV = """
+            nome;cidade;uf;site;telefone;segmento;nome fantasia
+            Outro Nome;Outra Cidade;SP;existente.example.test;(35) 3333-1234;OUTRO;Fantasia Nova
+            """;
+
     private int companies() {
         Integer count = jdbc.queryForObject(
                 "select count(*) from company where organization_id = ?", Integer.class, member.organizationId());
@@ -353,5 +369,106 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.content[*].id", contains(second, first)))
                 .andExpect(jsonPath("$.content[*].status", containsInAnyOrder("ANALYZED", "ANALYZED")));
+    }
+
+    /** RF-023: completar nunca sobrescreve o que ja esta cadastrado. */
+    @Test
+    @DisplayName("completar empresa existente preenche so campos vazios e registra a origem")
+    void mergeFillsOnlyBlankFields() throws Exception {
+        String existing = createExistingCompany("""
+                {"name": "Empresa Existente", "segment": "ORIGINAL", "city": "Cidade Exemplo", "state": "MG",
+                 "websiteUrl": "existente.example.test"}
+                """);
+        String importId = analyze(MERGE_CSV);
+
+        confirm(importId, "{\"mergeDuplicateRows\": [2]}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.importedRows").value(0))
+                .andExpect(jsonPath("$.mergedRows").value(1));
+
+        // Nenhuma empresa nova; a existente ganhou so o que faltava.
+        assertThat(companies()).isEqualTo(1);
+        mockMvc.perform(get("/companies/" + existing).session(session))
+                .andExpect(jsonPath("$.name").value("Empresa Existente"))
+                .andExpect(jsonPath("$.city").value("Cidade Exemplo"))
+                .andExpect(jsonPath("$.segment").value("ORIGINAL"))
+                .andExpect(jsonPath("$.phone").value("(35) 3333-1234"))
+                .andExpect(jsonPath("$.tradeName").value("Fantasia Nova"));
+
+        mockMvc.perform(get("/imports/" + importId + "/report").session(session))
+                .andExpect(jsonPath("$.content[0].status").value("MERGED"))
+                .andExpect(jsonPath("$.content[0].companyId").value(existing))
+                .andExpect(jsonPath("$.content[0].mergedFields", contains("tradeName", "phone")));
+
+        mockMvc.perform(get("/companies/" + existing + "/sources").session(session))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[*].type", containsInAnyOrder("MANUAL", "CSV_IMPORT")));
+    }
+
+    @Test
+    @DisplayName("completar com abertura de leads nao duplica oportunidade aberta nem derruba a importacao")
+    void mergeDoesNotDuplicateOpenLead() throws Exception {
+        String existing = createExistingCompany("""
+                {"name": "Empresa Existente", "city": "Cidade Exemplo", "state": "MG",
+                 "websiteUrl": "existente.example.test"}
+                """);
+        mockMvc.perform(post("/leads")
+                        .session(session)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"companyId\": \"%s\"}".formatted(existing)))
+                .andExpect(status().isCreated());
+        String importId = analyze(MERGE_CSV);
+
+        confirm(importId, "{\"mergeDuplicateRows\": [2], \"createLeads\": true}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mergedRows").value(1))
+                .andExpect(jsonPath("$.leadsCreated").value(0));
+
+        Integer leads = jdbc.queryForObject(
+                "select count(*) from lead where company_id = ?", Integer.class, UUID.fromString(existing));
+        assertThat(leads).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("empresa arquivada depois da analise nao e alterada")
+    void mergeIntoArchivedCompanyIsSkipped() throws Exception {
+        String existing = createExistingCompany("""
+                {"name": "Empresa Existente", "city": "Cidade Exemplo", "state": "MG",
+                 "websiteUrl": "existente.example.test"}
+                """);
+        String importId = analyze(MERGE_CSV);
+        mockMvc.perform(post("/companies/" + existing + "/archive").session(session).with(csrf()))
+                .andExpect(status().isOk());
+
+        confirm(importId, "{\"mergeDuplicateRows\": [2]}")
+                .andExpect(jsonPath("$.mergedRows").value(0));
+
+        mockMvc.perform(get("/companies/" + existing).session(session))
+                .andExpect(jsonPath("$.phone").doesNotExist());
+        mockMvc.perform(get("/imports/" + importId + "/report").session(session))
+                .andExpect(jsonPath("$.content[0].status").value("SKIPPED"));
+    }
+
+    @Test
+    @DisplayName("so completa duplicata de empresa cadastrada, e nao junto com importar como nova")
+    void invalidMergeChoices() throws Exception {
+        String importId = analyze(SAMPLE);
+
+        // Linha 6 duplica a linha 2 do proprio arquivo: nao ha empresa a completar.
+        confirm(importId, "{\"mergeDuplicateRows\": [6]}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(
+                        "Rows do not duplicate an existing company and cannot be merged: [6]"));
+
+        createExistingCompany("""
+                {"name": "Empresa Existente", "city": "Cidade Exemplo", "state": "MG",
+                 "websiteUrl": "existente.example.test"}
+                """);
+        String mergeable = analyze(MERGE_CSV);
+        confirm(mergeable, "{\"mergeDuplicateRows\": [2], \"includeDuplicateRows\": [2]}")
+                .andExpect(status().isBadRequest());
+
+        assertThat(companies()).isEqualTo(1);
     }
 }

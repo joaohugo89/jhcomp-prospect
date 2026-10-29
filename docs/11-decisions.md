@@ -471,6 +471,23 @@ validos", e o RF-014 proibe descartar registro em silencio.
 - Importacao so cria registros novos, nunca altera existentes: nao tem como
   remover bloqueio de contato (doc 10 §6).
 
-**Fora do escopo:** mesclar duplicata com a empresa existente. A linha
-escolhida e importada como empresa nova; mesclagem exige revisao propria
-(doc 06 §4) e fica para quando houver necessidade real.
+**Completar empresa existente (revisao de 2026-11-05, V7).** Uma linha
+marcada como duplicata de empresa ja cadastrada pode, por escolha do operador,
+completar essa empresa em vez de criar outra:
+
+- so campos vazios sao preenchidos; nenhum valor existente e sobrescrito
+  (RF-023). Nome, cidade e estado nunca mudam, porque identificam a empresa;
+- a origem `CSV_IMPORT` e registrada na empresa mesmo sem campo preenchido,
+  porque a linha tambem confirma a empresa (RF-022);
+- o relatorio mostra quais campos foram preenchidos (`MERGED`, `mergedFields`);
+- empresa arquivada depois da analise nao e alterada: a linha fica `SKIPPED`;
+- com abertura de leads, a empresa so ganha lead se nao tiver oportunidade
+  aberta. Oportunidade aberta, inclusive `DO_NOT_CONTACT`, nao e duplicada e
+  nao derruba a importacao;
+- duplicata de outra linha do mesmo arquivo nao pode completar: nao ha empresa
+  cadastrada a completar.
+
+**Fora do escopo:** fundir duas empresas ja cadastradas (mover leads, origens
+e historico de uma para outra). Exige revisao propria (doc 06 §4: preservar
+fontes e historico, permitir auditar) e fica para quando houver necessidade
+real.

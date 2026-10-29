@@ -165,12 +165,19 @@ Contrato implementado na Etapa 5 (D14, D23):
   (`totalRows = validRows + rejectedRows + duplicateRows`), `columnMapping`,
   `ignoredColumns` e `previousImportId` quando o mesmo arquivo já foi enviado.
 - **Linha do relatório:** `rowNumber` (cabeçalho é a linha 1), `status`
-  (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `SKIPPED`), `values`,
+  (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`), `values`,
   `errors` no mesmo formato de erro de campo da API, e para duplicatas
   `duplicateOfCompanyId` ou `duplicateOfRowNumber` com `duplicateSignals`.
-- **Confirmação:** `{"includeDuplicateRows": [6], "createLeads": true}`.
-  Incluir linha que não é possível duplicata responde `400`; confirmar ou
+- **Confirmação:** `{"includeDuplicateRows": [7], "mergeDuplicateRows": [6],
+  "createLeads": true}`. `includeDuplicateRows` importa a duplicata como
+  empresa nova; `mergeDuplicateRows` completa os campos vazios da empresa
+  existente (só para duplicata de empresa cadastrada), sem sobrescrever nada.
+  Linha que não é possível duplicata, `merge` de duplicata de outra linha do
+  arquivo ou a mesma linha nas duas listas respondem `400`; confirmar ou
   descartar importação que não está `ANALYZED` responde `409`.
+- `mergedRows` conta as linhas que completaram empresa; a linha fica `MERGED`
+  com `companyId` da empresa existente e `mergedFields` com os campos
+  preenchidos.
 - Importação de outra organização responde `404` em todas as rotas.
 
 ## 7. Discovery

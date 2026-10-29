@@ -21,7 +21,10 @@ export const REQUIRED_IMPORT_FIELDS: ReadonlySet<ImportField> = new Set(['name',
 
 export type ImportStatus = 'ANALYZED' | 'IMPORTING' | 'COMPLETED' | 'DISCARDED';
 
-export type ImportRowStatus = 'VALID' | 'REJECTED' | 'DUPLICATE' | 'IMPORTED' | 'SKIPPED';
+export type ImportRowStatus = 'VALID' | 'REJECTED' | 'DUPLICATE' | 'IMPORTED' | 'MERGED' | 'SKIPPED';
+
+/** Escolha do operador para uma possível duplicata. Sem escolha, a linha não é importada. */
+export type DuplicateChoice = 'new' | 'merge';
 
 /** Espelha ImportResponse do backend (doc 05 §6, D23). */
 export interface ImportBatch {
@@ -36,6 +39,7 @@ export interface ImportBatch {
   readonly rejectedRows: number;
   readonly duplicateRows: number;
   readonly importedRows: number;
+  readonly mergedRows: number;
   readonly leadsCreated: number;
   readonly createdAt: string;
   readonly completedAt?: string;
@@ -58,6 +62,8 @@ export interface ImportRow {
   readonly duplicateSignals: readonly DuplicateSignal[];
   readonly companyId?: string;
   readonly leadId?: string;
+  /** Campos que a linha preencheu na empresa existente. */
+  readonly mergedFields?: readonly ImportField[];
 }
 
 export interface UploadInput {

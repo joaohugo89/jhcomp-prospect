@@ -20,6 +20,7 @@ const batch = {
   rejectedRows: 2,
   duplicateRows: 1,
   importedRows: 0,
+  mergedRows: 0,
   leadsCreated: 0,
   createdAt: '2026-11-05T12:00:00Z',
   ignoredColumns: ['Faturamento'],
@@ -41,6 +42,14 @@ const rows = [
     errors: [],
     duplicateOfCompanyId: COMPANY_ID,
     duplicateSignals: ['PHONE'],
+  },
+  {
+    rowNumber: 7,
+    status: 'DUPLICATE',
+    values: { name: 'Barbearia Um', city: 'Cidade Exemplo', state: 'MG' },
+    errors: [],
+    duplicateOfRowNumber: 2,
+    duplicateSignals: ['NAME_CITY_STATE'],
   },
 ];
 
@@ -158,29 +167,76 @@ describe('Importações', () => {
         .toHaveAttribute('href', `/companies/${COMPANY_ID}`);
     });
 
-    it('importa as validas e as duplicatas marcadas, depois de confirmar', async () => {
+    it('duplicata de empresa cadastrada pode completar a existente; a do arquivo, so virar nova', async () => {
       const calls = routes();
 
       render(<ImportDetailPage id={IMPORT_ID} />);
-      expect(await screen.findByRole('button', { name: 'Importar 2 empresas' })).toBeEnabled();
+      expect(await screen.findByRole('button', { name: 'Confirmar: 2 empresas novas' })).toBeEnabled();
 
-      const duplicate = await screen.findByRole('article', { name: 'Linha 6' });
-      await userEvent.click(within(duplicate).getByLabelText(/Importar mesmo assim/));
-      await userEvent.click(screen.getByLabelText('Abrir um lead para cada empresa importada'));
-      await userEvent.click(screen.getByRole('button', { name: 'Importar 3 empresas' }));
+      const ofExisting = await screen.findByRole('article', { name: 'Linha 6' });
+      await userEvent.click(within(ofExisting).getByLabelText('Completar os campos vazios da empresa existente'));
+
+      // Duplicata de outra linha do arquivo não tem empresa a completar.
+      const ofFile = screen.getByRole('article', { name: 'Linha 7' });
+      expect(within(ofFile).queryByLabelText(/Completar/)).not.toBeInTheDocument();
+      await userEvent.click(within(ofFile).getByLabelText(/Importar mesmo assim/));
+
+      await userEvent.click(screen.getByLabelText(/Abrir um lead para cada empresa/));
+      await userEvent.click(screen.getByRole('button', { name: 'Confirmar: 3 empresas novas e 1 completada' }));
 
       const dialog = screen.getByRole('alertdialog');
-      expect(dialog).toHaveTextContent('cada uma com um lead novo');
+      expect(dialog).toHaveTextContent('sem oportunidade aberta');
       expect(calls.some((call) => call.path.endsWith('/confirm'))).toBe(false);
 
       await userEvent.click(within(dialog).getByRole('button', { name: 'Importar' }));
 
       await waitFor(() => {
         expect(calls.find((call) => call.path.endsWith('/confirm'))?.body).toEqual({
-          includeDuplicateRows: [6],
+          includeDuplicateRows: [7],
+          mergeDuplicateRows: [6],
           createLeads: true,
         });
       });
+    });
+
+    it('voltar para nao importar desfaz a escolha', async () => {
+      routes();
+
+      render(<ImportDetailPage id={IMPORT_ID} />);
+      const ofExisting = await screen.findByRole('article', { name: 'Linha 6' });
+      await userEvent.click(within(ofExisting).getByLabelText('Importar como empresa nova'));
+      expect(screen.getByRole('button', { name: 'Confirmar: 3 empresas novas' })).toBeInTheDocument();
+
+      await userEvent.click(within(ofExisting).getByLabelText('Não importar'));
+      expect(screen.getByRole('button', { name: 'Confirmar: 2 empresas novas' })).toBeInTheDocument();
+    });
+
+    it('linha que completou empresa mostra os campos preenchidos', async () => {
+      routes({
+        'GET /imports/': () => json({ ...batch, status: 'COMPLETED', mergedRows: 1 }),
+        [`GET /imports/${IMPORT_ID}/report`]: () =>
+          json(
+            page([
+              {
+                rowNumber: 6,
+                status: 'MERGED',
+                values: { name: 'Barbearia Um Filial', city: 'Outra', state: 'SP' },
+                errors: [],
+                duplicateOfCompanyId: COMPANY_ID,
+                duplicateSignals: ['PHONE'],
+                companyId: COMPANY_ID,
+                mergedFields: ['segment', 'phone'],
+              },
+            ]),
+          ),
+      });
+
+      render(<ImportDetailPage id={IMPORT_ID} />);
+
+      const row = await screen.findByRole('article', { name: 'Linha 6' });
+      expect(row).toHaveTextContent('Completou empresa existente');
+      expect(row).toHaveTextContent('Campos preenchidos: Segmento, Telefone.');
+      expect(screen.getByText('Completadas', { selector: 'dt' })).toBeInTheDocument();
     });
 
     it('descartar pede confirmacao', async () => {
@@ -213,7 +269,7 @@ describe('Importações', () => {
       render(<ImportDetailPage id={IMPORT_ID} />);
 
       expect(await screen.findByText('Importadas', { selector: 'dt' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /^Importar/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Confirmar/ })).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Importar mesmo assim/)).not.toBeInTheDocument();
     });
   });

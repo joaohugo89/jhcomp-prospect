@@ -61,5 +61,6 @@ export const IMPORT_ROW_STATUS_LABEL: Readonly<Record<ImportRowStatus, string>> 
   REJECTED: 'Rejeitada',
   DUPLICATE: 'Possível duplicata',
   IMPORTED: 'Importada',
+  MERGED: 'Completou empresa existente',
   SKIPPED: 'Não importada',
 };
