@@ -3,17 +3,18 @@ package com.jhcomp.prospect.discovery;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /** Uma importacao CSV e seus totais (RF-015, D23). */
 @Entity
 @Table(name = "import_batch")
-public class ImportBatchEntity {
+public class ImportBatchEntity extends AssignedIdEntity {
 
     /** Ciclo da importacao. */
     public enum Status {
@@ -25,9 +26,6 @@ public class ImportBatchEntity {
         /** Descartada sem importar; os valores das linhas foram apagados. */
         DISCARDED
     }
-
-    @Id
-    private UUID id;
 
     @Column(name = "organization_id", nullable = false, updatable = false)
     private UUID organizationId;
@@ -102,7 +100,7 @@ public class ImportBatchEntity {
             int duplicateRows,
             UUID createdByUserId,
             Instant now) {
-        this.id = id;
+        super(id);
         this.organizationId = organizationId;
         this.fileName = fileName;
         this.fileSha256 = fileSha256;
@@ -138,10 +136,6 @@ public class ImportBatchEntity {
     void discard(Instant now) {
         this.status = Status.DISCARDED;
         this.completedAt = now;
-    }
-
-    public UUID getId() {
-        return id;
     }
 
     public UUID getOrganizationId() {
@@ -202,10 +196,6 @@ public class ImportBatchEntity {
 
     public int getLeadsCreated() {
         return leadsCreated;
-    }
-
-    public UUID getCreatedByUserId() {
-        return createdByUserId;
     }
 
     public Instant getCreatedAt() {

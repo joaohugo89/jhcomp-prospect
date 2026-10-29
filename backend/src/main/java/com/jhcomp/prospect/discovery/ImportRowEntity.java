@@ -4,22 +4,18 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.data.domain.Persistable;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.PostLoad;
-import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 
 /** Resultado de uma linha do arquivo (RF-015: erros por linha consultaveis). */
 @Entity
 @Table(name = "import_row")
-public class ImportRowEntity implements Persistable<UUID> {
+public class ImportRowEntity extends AssignedIdEntity {
 
     public enum Status {
         /** Passou na validacao e nao parece duplicata. Importada ao confirmar. */
@@ -34,9 +30,6 @@ public class ImportRowEntity implements Persistable<UUID> {
         /** Nao importada na confirmacao: duplicata nao escolhida. */
         SKIPPED
     }
-
-    @Id
-    private UUID id;
 
     @Column(name = "organization_id", nullable = false, updatable = false)
     private UUID organizationId;
@@ -94,20 +87,12 @@ public class ImportRowEntity implements Persistable<UUID> {
     @Column(name = "merged_fields")
     private String mergedFields;
 
-    /**
-     * Linha recem-criada. Com id atribuido pela aplicacao, o Spring Data
-     * trataria toda linha como existente e faria um SELECT antes de cada
-     * INSERT: duas mil consultas a mais num arquivo no limite.
-     */
-    @Transient
-    private boolean isNew = true;
-
     protected ImportRowEntity() {
         // Exigido pelo JPA.
     }
 
     ImportRowEntity(UUID organizationId, UUID importId, int rowNumber, Map<ImportField, String> values) {
-        this.id = UUID.randomUUID();
+        super(UUID.randomUUID());
         this.organizationId = organizationId;
         this.importId = importId;
         this.rowNumber = rowNumber;
@@ -189,22 +174,6 @@ public class ImportRowEntity implements Persistable<UUID> {
         if (value != null) {
             values.put(field, value);
         }
-    }
-
-    @Override
-    public UUID getId() {
-        return id;
-    }
-
-    @Override
-    public boolean isNew() {
-        return isNew;
-    }
-
-    @PostLoad
-    @PostPersist
-    void markPersisted() {
-        this.isNew = false;
     }
 
     public int getRowNumber() {

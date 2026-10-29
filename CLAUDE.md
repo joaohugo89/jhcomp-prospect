@@ -148,6 +148,10 @@ Cada uma custou tempo real. Não reintroduzir.
   (`considerNestedRepositories = false`). Um arquivo por repositório.
 - **JSX descarta espaço no fim de linha seguido de quebra.** `{a}: ` numa linha
   e `{b}` na seguinte renderiza `a:b`. Montar o texto numa template string.
+- **O editor compila em `backend/target` junto com o Maven.** O servidor Java
+  do VS Code/Eclipse grava classes ali; o sintoma é `NoClassDefFoundError` de
+  classe sintética (`Classe$1`) ou "Unresolved compilation problem" num teste
+  que nada tem de errado. Rodar `mvn clean verify` antes de investigar.
 - **`curl -F file=@/c/...` no Git Bash não traduz o caminho do Windows**: a
   requisição falha sem mensagem. Rodar de dentro da pasta, com caminho
   relativo.

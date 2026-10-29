@@ -76,7 +76,8 @@ server:
     # RNF-003: nunca expor stack trace.
     include-stacktrace: never
     include-message: never
-  # Limite de payload; ajustado por endpoint de upload na Etapa 5.
+  # Formulario urlencoded e o descarte de corpo recusado. O upload multipart
+  # tem o proprio limite em spring.servlet.multipart (importacao, D14).
   tomcat:
     max-http-form-post-size: 2MB
     max-swallow-size: 2MB
@@ -90,10 +91,11 @@ springdoc:
 logging:
   level:
     root: INFO
-    com.jhcomp.prospect: DEBUG
+    com.jhcomp.prospect: ${APP_LOG_LEVEL:INFO}
   pattern:
-    # Correlation ID entra na Etapa 3, junto do filtro de request.
-    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n"
+    # requestId vem do RequestIdFilter e tambem volta no cabecalho X-Request-Id:
+    # e o que liga o que o usuario viu ao que o servidor registrou.
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [%X{requestId:-}] %logger{36} - %msg%n"
 
 # ---------------------------------------------------------------------------
 # Bootstrap de desenvolvimento local (perfil "local").

@@ -4,12 +4,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.jhcomp.prospect.company.domain.SourceType;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
@@ -23,10 +23,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "lead_source")
-public class LeadSourceEntity {
-
-    @Id
-    private UUID id;
+public class LeadSourceEntity extends AssignedIdEntity {
 
     @Column(name = "organization_id", nullable = false, updatable = false)
     private UUID organizationId;
@@ -74,7 +71,7 @@ public class LeadSourceEntity {
             SourceData data,
             UUID collectedByUserId,
             Instant now) {
-        this.id = id;
+        super(id);
         this.createdAt = now;
         this.organizationId = organizationId;
         this.companyId = companyId;
@@ -94,10 +91,6 @@ public class LeadSourceEntity {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.strip();
-    }
-
-    public UUID getId() {
-        return id;
     }
 
     public UUID getCompanyId() {

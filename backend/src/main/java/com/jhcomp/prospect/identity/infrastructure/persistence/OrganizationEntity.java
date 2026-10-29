@@ -4,12 +4,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.jhcomp.prospect.identity.domain.OrganizationStatus;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
@@ -17,10 +17,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "organization")
-public class OrganizationEntity {
-
-    @Id
-    private UUID id;
+public class OrganizationEntity extends AssignedIdEntity {
 
     @Column(nullable = false)
     private String name;
@@ -43,22 +40,14 @@ public class OrganizationEntity {
     }
 
     public OrganizationEntity(UUID id, String name, String slug, OrganizationStatus status) {
-        this.id = id;
+        super(id);
         this.name = name;
         this.slug = slug;
         this.status = status;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public String getSlug() {
-        return slug;
     }
 
     public OrganizationStatus getStatus() {

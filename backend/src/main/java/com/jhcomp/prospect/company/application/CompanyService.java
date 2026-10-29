@@ -72,16 +72,7 @@ public class CompanyService {
 
         CompanyEntity company = companyRepository.save(
                 new CompanyEntity(UUID.randomUUID(), user.organizationId(), data, now));
-
-        sourceRepository.save(new LeadSourceEntity(
-                UUID.randomUUID(),
-                user.organizationId(),
-                company.getId(),
-                null,
-                withDefaults(source, now),
-                user.userId(),
-                now));
-
+        saveSource(company, null, source, user, now);
         return company;
     }
 
@@ -184,16 +175,13 @@ public class CompanyService {
         UUID organizationId = organizationContext.requireOrganizationId();
         Map<UUID, CompanyEntity> found = new LinkedHashMap<>();
         if (!domains.isEmpty()) {
-            companyRepository.findByOrganizationIdAndNormalizedDomainIn(organizationId, domains)
-                    .forEach(company -> found.putIfAbsent(company.getId(), company));
+            addAll(found, companyRepository.findByOrganizationIdAndNormalizedDomainIn(organizationId, domains));
         }
         if (!phones.isEmpty()) {
-            companyRepository.findByOrganizationIdAndNormalizedPhoneIn(organizationId, phones)
-                    .forEach(company -> found.putIfAbsent(company.getId(), company));
+            addAll(found, companyRepository.findByOrganizationIdAndNormalizedPhoneIn(organizationId, phones));
         }
         if (!names.isEmpty()) {
-            companyRepository.findByOrganizationIdAndNormalizedNameIn(organizationId, names)
-                    .forEach(company -> found.putIfAbsent(company.getId(), company));
+            addAll(found, companyRepository.findByOrganizationIdAndNormalizedNameIn(organizationId, names));
         }
         return List.copyOf(found.values());
     }
@@ -205,10 +193,10 @@ public class CompanyService {
      * porque a linha importada tambem confirma a empresa (RF-022). Empresa
      * arquivada nao e alterada.
      *
-     * @return vazio se a empresa estiver arquivada
+     * @return campos preenchidos, ou vazio se a empresa estiver arquivada
      */
     @Transactional
-    public Optional<Completion> completeFromImport(UUID companyId, CompanyData data, SourceData source) {
+    public Optional<List<String>> completeFromImport(UUID companyId, CompanyData data, SourceData source) {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
         CompanyEntity company = find(companyId);
         if (company.isArchived()) {
@@ -216,26 +204,19 @@ public class CompanyService {
         }
         Instant now = clock.instant();
         List<String> filled = company.fillBlanks(data, now);
-        sourceRepository.save(new LeadSourceEntity(
-                UUID.randomUUID(),
-                company.getOrganizationId(),
-                company.getId(),
-                null,
-                withDefaults(source, now),
-                user.userId(),
-                now));
-        return Optional.of(new Completion(company, filled));
+        saveSource(company, null, source, user, now);
+        return Optional.of(filled);
     }
-
-    /** Empresa completada e os campos que foram preenchidos. */
-    public record Completion(CompanyEntity company, List<String> filledFields) {}
 
     /** Registra uma origem ligada a uma oportunidade (RF-011: lead tem origem). */
     @Transactional
-    public LeadSourceEntity recordLeadSource(CompanyEntity company, UUID leadId, SourceData source) {
-        AuthenticatedUser user = organizationContext.requireCurrentUser();
-        Instant now = clock.instant();
-        return sourceRepository.save(new LeadSourceEntity(
+    public void recordLeadSource(CompanyEntity company, UUID leadId, SourceData source) {
+        saveSource(company, leadId, source, organizationContext.requireCurrentUser(), clock.instant());
+    }
+
+    private void saveSource(
+            CompanyEntity company, UUID leadId, SourceData source, AuthenticatedUser user, Instant now) {
+        sourceRepository.save(new LeadSourceEntity(
                 UUID.randomUUID(),
                 company.getOrganizationId(),
                 company.getId(),
@@ -252,6 +233,10 @@ public class CompanyService {
         return source.collectedAt() == null
                 ? new SourceData(source.type(), source.name(), source.reference(), source.url(), now, source.note())
                 : source;
+    }
+
+    private static void addAll(Map<UUID, CompanyEntity> found, List<CompanyEntity> companies) {
+        companies.forEach(company -> found.putIfAbsent(company.getId(), company));
     }
 
     private static void collect(

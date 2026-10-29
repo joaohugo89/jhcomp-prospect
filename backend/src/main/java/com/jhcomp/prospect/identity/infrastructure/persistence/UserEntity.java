@@ -4,12 +4,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.jhcomp.prospect.identity.domain.UserStatus;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
@@ -17,10 +17,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "app_user")
-public class UserEntity {
-
-    @Id
-    private UUID id;
+public class UserEntity extends AssignedIdEntity {
 
     @Column(nullable = false)
     private String email;
@@ -46,15 +43,11 @@ public class UserEntity {
     }
 
     public UserEntity(UUID id, String email, String passwordHash, String displayName, UserStatus status) {
-        this.id = id;
+        super(id);
         this.email = email;
         this.passwordHash = passwordHash;
         this.displayName = displayName;
         this.status = status;
-    }
-
-    public UUID getId() {
-        return id;
     }
 
     public String getEmail() {
@@ -84,6 +77,6 @@ public class UserEntity {
     /** Nao inclui e-mail nem hash: log e mensagem de erro nao devem vazar dado pessoal (RNF-007). */
     @Override
     public String toString() {
-        return "UserEntity[id=" + id + ", status=" + status + "]";
+        return "UserEntity[id=" + getId() + ", status=" + status + "]";
     }
 }

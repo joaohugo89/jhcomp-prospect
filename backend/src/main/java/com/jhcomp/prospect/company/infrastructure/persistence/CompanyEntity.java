@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.UUID;
 
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
@@ -27,10 +27,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "company")
-public class CompanyEntity {
-
-    @Id
-    private UUID id;
+public class CompanyEntity extends AssignedIdEntity {
 
     @Column(name = "organization_id", nullable = false, updatable = false)
     private UUID organizationId;
@@ -87,7 +84,7 @@ public class CompanyEntity {
     }
 
     public CompanyEntity(UUID id, UUID organizationId, CompanyData data, Instant now) {
-        this.id = id;
+        super(id);
         this.organizationId = organizationId;
         this.createdAt = now;
         this.updatedAt = now;
@@ -184,10 +181,6 @@ public class CompanyEntity {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.strip();
-    }
-
-    public UUID getId() {
-        return id;
     }
 
     public UUID getOrganizationId() {

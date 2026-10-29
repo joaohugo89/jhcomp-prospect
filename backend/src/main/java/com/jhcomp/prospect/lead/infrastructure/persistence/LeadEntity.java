@@ -7,13 +7,13 @@ import com.jhcomp.prospect.company.infrastructure.persistence.CompanyEntity;
 import com.jhcomp.prospect.lead.domain.LeadPriority;
 import com.jhcomp.prospect.lead.domain.LeadStatus;
 import com.jhcomp.prospect.lead.domain.LeadStatusTransitions;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -27,10 +27,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "lead")
-public class LeadEntity {
-
-    @Id
-    private UUID id;
+public class LeadEntity extends AssignedIdEntity {
 
     @Column(name = "organization_id", nullable = false, updatable = false)
     private UUID organizationId;
@@ -83,7 +80,7 @@ public class LeadEntity {
      * apontando para empresa de outra (a V4 tambem recusa no banco).
      */
     public LeadEntity(UUID id, CompanyEntity company, LeadPriority priority, Instant now) {
-        this.id = id;
+        super(id);
         this.organizationId = company.getOrganizationId();
         this.companyId = company.getId();
         this.company = company;
@@ -126,10 +123,6 @@ public class LeadEntity {
     public void assignTo(UUID userId, Instant now) {
         this.assignedUserId = userId;
         this.updatedAt = now;
-    }
-
-    public UUID getId() {
-        return id;
     }
 
     public UUID getOrganizationId() {

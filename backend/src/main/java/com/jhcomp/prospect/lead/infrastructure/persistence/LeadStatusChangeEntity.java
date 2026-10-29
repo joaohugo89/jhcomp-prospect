@@ -4,12 +4,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.jhcomp.prospect.lead.domain.LeadStatus;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
@@ -20,10 +20,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "lead_status_change")
-public class LeadStatusChangeEntity {
-
-    @Id
-    private UUID id;
+public class LeadStatusChangeEntity extends AssignedIdEntity {
 
     @Column(name = "organization_id", nullable = false, updatable = false)
     private UUID organizationId;
@@ -61,7 +58,7 @@ public class LeadStatusChangeEntity {
             String reason,
             UUID changedByUserId,
             Instant changedAt) {
-        this.id = id;
+        super(id);
         this.organizationId = organizationId;
         this.leadId = leadId;
         this.fromStatus = fromStatus;
@@ -69,33 +66,5 @@ public class LeadStatusChangeEntity {
         this.reason = reason;
         this.changedByUserId = changedByUserId;
         this.changedAt = changedAt;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public LeadStatus getFromStatus() {
-        return fromStatus;
-    }
-
-    public LeadStatus getToStatus() {
-        return toStatus;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public UUID getChangedByUserId() {
-        return changedByUserId;
-    }
-
-    public Instant getChangedAt() {
-        return changedAt;
-    }
-
-    public UUID getLeadId() {
-        return leadId;
     }
 }

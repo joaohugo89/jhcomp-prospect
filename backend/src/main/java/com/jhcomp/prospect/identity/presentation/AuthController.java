@@ -82,10 +82,10 @@ public class AuthController {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, request.password()));
         } catch (AuthenticationException exception) {
-            // A tentativa ja foi contabilizada na reserva; nada a registrar aqui.
-            // Motivo generico: distinguir "e-mail inexistente" de "senha
-            // errada" na auditoria seria inofensivo, mas manter um unico
-            // caminho reduz a chance de a diferenca escapar para a resposta.
+            // O limitador ja contou a tentativa na reserva. Na auditoria, o
+            // motivo e generico: distinguir "e-mail inexistente" de "senha
+            // errada" ali seria inofensivo, mas um caminho unico reduz a
+            // chance de a diferenca escapar para a resposta.
             auditService.record(AuditService.AuditEntry.loginFailure(clientIp, "INVALID_CREDENTIALS"));
             throw new InvalidCredentialsException();
         }

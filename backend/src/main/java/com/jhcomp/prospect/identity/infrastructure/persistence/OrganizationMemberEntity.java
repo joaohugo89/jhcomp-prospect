@@ -5,13 +5,13 @@ import java.util.UUID;
 
 import com.jhcomp.prospect.identity.domain.MemberStatus;
 import com.jhcomp.prospect.identity.domain.OrganizationRole;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -24,10 +24,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "organization_member")
-public class OrganizationMemberEntity {
-
-    @Id
-    private UUID id;
+public class OrganizationMemberEntity extends AssignedIdEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organization_id", nullable = false, updatable = false)
@@ -58,15 +55,11 @@ public class OrganizationMemberEntity {
             UserEntity user,
             OrganizationRole role,
             MemberStatus status) {
-        this.id = id;
+        super(id);
         this.organization = organization;
         this.user = user;
         this.role = role;
         this.status = status;
-    }
-
-    public UUID getId() {
-        return id;
     }
 
     public OrganizationEntity getOrganization() {

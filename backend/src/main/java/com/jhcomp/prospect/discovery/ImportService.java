@@ -58,7 +58,7 @@ public class ImportService {
 
     private static final TypeReference<List<ImportRowValidator.RowError>> ERRORS_TYPE = new TypeReference<>() {};
     private static final TypeReference<LinkedHashMap<String, String>> MAPPING_TYPE = new TypeReference<>() {};
-    private static final TypeReference<List<String>> IGNORED_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {};
 
     private final ImportBatchRepository batchRepository;
     private final ImportRowRepository rowRepository;
@@ -167,44 +167,18 @@ public class ImportService {
         int leads = 0;
 
         for (ImportRowEntity row : rows) {
-            boolean chosenDuplicate = row.getStatus() == ImportRowEntity.Status.DUPLICATE
-                    && includeDuplicateRows.contains(row.getRowNumber());
-
-            boolean chosenMerge = row.getStatus() == ImportRowEntity.Status.DUPLICATE
-                    && mergeDuplicateRows.contains(row.getRowNumber());
-
-            if (chosenMerge) {
-                SourceData source = sourceFor(batch, row);
-                var completion = companyService.completeFromImport(
-                        row.getDuplicateOfCompanyId(), toCompanyData(row.values()), source);
-                if (completion.isEmpty()) {
-                    // Empresa arquivada depois da analise: nao e alterada.
-                    row.markSkipped();
-                    continue;
+            boolean duplicate = row.getStatus() == ImportRowEntity.Status.DUPLICATE;
+            if (duplicate && mergeDuplicateRows.contains(row.getRowNumber())) {
+                if (completeExisting(batch, row, createLeads)) {
+                    merged++;
+                    leads += row.getLeadId() == null ? 0 : 1;
                 }
-                UUID leadId = null;
-                if (createLeads) {
-                    leadId = leadService.createIfNoneOpen(row.getDuplicateOfCompanyId(), LeadPriority.MEDIUM, source)
-                            .map(LeadEntity::getId)
-                            .orElse(null);
-                    leads += leadId == null ? 0 : 1;
-                }
-                row.markMerged(
-                        row.getDuplicateOfCompanyId(),
-                        leadId,
-                        objectMapper.writeValueAsString(completion.get().filledFields()));
-                merged++;
-            } else if (row.getStatus() == ImportRowEntity.Status.VALID || chosenDuplicate) {
-                SourceData source = sourceFor(batch, row);
-                CompanyEntity company = companyService.create(toCompanyData(row.values()), source);
-                UUID leadId = null;
-                if (createLeads) {
-                    leadId = leadService.create(company.getId(), LeadPriority.MEDIUM, source).getId();
-                    leads++;
-                }
-                row.markImported(company.getId(), leadId);
+            } else if (row.getStatus() == ImportRowEntity.Status.VALID
+                    || (duplicate && includeDuplicateRows.contains(row.getRowNumber()))) {
+                importAsNew(batch, row, createLeads);
                 imported++;
-            } else if (row.getStatus() == ImportRowEntity.Status.DUPLICATE) {
+                leads += row.getLeadId() == null ? 0 : 1;
+            } else if (duplicate) {
                 row.markSkipped();
             }
         }
@@ -221,6 +195,34 @@ public class ImportService {
                 null,
                 "imported=" + imported + " merged=" + merged + " leads=" + leads));
         return batch;
+    }
+
+    private void importAsNew(ImportBatchEntity batch, ImportRowEntity row, boolean createLead) {
+        SourceData source = sourceFor(batch, row);
+        CompanyEntity company = companyService.create(toCompanyData(row.values()), source);
+        UUID leadId = createLead ? leadService.create(company.getId(), LeadPriority.MEDIUM, source).getId() : null;
+        row.markImported(company.getId(), leadId);
+    }
+
+    /**
+     * Completa a empresa de que a linha e duplicata.
+     *
+     * @return {@code false} se a empresa foi arquivada depois da analise; ela
+     *     nao e alterada e a linha fica como nao importada
+     */
+    private boolean completeExisting(ImportBatchEntity batch, ImportRowEntity row, boolean createLead) {
+        SourceData source = sourceFor(batch, row);
+        UUID companyId = row.getDuplicateOfCompanyId();
+        var filled = companyService.completeFromImport(companyId, toCompanyData(row.values()), source);
+        if (filled.isEmpty()) {
+            row.markSkipped();
+            return false;
+        }
+        UUID leadId = createLead
+                ? leadService.createIfNoneOpen(companyId, LeadPriority.MEDIUM, source).map(LeadEntity::getId).orElse(null)
+                : null;
+        row.markMerged(companyId, leadId, objectMapper.writeValueAsString(filled.get()));
+        return true;
     }
 
     /** Descarta sem importar e apaga os valores das linhas (minimizacao, doc 07 §2). */
@@ -274,11 +276,11 @@ public class ImportService {
     }
 
     public List<String> mergedFieldsOf(ImportRowEntity row) {
-        return row.getMergedFields() == null ? null : objectMapper.readValue(row.getMergedFields(), IGNORED_TYPE);
+        return row.getMergedFields() == null ? null : objectMapper.readValue(row.getMergedFields(), STRING_LIST_TYPE);
     }
 
     public List<String> ignoredColumnsOf(ImportBatchEntity batch) {
-        return objectMapper.readValue(batch.getIgnoredColumns(), IGNORED_TYPE);
+        return objectMapper.readValue(batch.getIgnoredColumns(), STRING_LIST_TYPE);
     }
 
     /** Importacao anterior, nao descartada, do mesmo arquivo na mesma organizacao (doc 10 §4). */
