@@ -28,6 +28,7 @@ import com.jhcomp.prospect.company.infrastructure.persistence.CompanyEntity.Comp
 import com.jhcomp.prospect.company.infrastructure.persistence.LeadSourceEntity.SourceData;
 import com.jhcomp.prospect.lead.application.LeadService;
 import com.jhcomp.prospect.lead.domain.LeadPriority;
+import com.jhcomp.prospect.lead.infrastructure.persistence.LeadEntity;
 import com.jhcomp.prospect.shared.audit.AuditAction;
 import com.jhcomp.prospect.shared.audit.AuditOutcome;
 import com.jhcomp.prospect.shared.audit.AuditService;
@@ -147,13 +148,14 @@ public class ImportService {
      * duplicata sem que o operador tenha visto.
      */
     @Transactional
-    public ImportBatchEntity confirm(UUID importId, Set<Integer> includeDuplicateRows, boolean createLeads) {
+    public ImportBatchEntity confirm(
+            UUID importId, Set<Integer> includeDuplicateRows, Set<Integer> mergeDuplicateRows, boolean createLeads) {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
         claim(importId, user.organizationId());
 
         List<ImportRowEntity> rows = rowRepository.findByOrganizationIdAndImportIdOrderByRowNumber(
                 user.organizationId(), importId);
-        validateIncludedRows(rows, includeDuplicateRows);
+        validateChosenRows(rows, includeDuplicateRows, mergeDuplicateRows);
 
         // Depois da validacao acima: o conjunto incluido so contem duplicatas
         // vistas na analise, nunca as que surgirem nesta reclassificacao.
@@ -161,13 +163,38 @@ public class ImportService {
 
         ImportBatchEntity batch = find(importId);
         int imported = 0;
+        int merged = 0;
         int leads = 0;
 
         for (ImportRowEntity row : rows) {
             boolean chosenDuplicate = row.getStatus() == ImportRowEntity.Status.DUPLICATE
                     && includeDuplicateRows.contains(row.getRowNumber());
 
-            if (row.getStatus() == ImportRowEntity.Status.VALID || chosenDuplicate) {
+            boolean chosenMerge = row.getStatus() == ImportRowEntity.Status.DUPLICATE
+                    && mergeDuplicateRows.contains(row.getRowNumber());
+
+            if (chosenMerge) {
+                SourceData source = sourceFor(batch, row);
+                var completion = companyService.completeFromImport(
+                        row.getDuplicateOfCompanyId(), toCompanyData(row.values()), source);
+                if (completion.isEmpty()) {
+                    // Empresa arquivada depois da analise: nao e alterada.
+                    row.markSkipped();
+                    continue;
+                }
+                UUID leadId = null;
+                if (createLeads) {
+                    leadId = leadService.createIfNoneOpen(row.getDuplicateOfCompanyId(), LeadPriority.MEDIUM, source)
+                            .map(LeadEntity::getId)
+                            .orElse(null);
+                    leads += leadId == null ? 0 : 1;
+                }
+                row.markMerged(
+                        row.getDuplicateOfCompanyId(),
+                        leadId,
+                        objectMapper.writeValueAsString(completion.get().filledFields()));
+                merged++;
+            } else if (row.getStatus() == ImportRowEntity.Status.VALID || chosenDuplicate) {
                 SourceData source = sourceFor(batch, row);
                 CompanyEntity company = companyService.create(toCompanyData(row.values()), source);
                 UUID leadId = null;
@@ -182,7 +209,7 @@ public class ImportService {
             }
         }
 
-        batch.complete(imported, leads, newlyDuplicated, clock.instant());
+        batch.complete(imported, merged, leads, newlyDuplicated, clock.instant());
 
         auditService.record(new AuditEntry(
                 user.organizationId(),
@@ -192,7 +219,7 @@ public class ImportService {
                 "import",
                 importId.toString(),
                 null,
-                "imported=" + imported + " leads=" + leads));
+                "imported=" + imported + " merged=" + merged + " leads=" + leads));
         return batch;
     }
 
@@ -246,6 +273,10 @@ public class ImportService {
         return row.getErrors() == null ? List.of() : objectMapper.readValue(row.getErrors(), ERRORS_TYPE);
     }
 
+    public List<String> mergedFieldsOf(ImportRowEntity row) {
+        return row.getMergedFields() == null ? null : objectMapper.readValue(row.getMergedFields(), IGNORED_TYPE);
+    }
+
     public List<String> ignoredColumnsOf(ImportBatchEntity batch) {
         return objectMapper.readValue(batch.getIgnoredColumns(), IGNORED_TYPE);
     }
@@ -278,15 +309,44 @@ public class ImportService {
         }
     }
 
-    private static void validateIncludedRows(List<ImportRowEntity> rows, Set<Integer> includeDuplicateRows) {
+    /**
+     * Valida as escolhas do operador.
+     *
+     * <p>Importar como nova vale para qualquer possivel duplicata; completar a
+     * existente, so para duplicata de empresa ja cadastrada, porque duplicata
+     * de outra linha do arquivo nao tem empresa a completar. A mesma linha nao
+     * pode receber as duas escolhas.
+     */
+    private static void validateChosenRows(List<ImportRowEntity> rows, Set<Integer> include, Set<Integer> merge) {
         Set<Integer> duplicates = new TreeSet<>();
-        rows.stream()
-                .filter(row -> row.getStatus() == ImportRowEntity.Status.DUPLICATE)
-                .forEach(row -> duplicates.add(row.getRowNumber()));
-        Set<Integer> unknown = new TreeSet<>(includeDuplicateRows);
-        unknown.removeAll(duplicates);
-        if (!unknown.isEmpty()) {
-            throw new InvalidRequestException("Rows are not possible duplicates of this import: " + unknown);
+        Set<Integer> ofExistingCompany = new TreeSet<>();
+        for (ImportRowEntity row : rows) {
+            if (row.getStatus() == ImportRowEntity.Status.DUPLICATE) {
+                duplicates.add(row.getRowNumber());
+                if (row.getDuplicateOfCompanyId() != null) {
+                    ofExistingCompany.add(row.getRowNumber());
+                }
+            }
+        }
+
+        Set<Integer> notDuplicates = new TreeSet<>(include);
+        notDuplicates.addAll(merge);
+        notDuplicates.removeAll(duplicates);
+        if (!notDuplicates.isEmpty()) {
+            throw new InvalidRequestException("Rows are not possible duplicates of this import: " + notDuplicates);
+        }
+
+        Set<Integer> notMergeable = new TreeSet<>(merge);
+        notMergeable.removeAll(ofExistingCompany);
+        if (!notMergeable.isEmpty()) {
+            throw new InvalidRequestException(
+                    "Rows do not duplicate an existing company and cannot be merged: " + notMergeable);
+        }
+
+        Set<Integer> both = new TreeSet<>(include);
+        both.retainAll(merge);
+        if (!both.isEmpty()) {
+            throw new InvalidRequestException("Rows cannot be both imported and merged: " + both);
         }
     }
 

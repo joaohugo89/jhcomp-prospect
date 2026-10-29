@@ -7,6 +7,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -196,6 +197,38 @@ public class CompanyService {
         }
         return List.copyOf(found.values());
     }
+
+    /**
+     * Completa uma empresa existente com dados importados (D23).
+     *
+     * <p>So preenche campos vazios; registra a origem mesmo sem preencher nada,
+     * porque a linha importada tambem confirma a empresa (RF-022). Empresa
+     * arquivada nao e alterada.
+     *
+     * @return vazio se a empresa estiver arquivada
+     */
+    @Transactional
+    public Optional<Completion> completeFromImport(UUID companyId, CompanyData data, SourceData source) {
+        AuthenticatedUser user = organizationContext.requireCurrentUser();
+        CompanyEntity company = find(companyId);
+        if (company.isArchived()) {
+            return Optional.empty();
+        }
+        Instant now = clock.instant();
+        List<String> filled = company.fillBlanks(data, now);
+        sourceRepository.save(new LeadSourceEntity(
+                UUID.randomUUID(),
+                company.getOrganizationId(),
+                company.getId(),
+                null,
+                withDefaults(source, now),
+                user.userId(),
+                now));
+        return Optional.of(new Completion(company, filled));
+    }
+
+    /** Empresa completada e os campos que foram preenchidos. */
+    public record Completion(CompanyEntity company, List<String> filledFields) {}
 
     /** Registra uma origem ligada a uma oportunidade (RF-011: lead tem origem). */
     @Transactional

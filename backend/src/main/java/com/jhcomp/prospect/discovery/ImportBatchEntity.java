@@ -69,6 +69,9 @@ public class ImportBatchEntity {
     @Column(name = "imported_rows", nullable = false)
     private int importedRows;
 
+    @Column(name = "merged_rows", nullable = false)
+    private int mergedRows;
+
     @Column(name = "leads_created", nullable = false)
     private int leadsCreated;
 
@@ -122,7 +125,8 @@ public class ImportBatchEntity {
      * @param newlyDuplicated linhas validas na analise que, na confirmacao, ja
      *     tinham empresa correspondente gravada por outro caminho
      */
-    void complete(int imported, int leads, int newlyDuplicated, Instant now) {
+    void complete(int imported, int merged, int leads, int newlyDuplicated, Instant now) {
+        this.mergedRows = merged;
         this.validRows -= newlyDuplicated;
         this.duplicateRows += newlyDuplicated;
         this.importedRows = imported;
@@ -190,6 +194,10 @@ public class ImportBatchEntity {
 
     public int getImportedRows() {
         return importedRows;
+    }
+
+    public int getMergedRows() {
+        return mergedRows;
     }
 
     public int getLeadsCreated() {

@@ -112,7 +112,7 @@ public class ImportController {
             @RequestParam(defaultValue = "50") int size) {
         var pageable = PageRequests.of(page, size, null, Map.of(), Sort.unsorted());
         return PageResponse.from(importService.report(importId, status, pageable),
-                row -> ImportRowResponse.from(row, importService.errorsOf(row)));
+                row -> ImportRowResponse.from(row, importService.errorsOf(row), importService.mergedFieldsOf(row)));
     }
 
     @PostMapping("/{importId}/confirm")
@@ -120,6 +120,7 @@ public class ImportController {
         return detailed(importService.confirm(
                 importId,
                 request.includeDuplicateRows() == null ? Set.of() : request.includeDuplicateRows(),
+                request.mergeDuplicateRows() == null ? Set.of() : request.mergeDuplicateRows(),
                 Boolean.TRUE.equals(request.createLeads())));
     }
 
@@ -153,9 +154,15 @@ public class ImportController {
      *
      * @param includeDuplicateRows linhas marcadas como possivel duplicata que o
      *     operador decidiu importar mesmo assim
-     * @param createLeads abre um lead {@code NEW} para cada empresa importada
+     * @param mergeDuplicateRows duplicatas de empresa ja cadastrada que devem
+     *     completar os campos vazios dessa empresa, em vez de criar outra
+     * @param createLeads abre um lead {@code NEW} para cada empresa importada ou
+     *     completada que nao tenha oportunidade aberta
      */
-    public record ConfirmImportRequest(@Size(max = 2000) Set<Integer> includeDuplicateRows, Boolean createLeads) {}
+    public record ConfirmImportRequest(
+            @Size(max = 2000) Set<Integer> includeDuplicateRows,
+            @Size(max = 2000) Set<Integer> mergeDuplicateRows,
+            Boolean createLeads) {}
 
     public record ImportResponse(
             UUID id,
@@ -169,6 +176,7 @@ public class ImportController {
             int rejectedRows,
             int duplicateRows,
             int importedRows,
+            int mergedRows,
             int leadsCreated,
             Instant createdAt,
             Instant completedAt,
@@ -189,6 +197,7 @@ public class ImportController {
                     batch.getRejectedRows(),
                     batch.getDuplicateRows(),
                     batch.getImportedRows(),
+                    batch.getMergedRows(),
                     batch.getLeadsCreated(),
                     batch.getCreatedAt(),
                     batch.getCompletedAt(),
@@ -206,9 +215,11 @@ public class ImportController {
             Integer duplicateOfRowNumber,
             Set<DuplicateSignal> duplicateSignals,
             UUID companyId,
-            UUID leadId) {
+            UUID leadId,
+            List<String> mergedFields) {
 
-        static ImportRowResponse from(ImportRowEntity row, List<ImportRowValidator.RowError> errors) {
+        static ImportRowResponse from(
+                ImportRowEntity row, List<ImportRowValidator.RowError> errors, List<String> mergedFields) {
             Map<String, String> values = new LinkedHashMap<>();
             row.values().forEach((field, value) -> values.put(field.key(), value));
             return new ImportRowResponse(
@@ -220,7 +231,8 @@ public class ImportController {
                     row.getDuplicateOfRowNumber(),
                     DuplicateClassifier.parseSignals(row.getDuplicateSignals()),
                     row.getCompanyId(),
-                    row.getLeadId());
+                    row.getLeadId(),
+                    mergedFields);
         }
     }
 }

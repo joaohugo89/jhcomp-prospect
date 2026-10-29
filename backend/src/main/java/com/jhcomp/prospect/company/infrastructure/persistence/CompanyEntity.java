@@ -1,6 +1,8 @@
 package com.jhcomp.prospect.company.infrastructure.persistence;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
@@ -130,6 +132,43 @@ public class CompanyEntity {
                 () -> new IllegalArgumentException("Company name cannot be normalized"));
         this.normalizedDomain = ContactNormalizer.domain(this.websiteUrl).orElse(null);
         this.normalizedPhone = ContactNormalizer.phone(this.phone).orElse(null);
+    }
+
+    /**
+     * Preenche apenas os campos opcionais que estao vazios.
+     *
+     * <p>Nunca sobrescreve valor existente (RF-023): um dado ja cadastrado pode
+     * ter sido confirmado por outra fonte, e uma planilha nao tem como saber.
+     * Nome, cidade e estado nunca mudam por aqui: identificam a empresa.
+     *
+     * @return chaves da API dos campos preenchidos, na ordem do cadastro
+     */
+    public List<String> fillBlanks(CompanyData incoming, Instant now) {
+        List<String> filled = new ArrayList<>();
+        CompanyData merged = new CompanyData(
+                name,
+                fill("tradeName", tradeName, incoming.tradeName(), filled),
+                fill("segment", segment, incoming.segment(), filled),
+                city,
+                state,
+                fill("websiteUrl", websiteUrl, incoming.websiteUrl(), filled),
+                fill("instagramUrl", instagramUrl, incoming.instagramUrl(), filled),
+                fill("phone", phone, incoming.phone(), filled),
+                fill("businessEmail", businessEmail, incoming.businessEmail(), filled),
+                fill("address", address, incoming.address(), filled),
+                fill("notes", notes, incoming.notes(), filled));
+        if (!filled.isEmpty()) {
+            update(merged, now);
+        }
+        return List.copyOf(filled);
+    }
+
+    private static String fill(String key, String current, String incoming, List<String> filled) {
+        if (current == null && incoming != null && !incoming.isBlank()) {
+            filled.add(key);
+            return incoming;
+        }
+        return current;
     }
 
     public void archive(Instant now) {

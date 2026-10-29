@@ -29,6 +29,8 @@ public class ImportRowEntity implements Persistable<UUID> {
         /** Possivel duplicata; so e importada se o operador escolher. */
         DUPLICATE,
         IMPORTED,
+        /** Completou os campos vazios da empresa existente de que era duplicata. */
+        MERGED,
         /** Nao importada na confirmacao: duplicata nao escolhida. */
         SKIPPED
     }
@@ -89,6 +91,9 @@ public class ImportRowEntity implements Persistable<UUID> {
     @Column(name = "lead_id")
     private UUID leadId;
 
+    @Column(name = "merged_fields")
+    private String mergedFields;
+
     /**
      * Linha recem-criada. Com id atribuido pela aplicacao, o Spring Data
      * trataria toda linha como existente e faria um SELECT antes de cada
@@ -136,6 +141,13 @@ public class ImportRowEntity implements Persistable<UUID> {
         this.status = Status.IMPORTED;
         this.companyId = createdCompanyId;
         this.leadId = createdLeadId;
+    }
+
+    void markMerged(UUID existingCompanyId, UUID createdLeadId, String mergedFieldsJson) {
+        this.status = Status.MERGED;
+        this.companyId = existingCompanyId;
+        this.leadId = createdLeadId;
+        this.mergedFields = mergedFieldsJson;
     }
 
     void markSkipped() {
@@ -225,5 +237,9 @@ public class ImportRowEntity implements Persistable<UUID> {
 
     public UUID getLeadId() {
         return leadId;
+    }
+
+    public String getMergedFields() {
+        return mergedFields;
     }
 }

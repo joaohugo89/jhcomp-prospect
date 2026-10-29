@@ -2,6 +2,7 @@ package com.jhcomp.prospect.lead.application;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -87,6 +88,22 @@ public class LeadService {
         companyService.recordLeadSource(company, lead.getId(), source);
 
         return lead;
+    }
+
+    /**
+     * Abre um lead se a empresa nao tiver oportunidade aberta.
+     *
+     * <p>Para a importacao: uma empresa existente pode ja ter oportunidade em
+     * andamento, inclusive com bloqueio de contato. Nesse caso nada e criado,
+     * e a importacao segue, em vez de falhar inteira.
+     */
+    @Transactional
+    public Optional<LeadEntity> createIfNoneOpen(UUID companyId, LeadPriority priority, SourceData source) {
+        UUID organizationId = organizationContext.requireOrganizationId();
+        if (leadRepository.existsByOrganizationIdAndCompanyIdAndClosedAtIsNull(organizationId, companyId)) {
+            return Optional.empty();
+        }
+        return Optional.of(create(companyId, priority, source));
     }
 
     @Transactional(readOnly = true)
