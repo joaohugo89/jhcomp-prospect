@@ -4,7 +4,6 @@ package com.jhcomp.prospect.shared.audit;
 public enum AuditAction {
     LOGIN,
     LOGOUT,
-    MEMBER_LIST,
     IMPORT_CONFIRM,
     IMPORT_DISCARD
 }

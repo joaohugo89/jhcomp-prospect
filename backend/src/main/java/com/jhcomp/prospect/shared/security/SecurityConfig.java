@@ -1,5 +1,7 @@
 package com.jhcomp.prospect.shared.security;
 
+import java.io.IOException;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -14,11 +16,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
@@ -26,6 +31,7 @@ import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMembe
 import com.jhcomp.prospect.shared.web.ApiErrorResponse;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
+import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -58,18 +64,18 @@ public class SecurityConfig {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
+    /** Cookie e cabecalho do token CSRF, com nomes proprios do projeto (D22). */
+    public static final String CSRF_COOKIE_NAME = "JH_XSRF";
+    public static final String CSRF_HEADER_NAME = "X-JH-XSRF";
+
     /**
      * Repositorio do token CSRF.
      *
      * <p>O cookie precisa ser legivel por JavaScript, ao contrario do de
      * sessao: o frontend le o valor e o reenvia no cabecalho
-     * {@code X-XSRF-TOKEN}. A protecao continua valendo porque um site
+     * {@value #CSRF_HEADER_NAME}. A protecao continua valendo porque um site
      * atacante nao consegue ler cookies de outra origem.
      */
-    /** Nome do cookie e do cabecalho do token CSRF. Ver o comentario do bean. */
-    public static final String CSRF_COOKIE_NAME = "JH_XSRF";
-    public static final String CSRF_HEADER_NAME = "X-JH-XSRF";
-
     @Bean
     public CsrfTokenRepository csrfTokenRepository() {
         CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
@@ -80,7 +86,7 @@ public class SecurityConfig {
         // de API passassem.
         repository.setCookiePath("/");
 
-        // Nome proprio do projeto, e nao o padrao XSRF-TOKEN, por dois motivos
+        // Nome proprio do projeto, e nao o padrao do Spring, por dois motivos
         // concretos:
         //
         // 1. Cookie nao e isolado por porta. Todos os servicos em localhost
@@ -130,16 +136,16 @@ public class SecurityConfig {
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(csrfRequestHandler))
                 // Materializa o cookie do token: o Spring Security adia a
-                // geracao do token, de modo que sem este filtro o cookie
-                // XSRF-TOKEN so apareceria depois de alguem le-lo, e o
-                // frontend nao teria o que enviar no primeiro POST.
-                .addFilterAfter(new CsrfCookieFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
+                // geracao do token, de modo que sem este filtro o cookie so
+                // apareceria depois de alguem le-lo, e o frontend nao teria o
+                // que enviar no primeiro POST.
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 // Antes da autorizacao: o papel e a organizacao precisam estar
                 // atualizados quando as regras de acesso forem avaliadas, senao
                 // revogar permissao nao surtiria efeito enquanto a sessao durar.
                 .addFilterBefore(
                         new MembershipRevalidationFilter(memberRepository, securityContextRepository),
-                        org.springframework.security.web.access.intercept.AuthorizationFilter.class)
+                        AuthorizationFilter.class)
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 // A protecao contra fixacao de sessao e feita no proprio
                 // endpoint de login, que troca o id da sessao apos autenticar.
@@ -152,8 +158,7 @@ public class SecurityConfig {
                         // Todo o resto exige autenticacao (doc 05 §12).
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
-                        .authenticationEntryPoint(
-                                unauthorizedEntryPoint(objectMapper))
+                        .authenticationEntryPoint(unauthorizedEntryPoint(objectMapper))
                         .accessDeniedHandler((request, response, exception) ->
                                 writeError(
                                         objectMapper,
@@ -181,7 +186,7 @@ public class SecurityConfig {
      * <p>Sem isso o Spring Security responderia com corpo proprio, e o
      * frontend veria dois formatos de erro diferentes.
      */
-    private static org.springframework.security.web.AuthenticationEntryPoint unauthorizedEntryPoint(
+    private static AuthenticationEntryPoint unauthorizedEntryPoint(
             ObjectMapper objectMapper) {
 
         HttpStatusEntryPoint fallback = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
@@ -203,11 +208,11 @@ public class SecurityConfig {
 
     private static void writeError(
             ObjectMapper objectMapper,
-            jakarta.servlet.http.HttpServletResponse response,
+            HttpServletResponse response,
             HttpStatus status,
             ApiErrorType type,
             String detail,
-            String instance) throws java.io.IOException {
+            String instance) throws IOException {
 
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

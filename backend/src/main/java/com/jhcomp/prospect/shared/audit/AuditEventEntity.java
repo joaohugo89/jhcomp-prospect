@@ -3,19 +3,17 @@ package com.jhcomp.prospect.shared.audit;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "audit_event")
-public class AuditEventEntity {
-
-    @Id
-    private UUID id;
+public class AuditEventEntity extends AssignedIdEntity {
 
     @Column(name = "organization_id")
     private UUID organizationId;
@@ -60,7 +58,7 @@ public class AuditEventEntity {
             String ipAddress,
             String detail,
             Instant occurredAt) {
-        this.id = id;
+        super(id);
         this.organizationId = organizationId;
         this.actorUserId = actorUserId;
         this.action = action;
@@ -70,10 +68,6 @@ public class AuditEventEntity {
         this.ipAddress = ipAddress;
         this.detail = detail;
         this.occurredAt = occurredAt;
-    }
-
-    public UUID getId() {
-        return id;
     }
 
     public UUID getOrganizationId() {
@@ -92,23 +86,7 @@ public class AuditEventEntity {
         return outcome;
     }
 
-    public String getResourceType() {
-        return resourceType;
-    }
-
-    public String getResourceId() {
-        return resourceId;
-    }
-
-    public String getIpAddress() {
-        return ipAddress;
-    }
-
     public String getDetail() {
         return detail;
-    }
-
-    public Instant getOccurredAt() {
-        return occurredAt;
     }
 }
