@@ -1,9 +1,7 @@
 package com.jhcomp.prospect.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -14,8 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.jhcomp.prospect.identity.domain.MemberStatus;
@@ -24,6 +20,7 @@ import com.jhcomp.prospect.identity.domain.UserStatus;
 import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationEntity;
 import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMemberRepository;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
+import com.jhcomp.prospect.shared.TestSessions;
 
 /**
  * Isolamento entre organizacoes (RNF-001, doc 10 §3).
@@ -65,25 +62,10 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
                 organizationB, OrganizationRole.ADMIN, UserStatus.ACTIVE, MemberStatus.ACTIVE);
     }
 
-    private MockHttpSession loginAs(IdentityTestData.Member member) throws Exception {
-        String body = """
-                {"email": "%s", "password": "%s"}
-                """.formatted(member.email(), member.password());
-
-        return (MockHttpSession) mockMvc.perform(post("/auth/login")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getRequest()
-                .getSession();
-    }
-
     @Test
     @DisplayName("usuario de A nao ve membros de B na listagem")
     void listingIsScopedToOwnOrganization() throws Exception {
-        var session = loginAs(adminA);
+        var session = TestSessions.login(mockMvc, adminA);
 
         mockMvc.perform(get("/organizations/members").session(session))
                 .andExpect(status().isOk())
@@ -97,7 +79,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     @Test
     @DisplayName("usuario de A nao acessa membro de B mesmo conhecendo o UUID")
     void cannotReachOtherOrganizationResourceByUuid() throws Exception {
-        var session = loginAs(adminA);
+        var session = TestSessions.login(mockMvc, adminA);
 
         // O UUID e valido e o recurso existe: so nao pertence a organizacao de
         // quem pede. A resposta e 404, nao 403, para nao confirmar a existencia.
@@ -110,7 +92,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     @Test
     @DisplayName("usuario de A acessa o proprio membro pelo UUID")
     void canReachOwnOrganizationResourceByUuid() throws Exception {
-        var session = loginAs(adminA);
+        var session = TestSessions.login(mockMvc, adminA);
 
         mockMvc.perform(get("/organizations/members/" + adminA.memberId()).session(session))
                 .andExpect(status().isOk())
@@ -149,7 +131,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
         var operator = testData.createMember(
                 organizationA, OrganizationRole.OPERATOR, UserStatus.ACTIVE, MemberStatus.ACTIVE);
 
-        var session = loginAs(operator);
+        var session = TestSessions.login(mockMvc, operator);
 
         // Critério de aceite do RF-003.
         mockMvc.perform(get("/organizations/members").session(session))
@@ -171,7 +153,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     @Test
     @DisplayName("organizationId enviado pelo cliente e ignorado")
     void clientSuppliedOrganizationIdIsIgnored() throws Exception {
-        var session = loginAs(adminA);
+        var session = TestSessions.login(mockMvc, adminA);
 
         // Tentativa explicita de trocar de organizacao por query string. O
         // parametro nao e lido em lugar algum; o escopo vem da sessao (RF-002).
@@ -188,7 +170,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     void reverseDirectionIsAlsoIsolated() throws Exception {
         // Testa o sentido contrario: um isolamento que funciona so em uma
         // direcao normalmente indica filtro aplicado no lugar errado.
-        var session = loginAs(memberOfB);
+        var session = TestSessions.login(mockMvc, memberOfB);
 
         mockMvc.perform(get("/organizations/members/" + adminA.memberId()).session(session))
                 .andExpect(status().isNotFound());

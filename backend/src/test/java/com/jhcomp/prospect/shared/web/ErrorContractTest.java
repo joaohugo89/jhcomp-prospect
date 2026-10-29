@@ -14,11 +14,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.jhcomp.prospect.identity.IdentityTestData;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
+import com.jhcomp.prospect.shared.TestSessions;
 
 /**
  * Formato unico de erro da API (RNF-003, doc 05 §1).
@@ -28,7 +31,7 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
  * e que nenhum deles vaze detalhe interno.
  */
 @AutoConfigureMockMvc
-@org.springframework.context.annotation.Import(IdentityTestData.class)
+@Import(IdentityTestData.class)
 @DisplayName("Contrato de erro")
 class ErrorContractTest extends PostgresIntegrationTest {
 
@@ -43,20 +46,8 @@ class ErrorContractTest extends PostgresIntegrationTest {
      * respondem 401 antes de 404 para quem nao esta autenticado, o que e
      * intencional — nao revela a anonimos quais rotas existem.
      */
-    private org.springframework.mock.web.MockHttpSession authenticatedSession(String prefix) throws Exception {
-        var admin = testData.createActiveAdmin(prefix);
-        String body = """
-                {"email": "%s", "password": "%s"}
-                """.formatted(admin.email(), admin.password());
-
-        return (org.springframework.mock.web.MockHttpSession) mockMvc.perform(post("/auth/login")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getRequest()
-                .getSession();
+    private MockHttpSession authenticatedSession(String prefix) throws Exception {
+        return TestSessions.login(mockMvc, testData.createActiveAdmin(prefix));
     }
 
     @Test

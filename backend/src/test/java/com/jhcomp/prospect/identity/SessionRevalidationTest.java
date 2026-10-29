@@ -1,8 +1,6 @@
 package com.jhcomp.prospect.identity;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -11,12 +9,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.jhcomp.prospect.identity.domain.OrganizationRole;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
+import com.jhcomp.prospect.shared.TestSessions;
 
 /**
  * Revalidacao da sessao a cada requisicao.
@@ -39,26 +36,11 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     @Autowired
     private IdentityTestData testData;
 
-    private MockHttpSession loginAs(IdentityTestData.Member member) throws Exception {
-        String body = """
-                {"email": "%s", "password": "%s"}
-                """.formatted(member.email(), member.password());
-
-        return (MockHttpSession) mockMvc.perform(post("/auth/login")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getRequest()
-                .getSession();
-    }
-
     @Test
     @DisplayName("associacao revogada encerra a sessao na requisicao seguinte")
     void revokedMembershipEndsSession() throws Exception {
         var admin = testData.createActiveAdmin("revalid-revoke");
-        var session = loginAs(admin);
+        var session = TestSessions.login(mockMvc, admin);
 
         // A sessao funciona antes da revogacao.
         mockMvc.perform(get("/auth/me").session(session)).andExpect(status().isOk());
@@ -74,7 +56,7 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     @DisplayName("usuario desabilitado encerra a sessao na requisicao seguinte")
     void disabledUserEndsSession() throws Exception {
         var admin = testData.createActiveAdmin("revalid-disable");
-        var session = loginAs(admin);
+        var session = TestSessions.login(mockMvc, admin);
 
         testData.disableUser(admin.userId());
 
@@ -86,7 +68,7 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     @DisplayName("organizacao suspensa encerra a sessao na requisicao seguinte")
     void suspendedOrganizationEndsSession() throws Exception {
         var admin = testData.createActiveAdmin("revalid-suspend");
-        var session = loginAs(admin);
+        var session = TestSessions.login(mockMvc, admin);
 
         testData.suspendOrganization(admin.organizationId());
 
@@ -98,7 +80,7 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     @DisplayName("rebaixar administrador a operador bloqueia a operacao administrativa de imediato")
     void demotionTakesEffectImmediately() throws Exception {
         var admin = testData.createActiveAdmin("revalid-demote");
-        var session = loginAs(admin);
+        var session = TestSessions.login(mockMvc, admin);
 
         // Enquanto e administrador, lista membros.
         mockMvc.perform(get("/organizations/members").session(session)).andExpect(status().isOk());
@@ -120,7 +102,7 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     @DisplayName("promover operador a administrador libera a operacao de imediato")
     void promotionTakesEffectImmediately() throws Exception {
         var operator = testData.createActiveOperator("revalid-promote");
-        var session = loginAs(operator);
+        var session = TestSessions.login(mockMvc, operator);
 
         mockMvc.perform(get("/organizations/members").session(session)).andExpect(status().isForbidden());
 
@@ -133,7 +115,7 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     @DisplayName("sessao valida continua funcionando entre requisicoes")
     void validSessionKeepsWorking() throws Exception {
         var admin = testData.createActiveAdmin("revalid-ok");
-        var session = loginAs(admin);
+        var session = TestSessions.login(mockMvc, admin);
 
         // A revalidacao nao deve derrubar sessao legitima.
         for (int request = 0; request < 3; request++) {
