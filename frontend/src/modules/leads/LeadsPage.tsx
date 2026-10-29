@@ -1,8 +1,7 @@
-import { useState } from 'react';
-
 import { formatDateTime } from '../../app/format';
 import { PRIORITY_LABEL, STATUS_LABEL } from '../../app/labels';
 import { Link } from '../../app/router';
+import { useFilters } from '../../app/useFilters';
 import { useLoad } from '../../app/useLoad';
 import { PriorityBadge, ScoreIndicator, StatusBadge } from '../../components/Badges';
 import { DataTable, type Column } from '../../components/DataTable';
@@ -38,13 +37,8 @@ function parseOption<T extends string>(options: readonly T[], value: string): T 
 
 /** Lista de leads (RF-012, doc 08 §6). */
 export function LeadsPage(): React.JSX.Element {
-  const [draft, setDraft] = useState<LeadFilters>(NO_FILTERS);
-  const [filters, setFilters] = useState<LeadFilters>(NO_FILTERS);
-  const [page, setPage] = useState(0);
-
-  const [state, reload] = useLoad(JSON.stringify({ filters, page }), (signal) => listLeads(filters, page, signal));
-
-  const filtered = JSON.stringify(filters) !== JSON.stringify(NO_FILTERS);
+  const { draft, setDraft, applied, page, setPage, apply, isFiltered, queryKey } = useFilters(NO_FILTERS);
+  const [state, reload] = useLoad(queryKey, (signal) => listLeads(applied, page, signal));
 
   return (
     <>
@@ -56,8 +50,7 @@ export function LeadsPage(): React.JSX.Element {
         className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
         onSubmit={(event) => {
           event.preventDefault();
-          setPage(0);
-          setFilters(draft);
+          apply();
         }}
       >
         <label className="text-sm font-medium text-slate-700">
@@ -125,8 +118,8 @@ export function LeadsPage(): React.JSX.Element {
       {state.kind === 'ready' ? (
         state.data.content.length === 0 ? (
           <EmptyState
-            title={filtered ? 'Nenhum lead corresponde aos filtros.' : 'Nenhum lead ainda.'}
-            {...(filtered
+            title={isFiltered ? 'Nenhum lead corresponde aos filtros.' : 'Nenhum lead ainda.'}
+            {...(isFiltered
               ? {}
               : {
                   description: 'Leads são abertos a partir de uma empresa cadastrada.',

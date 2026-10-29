@@ -2,8 +2,8 @@
  * Cliente HTTP centralizado (doc 03 §2 e §10).
  *
  * Toda chamada à API passa por aqui. Nenhum `fetch` solto nos módulos: é o que
- * garante um único lugar para credenciais de sessão, tratamento de erro e, na
- * Etapa 3, o token CSRF e o tratamento de sessão expirada.
+ * garante um único lugar para cookie de sessão, token CSRF, timeout, formato de
+ * erro e aviso de sessão expirada.
  */
 import type { ApiError, ProblemDetail } from '../types/apiError';
 
@@ -18,6 +18,8 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const CSRF_COOKIE = 'JH_XSRF';
 const CSRF_HEADER = 'X-JH-XSRF';
 const UNSAFE_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+
+const sessionExpiredListeners = new Set<() => void>();
 
 export const apiBaseUrl: string = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL;
 
@@ -149,8 +151,6 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   return (await response.json()) as T;
 }
-
-const sessionExpiredListeners = new Set<() => void>();
 
 /**
  * Avisa quando a API responde que a sessão expirou (doc 08 §11).
