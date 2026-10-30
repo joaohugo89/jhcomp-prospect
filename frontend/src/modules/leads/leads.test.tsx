@@ -8,6 +8,7 @@ import { LeadDetailPage } from './LeadDetailPage';
 function routes(statusResponse: () => Response = () => json({ ...lead, status: 'CONTACTED' })) {
   return fakeApi({
     'GET /leads/': () => json(lead),
+    'GET /leads/22222222-2222-4222-8222-222222222222/analyses': () => json(page([])),
     'GET /leads/22222222-2222-4222-8222-222222222222/timeline': () =>
       json(
         page([

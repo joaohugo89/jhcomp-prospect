@@ -11,14 +11,15 @@ import { LoadStateView } from '../../components/States';
 import { input, link } from '../../components/styles';
 import { changeLeadPriority, getLead } from '../../services/leadService';
 import { LEAD_PRIORITIES, type Lead } from '../../types/lead';
+import { AnalysisSection } from '../analysis/AnalysisSection';
 import { ActivityTimeline } from './ActivityTimeline';
 import { StatusChangeForm } from './StatusChangeForm';
 
 /**
  * Detalhe do lead (doc 08 §7).
  *
- * Nesta etapa: visão geral e histórico. As abas de presença digital,
- * mensagens e negociação chegam com os módulos correspondentes.
+ * Visão geral, presença digital e histórico. Mensagens e negociação chegam
+ * com os módulos correspondentes.
  */
 export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [state, reload] = useLoad(id, (signal) => getLead(id, signal));
@@ -86,7 +87,17 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
           </section>
         </div>
 
-        <ActivityTimeline leadId={lead.id} refreshKey={`${lead.status}:${lead.updatedAt}`} />
+        <div className="space-y-6">
+          <AnalysisSection
+            lead={lead}
+            onScoreChanged={() => {
+              // O score mudou no servidor: descarta a cópia local e relê o lead.
+              setUpdated(null);
+              reload();
+            }}
+          />
+          <ActivityTimeline leadId={lead.id} refreshKey={`${lead.status}:${lead.updatedAt}`} />
+        </div>
       </div>
     </>
   );

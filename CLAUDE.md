@@ -38,6 +38,10 @@ já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
 - **D23** Importação CSV em duas fases: analisar não cria empresa; confirmar
   importa válidas, duplicatas escolhidas e completa empresas existentes só nos
   campos vazios. Limites da D14: 2 MB, 2.000 linhas.
+- **D24** Score v1: cada critério só pontua quando `CONFIRMED`; ausência de
+  site nunca é confirmada automaticamente. Verificação de site só pelo
+  `SafeHttpFetcher` (SSRF, prazo, limites, robots.txt). Análise roda em job
+  (D15); o lead recebe o score da última análise concluída (D3).
 - **D16** 8 módulos, não 12: `enrichment` dentro de `company`, `organization`
   dentro de `identity`. As 4 camadas completas só em `company`, `lead`,
   `analysis` e `outreach`; `discovery` e `dashboard` são planos.

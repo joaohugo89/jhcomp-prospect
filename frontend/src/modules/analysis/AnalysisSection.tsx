@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { actionErrorMessage } from '../../app/errors';
 import { formatDateTime } from '../../app/format';
@@ -50,25 +50,28 @@ export function AnalysisSection({
   const latest = state.kind === 'ready' ? state.data.content[0] : undefined;
   const active = latest !== undefined && isActive(latest);
 
-  // Acompanha a análise em andamento; ao concluir, o score do lead mudou.
+  // Acompanha a análise em andamento consultando de tempos em tempos.
   useEffect(() => {
     if (!active) {
       return undefined;
     }
-    const timer = window.setTimeout(reload, POLL_MS);
+    const timer = window.setInterval(reload, POLL_MS);
     return () => {
-      window.clearTimeout(timer);
+      window.clearInterval(timer);
     };
-  }, [active, latest?.id, latest?.status, reload, state]);
+  }, [active, reload]);
 
-  const [lastSeen, setLastSeen] = useState<string | undefined>(undefined);
-  const finishedKey = latest !== undefined && !isActive(latest) ? `${latest.id}:${latest.status}` : undefined;
-  if (finishedKey !== lastSeen) {
-    setLastSeen(finishedKey);
-    if (lastSeen !== undefined && finishedKey !== undefined) {
-      onScoreChanged();
+  // Ao terminar, o score do lead mudou no servidor: avisa a página. Só na
+  // transição de "em andamento" para "concluída", nunca durante a renderização.
+  const notifyScoreChanged = useEffectEvent(onScoreChanged);
+  const wasActive = useRef(false);
+  const completed = latest?.status === 'COMPLETED';
+  useEffect(() => {
+    if (wasActive.current && !active && completed) {
+      notifyScoreChanged();
     }
-  }
+    wasActive.current = active;
+  }, [active, completed]);
 
   async function analyze(): Promise<void> {
     setBusy(true);
