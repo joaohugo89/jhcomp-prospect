@@ -115,6 +115,13 @@ public class LeadEntity extends AssignedIdEntity {
         return true;
     }
 
+    /** Score da ultima analise concluida, com a versao da formula (D3). */
+    public void applyScore(int newScore, String version, Instant now) {
+        this.score = newScore;
+        this.scoreVersion = version;
+        this.updatedAt = now;
+    }
+
     public void changePriority(LeadPriority newPriority, Instant now) {
         this.priority = newPriority;
         this.updatedAt = now;

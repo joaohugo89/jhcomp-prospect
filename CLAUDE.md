@@ -152,6 +152,14 @@ Cada uma custou tempo real. Não reintroduzir.
   do VS Code/Eclipse grava classes ali; o sintoma é `NoClassDefFoundError` de
   classe sintética (`Classe$1`) ou "Unresolved compilation problem" num teste
   que nada tem de errado. Rodar `mvn clean verify` antes de investigar.
+- **HttpClient 5: fechar a resposta drena o corpo restante.** Um servidor que
+  manda mais que o limite e continua pingando bytes nunca estoura o timeout de
+  leitura e prende quem chama. `SafeHttpFetcher` cancela a requisição antes de
+  fechar. O teste precisa pingar bytes devagar: com o servidor parado, o
+  timeout encerra a drenagem e o teste passa mesmo sem a proteção.
+- **Relógio do banco em container difere do da JVM.** No Windows a VM do Docker
+  pode estar segundos adiantada. Em teste, nunca comparar `now()` do SQL com
+  instante da aplicação; usar instante bem no passado.
 - **`curl -F file=@/c/...` no Git Bash não traduz o caminho do Windows**: a
   requisição falha sem mensagem. Rodar de dentro da pasta, com caminho
   relativo.

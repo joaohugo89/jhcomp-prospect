@@ -111,6 +111,16 @@
       <version>${commons-csv.version}</version>
     </dependency>
 
+    <!--
+      Cliente HTTP da verificacao de sites (docs/07 §6). Escolhido pelo
+      DnsResolver proprio: o endereco validado contra SSRF e o mesmo usado na
+      conexao, o que fecha DNS rebinding. Versao gerenciada pelo BOM do Spring Boot.
+    -->
+    <dependency>
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+    </dependency>
+
     <!-- Testes -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

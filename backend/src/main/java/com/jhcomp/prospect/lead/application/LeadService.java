@@ -113,6 +113,28 @@ public class LeadService {
                 .orElseThrow(() -> new ResourceNotFoundException("Lead"));
     }
 
+    /**
+     * Lead com a empresa, por organizacao explicita.
+     *
+     * <p>Uso interno de jobs, que rodam sem sessao: a organizacao vem do job,
+     * gravado a partir da sessao de quem pediu. Nunca chamar com organizacao
+     * recebida do cliente (regra 2 do produto).
+     */
+    @Transactional(readOnly = true)
+    public Optional<LeadEntity> findInOrganization(UUID organizationId, UUID leadId) {
+        return leadRepository.findScoped(leadId, organizationId);
+    }
+
+    /**
+     * Aplica o score de uma analise (D3). Mesma restricao de uso interno de
+     * {@link #findInOrganization}.
+     */
+    @Transactional
+    public void applyScore(UUID organizationId, UUID leadId, int score, String version) {
+        leadRepository.findScoped(leadId, organizationId)
+                .ifPresent(lead -> lead.applyScore(score, version, clock.instant()));
+    }
+
     @Transactional(readOnly = true)
     public Page<LeadEntity> list(LeadSpecifications.Criteria criteria, Pageable pageable) {
         return leadRepository.findAll(

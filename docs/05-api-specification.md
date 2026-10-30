@@ -214,6 +214,22 @@ A API deve rejeitar fontes não configuradas ou não autorizadas. O limite é um
 
 Solicitações demoradas devem retornar `202 Accepted` com identificador de job ou análise.
 
+Contrato implementado na Etapa 6 (D24):
+
+- **Pedido:** `POST /leads/{leadId}/analyses` responde `202` com a análise
+  `PENDING`. Com análise `PENDING` ou `PROCESSING`, devolve a mesma. Lead
+  `DO_NOT_CONTACT` responde `409`; lead de outra organização, `404`.
+- **Status:** `PENDING`, `PROCESSING`, `COMPLETED` ou `FAILED`, com
+  `createdAt`, `startedAt`, `completedAt` e `failureReason` resumido.
+  `score` e `scoreVersion` só existem com a análise concluída.
+- **Detalhe:** `GET /analyses/{id}` devolve `analysis` e `findings`, um por
+  critério, com `status`, `originalStatus`, `description`, `confidence`,
+  `pointsAwarded`, `maxPoints`, revisão e `evidence` (tipo, URL de
+  referência, descrição, data, autor e hash do conteúdo).
+- **Revisão:** `PATCH /findings/{id}/review` com
+  `{"status": "CONFIRMED", "note": "..."}`. Responde o detalhe recalculado.
+  Análise não concluída responde `409`; achado de outra organização, `404`.
+
 ## 9. CRM
 
 | Método | Endpoint | Descrição |

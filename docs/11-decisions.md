@@ -32,6 +32,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D21 | Revalidacao da associacao a cada requisicao | Aprovada | 3 |
 | D22 | Nomes de cookie proprios do projeto | Aprovada | 3 |
 | D23 | Importacao CSV em duas fases | Aprovada | 5 |
+| D24 | Criterios do score v1 e verificacao de site | Proposta | 6 |
 
 ---
 
@@ -491,3 +492,62 @@ completar essa empresa em vez de criar outra:
 e historico de uma para outra). Exige revisao propria (doc 06 §4: preservar
 fontes e historico, permitir auditar) e fica para quando houver necessidade
 real.
+
+## D24 — Criterios do score v1 e verificacao de site · Proposta (Etapa 6)
+
+O doc 06 §7 define grupos de pontos ("problema tecnico verificavel, ate 20"),
+mas nao como cada ponto e obtido; e a analise automatica precisa de regras
+que nunca afirmem sem evidencia.
+
+**Criterios.** Cada criterio e uma afirmacao e vale seus pontos inteiros
+apenas quando `CONFIRMED`; qualquer outro estado vale zero. Os grupos fecham
+exatamente a tabela do doc 06 §7:
+
+| Criterio | Pontos | Verificacao automatica |
+|---|---:|---|
+| `SITE_ABSENT` — a empresa nao tem site | 25 | Nunca confirma. Sem site cadastrado ou site fora do ar: `NOT_VERIFIED`. So o operador confirma ausencia. |
+| `NO_HTTPS` — o site nao responde por HTTPS | 10 | Conexao HTTPS ao host. |
+| `NO_MOBILE_VIEWPORT` — pagina inicial sem meta viewport | 10 | HTML da pagina inicial; confianca media. |
+| `NO_CONTACT_LINK` — pagina inicial sem link `tel:`, `mailto:` ou WhatsApp | 10 | HTML da pagina inicial; confianca media. |
+| `NO_ONLINE_BOOKING_OR_CATALOG` | 10 | Nenhuma. Sempre `NOT_VERIFIED`; heuristica por texto seria inferir sem evidencia. |
+| `BUSINESS_INFO_SUFFICIENT` — cadastro com segmento e canal de contato | 15 | Cadastro da empresa. |
+| `SERVICE_FIT` — segmento entre os atendidos | 10 | `jhcomp.analysis.served-segments`; vazio deixa para revisao. |
+| `LOCATION_SERVED` — estado entre os atendidos | 10 | `jhcomp.analysis.served-states`, padrao `MG`. |
+
+**Score.** `ScoreFormula` v1 e funcao pura dos estados. A analise grava score e
+versao; o lead recebe o score da ultima analise concluida (resolve D3). Os
+criterios independentes de site (D7) sao calculados dentro de cada analise,
+o que equivale a "baseline somado" e mantem uma unica fonte. Lead sem analise
+nao tem score, e a interface mostra "sem analise", nunca zero.
+
+**Revisao.** O operador escolhe o estado do achado; o original da verificacao
+fica gravado (`original_status`), a nota vira evidencia `OPERATOR_NOTE` e o
+score e recalculado. A posse da rota `/findings/{id}/review` e verificada
+pela organizacao do achado; as chaves compostas garantem a cadeia achado,
+analise, lead e organizacao (resolve D8).
+
+**Execucao.** Pedido responde `202` e enfileira um job na mesma transacao
+(D15): tabela `job`, worker `@Scheduled` com `FOR UPDATE SKIP LOCKED`, tres
+tentativas com espera crescente, job travado ha mais de 10 minutos volta a
+fila. Uma analise ativa por lead; pedir de novo devolve a mesma. Lead
+`DO_NOT_CONTACT` nao e analisado: a analise prepara abordagem, e processar
+dados de quem pediu para nao ser contatado nao tem finalidade.
+
+**Verificacao do site (docs/07 §6, regra 8 do produto).**
+
+- So `http`/`https` nas portas 80 e 443; sem cookies, autenticacao ou proxy.
+- O endereco e validado no `DnsResolver` usado na propria conexao (Apache
+  HttpClient 5), o que fecha DNS rebinding. Bloqueia loopback, redes
+  privadas, link-local (inclui metadata 169.254.169.254), CGNAT, IPv6 local,
+  faixas reservadas e IPv4 embutido em IPv6.
+- Sem redirecionamento automatico; ate 3, cada um revalidado, e o robots.txt
+  do novo host respeitado.
+- Timeout de conexao e leitura, prazo total de 15 s e no maximo 1 MB lido.
+  A requisicao e cancelada antes de fechar: fechar sem cancelar drena o
+  restante do corpo, e um servidor que pinga bytes devagar prenderia o worker.
+- robots.txt respeitado (RFC 9309): 4xx libera, 5xx ou sem resposta proibe.
+- Da pagina saem apenas dois sinais booleanos e o SHA-256 do conteudo. O HTML
+  nao e guardado nem interpretado como instrucao (regra 9 do produto).
+
+**Fora do escopo:** IA (Etapa 8), navegacao alem da pagina inicial e
+deteccao automatica de agendamento ou catalogo.

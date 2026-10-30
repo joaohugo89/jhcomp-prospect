@@ -13,3 +13,9 @@ logging:
     org.testcontainers: INFO
     com.github.dockerjava: WARN
     org.flywaydb: INFO
+
+# Worker desligado: os testes rodam os jobs quando querem, sem depender de tempo.
+jhcomp:
+  jobs:
+    worker:
+      enabled: false
