@@ -1,3 +1,4 @@
+import type { AnalysisStatus, Confidence, Criterion, EvidenceType, FindingStatus } from '../types/analysis';
 import type { DuplicateSignal, SourceType } from '../types/company';
 import type { ImportField, ImportRowStatus, ImportStatus } from '../types/import';
 import type { LeadPriority, LeadStatus } from '../types/lead';
@@ -63,4 +64,46 @@ export const IMPORT_ROW_STATUS_LABEL: Readonly<Record<ImportRowStatus, string>> 
   IMPORTED: 'Importada',
   MERGED: 'Completou empresa existente',
   SKIPPED: 'Não importada',
+};
+
+/** Critérios como afirmações: pontuam quando confirmadas (D24). */
+export const CRITERION_LABEL: Readonly<Record<Criterion, string>> = {
+  SITE_ABSENT: 'Empresa sem site',
+  NO_HTTPS: 'Site sem HTTPS',
+  NO_MOBILE_VIEWPORT: 'Página inicial sem adaptação a celular',
+  NO_CONTACT_LINK: 'Página inicial sem link de contato',
+  NO_ONLINE_BOOKING_OR_CATALOG: 'Sem agendamento ou catálogo online',
+  BUSINESS_INFO_SUFFICIENT: 'Informações comerciais suficientes',
+  SERVICE_FIT: 'Segmento atendido',
+  LOCATION_SERVED: 'Localização atendida',
+};
+
+export const FINDING_STATUS_LABEL: Readonly<Record<FindingStatus, string>> = {
+  CONFIRMED: 'Confirmado',
+  NOT_FOUND: 'Não encontrado',
+  NOT_VERIFIED: 'Não verificado',
+  NOT_APPLICABLE: 'Não se aplica',
+  CONTRADICTED: 'Contradito',
+};
+
+export const ANALYSIS_STATUS_LABEL: Readonly<Record<AnalysisStatus, string>> = {
+  PENDING: 'Na fila',
+  PROCESSING: 'Em processamento',
+  COMPLETED: 'Concluída',
+  FAILED: 'Falhou',
+};
+
+export const CONFIDENCE_LABEL: Readonly<Record<Confidence, string>> = {
+  LOW: 'baixa',
+  MEDIUM: 'média',
+  HIGH: 'alta',
+};
+
+export const EVIDENCE_TYPE_LABEL: Readonly<Record<EvidenceType, string>> = {
+  HTTP_RESPONSE: 'Resposta do site',
+  HTML_SIGNAL: 'Sinal na página',
+  ROBOTS_TXT: 'robots.txt',
+  COMPANY_RECORD: 'Cadastro',
+  CONFIGURATION: 'Configuração',
+  OPERATOR_NOTE: 'Nota do operador',
 };

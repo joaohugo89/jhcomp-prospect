@@ -27,11 +27,14 @@ export function useLoad<T>(
   loader: (signal: AbortSignal) => Promise<T>,
 ): readonly [Load<T>, () => void] {
   const [version, setVersion] = useState(0);
-  const requestKey = `${key}#${version}`;
-  // Resultado guardado com a chave que o produziu. Enquanto a chave atual não
-  // tiver resultado, o estado é "carregando" por derivação, sem setState
-  // síncrono dentro do efeito, que custaria uma renderização extra.
-  const [result, setResult] = useState<{ readonly key: string; readonly load: Load<T> } | null>(null);
+  // Resultado guardado com a chave e a versão que o produziram. Enquanto a
+  // requisição atual não responde, o estado é derivado, sem setState síncrono
+  // dentro do efeito, que custaria uma renderização extra.
+  const [result, setResult] = useState<{
+    readonly key: string;
+    readonly version: number;
+    readonly load: Load<T>;
+  } | null>(null);
 
   // Lê sempre o loader mais recente sem que ele seja dependência do efeito.
   const load = useEffectEvent((signal: AbortSignal) => loader(signal));
@@ -41,26 +44,44 @@ export function useLoad<T>(
 
     load(controller.signal)
       .then((data) => {
-        setResult({ key: requestKey, load: { kind: 'ready', data } });
+        setResult({ key, version, load: { kind: 'ready', data } });
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) {
           return;
         }
-        setResult({ key: requestKey, load: toFailure(cause) });
+        setResult({ key, version, load: toFailure(cause) });
       });
 
     return () => {
       controller.abort();
     };
-  }, [requestKey]);
+  }, [key, version]);
 
   const reload = useCallback(() => {
     setVersion((current) => current + 1);
   }, []);
 
-  const state: Load<T> = result !== null && result.key === requestKey ? result.load : { kind: 'loading' };
-  return [state, reload];
+  return [stateOf(result, key, version), reload];
+}
+
+/**
+ * Estado a exibir.
+ *
+ * Ao recarregar a mesma chave (depois de uma alteração ou durante
+ * acompanhamento de um processo), o último dado pronto continua na tela até o
+ * novo chegar: voltar a "Carregando…" faria a tela piscar a cada consulta.
+ * Chave nova é outra consulta, e aí sim mostra carregando.
+ */
+function stateOf<T>(
+  result: { readonly key: string; readonly version: number; readonly load: Load<T> } | null,
+  key: string,
+  version: number,
+): Load<T> {
+  if (result === null || result.key !== key) {
+    return { kind: 'loading' };
+  }
+  return result.version === version || result.load.kind === 'ready' ? result.load : { kind: 'loading' };
 }
 
 function toFailure(cause: unknown): Load<never> {

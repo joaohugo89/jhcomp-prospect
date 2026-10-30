@@ -542,10 +542,17 @@ dados de quem pediu para nao ser contatado nao tem finalidade.
   faixas reservadas e IPv4 embutido em IPv6.
 - Sem redirecionamento automatico; ate 3, cada um revalidado, e o robots.txt
   do novo host respeitado.
-- Timeout de conexao e leitura, prazo total de 15 s e no maximo 1 MB lido.
-  A requisicao e cancelada antes de fechar: fechar sem cancelar drena o
-  restante do corpo, e um servidor que pinga bytes devagar prenderia o worker.
+- Timeout de conexao e leitura, e um prazo total de 15 s por requisicao
+  imposto por temporizador que cancela a requisicao, cobrindo cabecalhos
+  enviados um byte por vez. Prazo de 45 s para a verificacao inteira.
+  Cabecalho limitado a 100 linhas de 8 KB; corpo, a 1 MB. A requisicao e
+  cancelada antes de fechar: fechar sem cancelar drena o restante do corpo, e
+  um servidor que pinga bytes devagar prenderia o worker.
+- IPv6 por lista de permissao: so unicast global (2000::/3), sem 6to4, Teredo,
+  ORCHID e documentacao; formas que carregam IPv4 sao recusadas.
 - robots.txt respeitado (RFC 9309): 4xx libera, 5xx ou sem resposta proibe.
+  Curinga comparado sem expressao regular (regras de terceiros com varios
+  `*` causariam ReDoS), com teto de 500 regras de 512 caracteres.
 - Da pagina saem apenas dois sinais booleanos e o SHA-256 do conteudo. O HTML
   nao e guardado nem interpretado como instrucao (regra 9 do produto).
 
