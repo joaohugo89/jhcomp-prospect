@@ -3,7 +3,6 @@ package com.jhcomp.prospect.analysis.infrastructure.web;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
  * Regras de um robots.txt (RFC 9309), so o necessario para decidir se um
@@ -18,9 +17,17 @@ public final class RobotsRules {
     public static final String AGENT_TOKEN = "jhcomp-prospect";
 
     private static final RobotsRules ALLOW_ALL = new RobotsRules(List.of());
-    private static final RobotsRules DISALLOW_ALL = new RobotsRules(List.of(new Rule(false, "/", Pattern.compile("^/"))));
+    private static final RobotsRules DISALLOW_ALL = new RobotsRules(List.of(new Rule(false, "/")));
 
-    private record Rule(boolean allow, String path, Pattern pattern) {}
+    /**
+     * Limites para conteudo externo. robots.txt e escrito por terceiros: sem
+     * teto, milhares de regras longas cheias de curinga ocupariam o worker.
+     */
+    static final int MAX_RULES = 500;
+    static final int MAX_RULE_LENGTH = 512;
+    static final int MAX_PATH_LENGTH = 2048;
+
+    private record Rule(boolean allow, String path) {}
 
     private final List<Rule> rules;
 
@@ -71,7 +78,10 @@ public final class RobotsRules {
             if (value.isEmpty()) {
                 continue;
             }
-            Rule rule = new Rule(key.equals("allow"), value, toPattern(value));
+            if (value.length() > MAX_RULE_LENGTH || specific.size() + wildcard.size() >= MAX_RULES) {
+                continue;
+            }
+            Rule rule = new Rule(key.equals("allow"), value);
             if (agents.stream().anyMatch(agent -> agent.contains(AGENT_TOKEN))) {
                 specific.add(rule);
                 specificGroupSeen = true;
@@ -84,9 +94,13 @@ public final class RobotsRules {
     }
 
     public boolean allows(String path) {
+        // Caminho alem do limite nao e comparado: sem decisao segura, nao le.
+        if (path.length() > MAX_PATH_LENGTH) {
+            return false;
+        }
         Rule best = null;
         for (Rule rule : rules) {
-            if (!rule.pattern().matcher(path).find()) {
+            if (!matches(rule.path(), path)) {
                 continue;
             }
             if (best == null
@@ -103,20 +117,40 @@ public final class RobotsRules {
         return hash < 0 ? line : line.substring(0, hash);
     }
 
-    /** {@code *} casa qualquer sequencia; {@code $} no fim ancora o final. */
-    private static Pattern toPattern(String path) {
-        boolean anchored = path.endsWith("$");
-        String body = anchored ? path.substring(0, path.length() - 1) : path;
-        StringBuilder regex = new StringBuilder("^");
-        for (String part : body.split("\\*", -1)) {
-            if (regex.length() > 1) {
-                regex.append(".*");
+    /**
+     * Curinga do robots.txt: {@code *} casa qualquer sequencia e {@code $} no
+     * fim ancora o final; sem {@code $}, a regra casa como prefixo.
+     *
+     * <p>Sem expressao regular de proposito. Regras vem de terceiros, e uma
+     * regex com varios {@code .*} pode levar tempo exponencial com backtracking
+     * (ReDoS). Este comparador guarda so o ultimo curinga e volta no maximo
+     * ate ele, como o parser de robots.txt do Google: tempo limitado por
+     * tamanho da regra vezes tamanho do caminho, ambos com teto.
+     */
+    static boolean matches(String rule, String path) {
+        boolean anchored = rule.endsWith("$");
+        String pattern = anchored ? rule.substring(0, rule.length() - 1) : rule + "*";
+        int p = 0;
+        int s = 0;
+        int star = -1;
+        int resume = 0;
+        while (s < path.length()) {
+            if (p < pattern.length() && pattern.charAt(p) == '*') {
+                star = p++;
+                resume = s;
+            } else if (p < pattern.length() && pattern.charAt(p) == path.charAt(s)) {
+                p++;
+                s++;
+            } else if (star >= 0) {
+                p = star + 1;
+                s = ++resume;
+            } else {
+                return false;
             }
-            regex.append(Pattern.quote(part));
         }
-        if (anchored) {
-            regex.append('$');
+        while (p < pattern.length() && pattern.charAt(p) == '*') {
+            p++;
         }
-        return Pattern.compile(regex.toString());
+        return p == pattern.length();
     }
 }

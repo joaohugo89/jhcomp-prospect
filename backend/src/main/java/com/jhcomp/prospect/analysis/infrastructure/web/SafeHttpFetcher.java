@@ -13,6 +13,10 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hc.client5.http.DnsResolver;
 import org.apache.hc.client5.http.SystemDefaultDnsResolver;
@@ -21,11 +25,13 @@ import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.ManagedHttpClientConnectionFactory;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.config.Http1Config;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
 
@@ -51,10 +57,24 @@ public class SafeHttpFetcher implements AutoCloseable {
 
     public static final String USER_AGENT = "JHCOMP-Prospect/1.0 (verificacao de presenca digital)";
 
-    private static final Duration DEADLINE = Duration.ofSeconds(15);
+
+    /** Cabecalho muito longo ou numeroso e recusado, sem consumir memoria. */
+    private static final Http1Config HTTP1_LIMITS = Http1Config.custom()
+            .setMaxLineLength(8 * 1024)
+            .setMaxHeaderCount(100)
+            .build();
+
+    /** Cancela requisicoes que passam do prazo total. Uma thread daemon basta. */
+    private static final ScheduledExecutorService WATCHDOG = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "safe-http-fetcher-watchdog");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private final CloseableHttpClient client;
     private final Set<Integer> allowedPorts;
+    /** Prazo total por requisicao: tres vezes o timeout de conexao (15 s em producao). */
+    private final Duration deadline;
 
     /** Resposta HTTP. {@code body} vazio quando o conteudo nao e texto. */
     public record Response(int status, String location, String contentType, byte[] body, Charset charset) {
@@ -88,6 +108,7 @@ public class SafeHttpFetcher implements AutoCloseable {
      */
     SafeHttpFetcher(AddressPolicy policy, Set<Integer> extraPorts, Duration connectTimeout) {
         this.allowedPorts = extraPorts.isEmpty() ? Set.of(80, 443) : union(extraPorts);
+        this.deadline = connectTimeout.multipliedBy(3);
         DnsResolver validatingResolver = new DnsResolver() {
             @Override
             public InetAddress[] resolve(String host) throws UnknownHostException {
@@ -111,6 +132,9 @@ public class SafeHttpFetcher implements AutoCloseable {
         this.client = HttpClients.custom()
                 .setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
                         .setDnsResolver(validatingResolver)
+                        .setConnectionFactory(ManagedHttpClientConnectionFactory.builder()
+                                .http1Config(HTTP1_LIMITS)
+                                .build())
                         .setDefaultConnectionConfig(ConnectionConfig.custom()
                                 .setConnectTimeout(Timeout.of(connectTimeout))
                                 .setSocketTimeout(Timeout.of(connectTimeout.multipliedBy(2)))
@@ -137,16 +161,20 @@ public class SafeHttpFetcher implements AutoCloseable {
      */
     public Response get(URI uri, int maxBytes) throws FetchException {
         validate(uri);
-        long deadline = System.nanoTime() + DEADLINE.toNanos();
+        long deadlineNanos = System.nanoTime() + deadline.toNanos();
         // Fechar a resposta drena o restante do corpo, e um servidor que manda
         // mais que o limite e continua pingando bytes nunca estoura o timeout
         // de leitura: prenderia o worker. Cancelar a requisicao antes de fechar
         // aborta a conexao em vez de drenar (oversizedBodyIsCutShort).
         HttpGet request = new HttpGet(uri);
+        // Prazo total da troca inteira, cabecalhos incluidos: o timeout de
+        // leitura reinicia a cada byte, e um servidor que manda cabecalhos um
+        // byte por vez escaparia dele.
+        ScheduledFuture<?> watchdog = WATCHDOG.schedule(request::cancel, deadline.toMillis(), TimeUnit.MILLISECONDS);
         try {
             ClassicHttpResponse response = client.executeOpen(null, request, null);
             try {
-                return read(response, maxBytes, deadline);
+                return read(response, maxBytes, deadlineNanos);
             } finally {
                 request.cancel();
                 closeDiscarding(response);
@@ -155,10 +183,14 @@ public class SafeHttpFetcher implements AutoCloseable {
             throw new FetchException("BLOCKED_ADDRESS");
         } catch (UnknownHostException exception) {
             throw new FetchException("DNS");
-        } catch (InterruptedIOException exception) {
-            throw new FetchException("TIMEOUT");
         } catch (IOException exception) {
+            // Cancelada pelo prazo total ou estouro de timeout de leitura.
+            if (exception instanceof InterruptedIOException || watchdog.isDone()) {
+                throw new FetchException("TIMEOUT");
+            }
             throw new FetchException("CONNECTION");
+        } finally {
+            watchdog.cancel(false);
         }
     }
 

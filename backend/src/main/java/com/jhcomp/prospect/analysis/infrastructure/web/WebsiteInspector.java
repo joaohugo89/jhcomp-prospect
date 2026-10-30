@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Locale;
@@ -34,6 +35,13 @@ import com.jhcomp.prospect.analysis.domain.WebsiteObservation.Outcome;
 public class WebsiteInspector implements WebsiteChecker, DisposableBean {
 
     static final int MAX_REDIRECTS = 3;
+
+    /**
+     * Prazo total da verificacao de um site. Cada requisicao ja tem o proprio
+     * prazo, mas robots.txt, HTTP e redirecionamentos somam varias: sem este
+     * teto, um site lento ocuparia o worker por minutos.
+     */
+    static final Duration TOTAL_DEADLINE = Duration.ofSeconds(45);
     static final int MAX_PAGE_BYTES = 1024 * 1024;
     private static final int MAX_ROBOTS_BYTES = 256 * 1024;
 
@@ -60,6 +68,26 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
 
     @Override
     public WebsiteObservation inspect(String websiteUrl) {
+        deadline.set(System.nanoTime() + TOTAL_DEADLINE.toNanos());
+        try {
+            return inspectWithinDeadline(websiteUrl);
+        } finally {
+            deadline.remove();
+        }
+    }
+
+    /** Prazo da verificacao em curso, por thread: o bean e compartilhado. */
+    private final ThreadLocal<Long> deadline = new ThreadLocal<>();
+
+    private SafeHttpFetcher.Response fetch(URI uri, int maxBytes) throws FetchException {
+        Long limit = deadline.get();
+        if (limit != null && System.nanoTime() > limit) {
+            throw new FetchException("TIMEOUT");
+        }
+        return fetcher.get(uri, maxBytes);
+    }
+
+    private WebsiteObservation inspectWithinDeadline(String websiteUrl) {
         Instant now = clock.instant();
         if (websiteUrl == null || websiteUrl.isBlank()) {
             return WebsiteObservation.noWebsite(now);
@@ -99,7 +127,7 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             SafeHttpFetcher.Response response;
             try {
-                response = fetcher.get(current, MAX_PAGE_BYTES);
+                response = fetch(current, MAX_PAGE_BYTES);
             } catch (FetchException exception) {
                 return unusable(requested, current, httpsAvailable, null, exception.code(), now);
             }
@@ -162,7 +190,7 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             SafeHttpFetcher.Response response;
             try {
-                response = fetcher.get(uri, MAX_ROBOTS_BYTES);
+                response = fetch(uri, MAX_ROBOTS_BYTES);
             } catch (FetchException exception) {
                 return new RobotsAttempt(RobotsRules.disallowAll(), exception.code());
             }

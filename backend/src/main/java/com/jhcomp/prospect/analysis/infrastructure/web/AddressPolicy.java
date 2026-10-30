@@ -14,8 +14,8 @@ import java.net.UnknownHostException;
  * {@code http://169.254.169.254/} ou um dominio que resolve para 10.0.0.5 faria
  * o servidor consultar a propria rede interna em nome de quem cadastrou.
  *
- * <p>IPv4 embutido em IPv6 (mapeado e NAT64) e avaliado pelo IPv4 de dentro:
- * {@code ::ffff:127.0.0.1} e loopback.
+ * <p>IPv4 mapeado em IPv6 e avaliado pelo IPv4 de dentro: {@code ::ffff:127.0.0.1}
+ * e loopback. Para IPv6 vale lista de permissao: so unicast global.
  */
 public final class AddressPolicy {
 
@@ -62,22 +62,36 @@ public final class AddressPolicy {
                 || b0 >= 240;                              // 240.0.0.0/4 e broadcast
     }
 
+    /**
+     * IPv6 por lista de permissao: so unicast global (2000::/3), menos as
+     * faixas que carregam ou encaminham IPv4 e as de documentacao. Uma lista de
+     * bloqueio deixaria passar faixa esquecida; aqui o desconhecido e recusado.
+     */
     private static boolean isReservedIpv6(byte[] b) {
         int b0 = b[0] & 0xff;
-        return (b0 & 0xfe) == 0xfc                                        // fc00::/7, uso local
-                || (b0 == 0x20 && (b[1] & 0xff) == 0x01 && (b[2] & 0xff) == 0x0d && (b[3] & 0xff) == 0xb8); // 2001:db8::/32
+        int b1 = b[1] & 0xff;
+        int b2 = b[2] & 0xff;
+        int b3 = b[3] & 0xff;
+        boolean globalUnicast = (b0 & 0xe0) == 0x20;
+        return !globalUnicast
+                || (b0 == 0x20 && b1 == 0x02)                                     // 2002::/16, 6to4
+                || (b0 == 0x20 && b1 == 0x01 && b2 == 0x00 && b3 == 0x00)        // 2001::/32, Teredo
+                || (b0 == 0x20 && b1 == 0x01 && b2 == 0x00 && (b3 & 0xf0) == 0x10) // 2001:10::/28, ORCHID
+                || (b0 == 0x20 && b1 == 0x01 && b2 == 0x0d && b3 == 0xb8);       // 2001:db8::/32, documentacao
     }
 
-    /** IPv4 de dentro de um IPv6 mapeado (::ffff:a.b.c.d) ou NAT64 (64:ff9b::a.b.c.d). */
+    /**
+     * IPv4 de dentro de um IPv6 mapeado (::ffff:a.b.c.d), avaliado como IPv4.
+     * Demais formas de IPv4 embutido (NAT64, 6to4, Teredo) ficam fora de
+     * 2000::/3 ou sao excluidas explicitamente, e sao recusadas.
+     */
     private static InetAddress embeddedIpv4(InetAddress address) {
         if (!(address instanceof Inet6Address)) {
             return address;
         }
         byte[] b = address.getAddress();
         boolean mapped = allZero(b, 0, 10) && (b[10] & 0xff) == 0xff && (b[11] & 0xff) == 0xff;
-        boolean nat64 = (b[0] & 0xff) == 0x00 && (b[1] & 0xff) == 0x64 && (b[2] & 0xff) == 0xff
-                && (b[3] & 0xff) == 0x9b && allZero(b, 4, 12);
-        if (!mapped && !nat64) {
+        if (!mapped) {
             return address;
         }
         try {

@@ -24,9 +24,12 @@ class AddressPolicyTest {
         "169.254.169.254", "100.64.0.1", "100.127.255.254", "192.0.0.8", "198.18.0.1", "224.0.0.1",
         "240.0.0.1", "255.255.255.255",
         "::1", "::", "fe80::1", "fc00::1", "fd12:3456::1", "ff02::1", "2001:db8::1",
-        "::ffff:127.0.0.1", "::ffff:10.0.0.1", "::ffff:169.254.169.254", "64:ff9b::a00:1"
+        "::ffff:127.0.0.1", "::ffff:10.0.0.1", "::ffff:169.254.169.254", "64:ff9b::a00:1",
+        // Formas que carregam IPv4 dentro do IPv6: recusadas por inteiro.
+        "2002:7f00:1::1", "2002:a9fe:a9fe::1", "2001:0:4136:e378:8000:63bf:3fff:fdd2", "::7f00:1",
+        "64:ff9b:1::a00:1", "2001:10::1", "100::1"
     })
-    @DisplayName("bloqueia rede interna, metadata de nuvem e faixas reservadas")
+    @DisplayName("bloqueia rede interna, metadata de nuvem, faixas reservadas e IPv4 embutido em IPv6")
     void blocksInternal(String address) throws Exception {
         assertThat(blocked(address)).describedAs(address).isTrue();
     }

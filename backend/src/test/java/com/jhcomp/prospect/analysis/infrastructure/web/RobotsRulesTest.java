@@ -77,4 +77,48 @@ class RobotsRulesTest {
         assertThat(RobotsRules.disallowAll().allows("/")).isFalse();
         assertThat(RobotsRules.allowAll().allows("/")).isTrue();
     }
+
+    /**
+     * Padrao que leva tempo exponencial numa regex com backtracking. O
+     * comparador sem regex precisa responder na hora.
+     */
+    @Test
+    @DisplayName("regra patologica nao trava a decisao (ReDoS)")
+    void pathologicalPatternIsFast() {
+        String rule = "/" + "*a".repeat(40) + "b";
+        RobotsRules rules = RobotsRules.parse("User-agent: *\nDisallow: " + rule + "\n");
+
+        long started = System.nanoTime();
+        boolean allowed = rules.allows("/" + "a".repeat(2000));
+        long elapsedMillis = (System.nanoTime() - started) / 1_000_000;
+
+        assertThat(allowed).isTrue();
+        assertThat(elapsedMillis).isLessThan(500);
+    }
+
+    @Test
+    @DisplayName("curinga casa como no padrao do Google")
+    void wildcardSemantics() {
+        assertThat(RobotsRules.matches("/fish", "/fish.html")).isTrue();
+        assertThat(RobotsRules.matches("/fish$", "/fish.html")).isFalse();
+        assertThat(RobotsRules.matches("/*.php", "/index.php?x=1")).isTrue();
+        assertThat(RobotsRules.matches("/*.php$", "/index.php?x=1")).isFalse();
+        assertThat(RobotsRules.matches("/a*b*c", "/aXbYc")).isTrue();
+        assertThat(RobotsRules.matches("/a*b*c", "/acb")).isFalse();
+    }
+
+    @Test
+    @DisplayName("limites de conteudo externo: regras demais ou caminho enorme")
+    void contentLimits() {
+        StringBuilder robots = new StringBuilder("User-agent: *\n");
+        for (int i = 0; i < RobotsRules.MAX_RULES; i++) {
+            robots.append("Disallow: /nada-").append(i).append('\n');
+        }
+        // Alem do teto: ignorada.
+        robots.append("Disallow: /\n");
+
+        assertThat(RobotsRules.parse(robots.toString()).allows("/")).isTrue();
+        // Caminho alem do limite: sem decisao segura, nao le.
+        assertThat(RobotsRules.allowAll().allows("/" + "a".repeat(RobotsRules.MAX_PATH_LENGTH))).isFalse();
+    }
 }
