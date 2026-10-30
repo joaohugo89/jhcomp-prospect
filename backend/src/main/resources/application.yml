@@ -98,10 +98,23 @@ logging:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [%X{requestId:-}] %logger{36} - %msg%n"
 
 # ---------------------------------------------------------------------------
+# Jobs em segundo plano (D15) e analise de presenca digital (D24).
+# ---------------------------------------------------------------------------
+jhcomp:
+  jobs:
+    worker:
+      enabled: ${JOBS_WORKER_ENABLED:true}
+    poll-interval: 2s
+  analysis:
+    # Estados e segmentos atendidos, separados por virgula. Segmentos vazios
+    # deixam o criterio de compatibilidade para revisao manual.
+    served-states: ${ANALYSIS_SERVED_STATES:MG}
+    served-segments: ${ANALYSIS_SERVED_SEGMENTS:}
+
+# ---------------------------------------------------------------------------
 # Bootstrap de desenvolvimento local (perfil "local").
 # Nao tem efeito em outros perfis. Sem LOCAL_ADMIN_PASSWORD, nada e criado.
 # ---------------------------------------------------------------------------
-jhcomp:
   bootstrap:
     admin-email: ${LOCAL_ADMIN_EMAIL:admin@jhcomp.local}
     admin-password: ${LOCAL_ADMIN_PASSWORD:}
