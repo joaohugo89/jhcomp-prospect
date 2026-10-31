@@ -42,6 +42,11 @@ já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
   site nunca é confirmada automaticamente. Verificação de site só pelo
   `SafeHttpFetcher` (SSRF, prazo, limites, robots.txt). Análise roda em job
   (D15); o lead recebe o score da última análise concluída (D3).
+- **D26** Outreach: a IA só devolve texto (`AIProvider.generateMessage`, sem
+  ferramenta de escrita; teste estrutural). No MVP só existe o provedor fake.
+  Geração síncrona sem transação durante a chamada; saída validada antes de
+  virar rascunho. Bloqueio de não contato por identificador normalizado,
+  conferido ao gerar, aprovar e registrar envio; sem remoção no MVP.
 - **D16** 8 módulos, não 12: `enrichment` dentro de `company`, `organization`
   dentro de `identity`. As 4 camadas completas só em `company`, `lead`,
   `analysis` e `outreach`; `discovery` e `dashboard` são planos.
@@ -172,6 +177,12 @@ Cada uma custou tempo real. Não reintroduzir.
   análise de nulos do Eclipse em method reference sobre genérico do JDK. Está
   desligado em `.vscode/java-compiler.prefs` (local). Não trocar method
   reference por lambda por causa dele.
+- **A API omite campo nulo no JSON** (`default-property-inclusion: non_null`).
+  Em teste MockMvc, campo nulo é `jsonPath(...).doesNotExist()`, não
+  `.value(nullValue())`; no frontend, o tipo é opcional (`?:`), não `| null`.
+- **A API simulada do frontend casa rota por prefixo.** `GET /leads/` responde
+  também `/leads/{id}/qualquer-coisa` com o JSON do lead. Seção nova no
+  detalhe do lead exige declarar a rota nos testes de `leads` e `crm`.
 - **`curl -F file=@/c/...` no Git Bash não traduz o caminho do Windows**: a
   requisição falha sem mensagem. Rodar de dentro da pasta, com caminho
   relativo.

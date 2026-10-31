@@ -270,6 +270,7 @@ Contrato implementado na Etapa 7 (D2, D25):
 
 | Método | Endpoint | Descrição |
 |---|---|---|
+| GET | `/leads/{leadId}/outreach-context` | Remetente, contexto da IA e destinatário/bloqueio por canal |
 | POST | `/leads/{leadId}/messages/generate` | Gerar rascunho |
 | GET | `/leads/{leadId}/messages` | Listar mensagens |
 | PATCH | `/messages/{messageId}` | Editar rascunho |
@@ -280,6 +281,14 @@ Contrato implementado na Etapa 7 (D2, D25):
 | GET | `/suppression-entries` | Consultar bloqueios autorizados |
 
 A ação `record-send` registra envio já realizado; não deve abrir uma integração de disparo oculto. Integrações oficiais futuras devem possuir endpoints e controles próprios.
+
+Contratos da Etapa 8 (D26):
+
+- `generate` recebe `{channel}` (`WHATSAPP`, `EMAIL`, `INSTAGRAM`, `PHONE_CALL`) e responde `201` com a mensagem em `DRAFT` ou `NEEDS_REVIEW`. `409` quando há bloqueio ou a empresa não tem contato válido no canal; `429` acima de 10 gerações por usuário em 5 minutos; `502 AI_PROVIDER_ERROR` quando o provedor falha ou a saída é recusada, sem gravar rascunho.
+- `PATCH /messages/{id}` recebe `{subject?, body}`; assunto só em e-mail; limite por canal (1.000, 4.000, 1.000 e 2.000 caracteres).
+- `approve` recebe `{unverifiedClaimsReviewed}`, obrigatório como `true` em `NEEDS_REVIEW`.
+- `record-send` recebe `{result: SENT|FAILED, sentAt, notes?, markLeadContacted?}`; só de `APPROVED`. `SENT` cria interação `CONTACT` na timeline; o lead só vai a `CONTACTED` com `markLeadContacted: true`.
+- `POST /suppression-entries` recebe `{identifierType: PHONE|EMAIL|INSTAGRAM, identifier, channel?, reason, requestedAt?}`; qualquer membro; idempotente por identificador e canal. `GET` só para `ADMIN`. Não há remoção.
 
 ## 11. Website Studio
 

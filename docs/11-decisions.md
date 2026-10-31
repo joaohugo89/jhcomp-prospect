@@ -34,6 +34,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D23 | Importacao CSV em duas fases | Aprovada | 5 |
 | D24 | Criterios do score v1 e verificacao de site | Proposta | 6 |
 | D25 | Pipeline no codigo, deal sem resultado, interacoes | Proposta | 7 |
+| D26 | Outreach com IA revisada e lista de nao contato | Aprovada | 8 |
 
 ---
 
@@ -594,3 +595,75 @@ e canal) e da Etapa 8.
 instantes em UTC. Contagem por etapa e uma foto atual; empresas adicionadas,
 contatos registrados e negocios ganhos respeitam o periodo, que volta na
 resposta para o denominador ficar explicito.
+
+## D26 — Outreach com IA revisada e lista de nao contato · Aprovada (Etapa 8, 2026-11-06)
+
+Os docs 03, 04, 05 e 06 descrevem o fluxo, mas deixam abertos o provedor, o
+contexto enviado, os estados e o alcance do bloqueio.
+
+**Provedor.** `AIProvider` tem um unico metodo, `generateMessage`; o
+`analyzeLead` do doc 03 sai, porque a analise e deterministica (D24). No MVP
+so existe o `FakeAIProvider`, deterministico e usado tambem nos testes; um
+provedor real entra depois atras de configuracao, com chave fora do codigo,
+sem mudar o fluxo. A interface recebe e devolve valores imutaveis. O pacote de
+IA nao depende de repositorio, de servico que grava nem de `outreach`, e um
+teste estrutural garante isso (regra 1).
+
+**Contexto enviado.** Nome, segmento, cidade/UF e achados `CONFIRMED` da
+ultima analise concluida, mais o remetente (organizacao e operador) e o canal.
+Telefone, e-mail, Instagram e notas do operador nao vao ao provedor (doc 07
+§7); conteudo de pagina externa nunca entra no prompt. O prompt e versionado
+em resource (`outreach-v1`), e a mensagem grava `prompt_version` e
+`generated_by`.
+
+**Saida.** Estrutura `{subject?, body, unverifiedClaims[]}`, validada: corpo
+nao vazio; limite por canal (WhatsApp e Instagram 1.000, e-mail 4.000,
+roteiro de ligacao 2.000 caracteres); assunto so em e-mail. Saida invalida e
+recusada inteira, sem gravar rascunho, e o texto e tratado como texto puro
+(regra 9).
+
+**Execucao sincrona.** `POST /leads/{leadId}/messages/generate` le o contexto
+numa transacao curta, chama o provedor fora de transacao e grava o rascunho em
+outra, conferindo de novo o bloqueio. O timeout de 20 s e responsabilidade do
+adaptador que chamar a rede; o fake nao chama. A geracao tem limite de 10 por
+usuario a cada 5 minutos, com reserva atomica como na D20 (doc 05 §12).
+Provedor indisponivel ou saida recusada responde 502 `AI_PROVIDER_ERROR` sem
+gravar nada. Difere da analise (D15) por ser acao interativa e curta.
+
+**Canais.** `WHATSAPP`, `EMAIL`, `INSTAGRAM` e `PHONE_CALL`. Identificador
+normalizado: telefone (WhatsApp e ligacao), e-mail em minusculas, perfil do
+Instagram sem `@` e em minusculas.
+
+**Estados.** A mensagem gerada nasce `DRAFT`, ou `NEEDS_REVIEW` quando a saida
+traz `unverifiedClaims`; nesse caso aprovar exige confirmacao explicita do
+operador no request (`unverifiedClaimsReviewed`). Editar mensagem `APPROVED` a
+devolve a `DRAFT` (ou `NEEDS_REVIEW`, se houver afirmacoes) e limpa a
+aprovacao. Envio que falhou nao vira interacao. `record-send` so parte de `APPROVED` e grava canal, data do envio,
+resultado (`SENT` ou `FAILED`) e o responsavel da sessao, criando interacao na
+timeline. `SENT`, `FAILED` e `CANCELLED` sao finais. O lead so vai a
+`CONTACTED` quando o request de `record-send` pede isso explicitamente
+(`markLeadContacted`), nunca por padrao (regras 5 e 6).
+
+**Bloqueio.** `SuppressionEntry` guarda identificador normalizado, canal
+(nulo vale para todos), motivo, `requested_at` e quem registrou; e a criacao
+vai para a auditoria, sem o identificador. Antes de gerar, aprovar e
+registrar envio, e ao registrar abordagem de saida no CRM, os identificadores
+da empresa do lead sao conferidos contra a lista, e lead em `DO_NOT_CONTACT`
+tambem bloqueia (regra 4). A conferencia e conservadora: qualquer
+identificador da empresa bloqueado em todos os canais bloqueia a empresa em
+todos; entrada restrita a um canal bloqueia so aquele canal. O CRM consulta
+pela interface `ContactBlockCheck`, implementada no outreach, para nao criar
+dependencia circular. A interacao
+`DO_NOT_CONTACT_REQUEST` (D25) e a mudanca do lead para `DO_NOT_CONTACT`
+criam as entradas da empresa, em todos os canais, inclusive quando o lead ja
+esta ganho ou perdido. Como o
+bloqueio e pelo identificador, empresa reimportada com o mesmo contato
+continua bloqueada. Qualquer membro registra; so `ADMIN` lista (doc 07 §10:
+acesso restrito). Nao ha remocao no MVP.
+
+**Tela.** `GET /leads/{leadId}/outreach-context` devolve remetente, contexto
+enviado a IA e, por canal, destinatario e bloqueio, para a composicao mostrar
+tudo antes de gerar (doc 08 §9).
+
+**Fora do escopo:** provedor real, envio por integracao (RF-054, P2), remocao
+de bloqueio e disparo em massa.

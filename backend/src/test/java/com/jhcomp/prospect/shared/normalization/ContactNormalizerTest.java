@@ -109,4 +109,27 @@ class ContactNormalizerTest {
                     .contains("contato@loja.example.test");
         }
     }
+
+    @Nested
+    @DisplayName("instagram")
+    class Instagram {
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "@Loja.Exemplo", "loja.exemplo", "https://www.instagram.com/loja.exemplo/",
+                "instagram.com/Loja.Exemplo", "http://instagram.com/loja.exemplo?hl=pt"})
+        @DisplayName("perfil, @perfil e URL do perfil chegam ao mesmo identificador")
+        void sameHandle(String raw) {
+            assertThat(ContactNormalizer.instagram(raw)).contains("loja.exemplo");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "https://instagram.com/p/abc123", "https://instagram.com/explore/",
+                "https://example.test/loja.exemplo", "https://instagram.com/", "perfil com espaco", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
+        @DisplayName("recusa postagem, outro host e perfil invalido")
+        void rejectsNonProfiles(String raw) {
+            assertThat(ContactNormalizer.instagram(raw)).isEmpty();
+        }
+    }
 }
