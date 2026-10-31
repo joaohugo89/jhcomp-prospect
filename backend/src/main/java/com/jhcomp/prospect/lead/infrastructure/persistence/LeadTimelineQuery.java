@@ -14,8 +14,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Historico consolidado do lead (RF-013): mudancas de status e origens, em
- * ordem cronologica decrescente.
+ * Historico consolidado do lead (RF-013): mudancas de status, origens e
+ * interacoes do CRM, em ordem cronologica decrescente.
  *
  * <p>SQL direto porque une duas tabelas numa unica paginacao; com duas
  * consultas paginadas separadas, a ordem entre elas so seria correta pagina a
@@ -31,7 +31,8 @@ public class LeadTimelineQuery {
     /** Tipo do evento no historico. */
     public enum EntryType {
         STATUS_CHANGE,
-        SOURCE
+        SOURCE,
+        INTERACTION
     }
 
     /** Evento do historico. Campos de status ou de origem conforme o tipo. */
@@ -46,23 +47,38 @@ public class LeadTimelineQuery {
             String sourceType,
             String sourceName,
             String sourceUrl,
-            String sourceReference) {}
+            String sourceReference,
+            String interactionType,
+            String channel,
+            String direction,
+            String outcome,
+            String notes) {}
 
     private static final String EVENTS = """
             select 'STATUS_CHANGE' as entry_type, c.id, c.changed_at as occurred_at, c.recorded_seq,
                    u.display_name as actor_name,
                    c.from_status, c.to_status, c.reason,
-                   null as source_type, null as source_name, null as source_url, null as source_reference
+                   null as source_type, null as source_name, null as source_url, null as source_reference,
+                   null as interaction_type, null as channel, null as direction, null as outcome, null as notes
               from lead_status_change c
               join app_user u on u.id = c.changed_by_user_id
              where c.organization_id = :organizationId and c.lead_id = :leadId
             union all
             select 'SOURCE', s.id, s.collected_at, s.recorded_seq, u.display_name,
                    null, null, null,
-                   s.source_type, s.source_name, s.source_url, s.source_reference
+                   s.source_type, s.source_name, s.source_url, s.source_reference,
+                   null, null, null, null, null
               from lead_source s
               left join app_user u on u.id = s.collected_by_user_id
              where s.organization_id = :organizationId and s.lead_id = :leadId
+            union all
+            select 'INTERACTION', i.id, i.occurred_at, i.recorded_seq, u.display_name,
+                   null, null, null,
+                   null, null, null, null,
+                   i.interaction_type, i.channel, i.direction, i.outcome, i.notes
+              from interaction i
+              join app_user u on u.id = i.created_by_user_id
+             where i.organization_id = :organizationId and i.lead_id = :leadId
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -100,6 +116,11 @@ public class LeadTimelineQuery {
                 row.getString("source_type"),
                 row.getString("source_name"),
                 row.getString("source_url"),
-                row.getString("source_reference"));
+                row.getString("source_reference"),
+                row.getString("interaction_type"),
+                row.getString("channel"),
+                row.getString("direction"),
+                row.getString("outcome"),
+                row.getString("notes"));
     }
 }

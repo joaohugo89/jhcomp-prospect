@@ -81,7 +81,12 @@ public final class LeadResponses {
             String sourceType,
             String sourceName,
             String sourceUrl,
-            String sourceReference) {
+            String sourceReference,
+            String interactionType,
+            String channel,
+            String direction,
+            String outcome,
+            String notes) {
 
         public static TimelineEntryResponse from(LeadTimelineQuery.Entry entry) {
             return new TimelineEntryResponse(
@@ -95,7 +100,12 @@ public final class LeadResponses {
                     entry.sourceType(),
                     entry.sourceName(),
                     entry.sourceUrl(),
-                    entry.sourceReference());
+                    entry.sourceReference(),
+                    entry.interactionType(),
+                    entry.channel(),
+                    entry.direction(),
+                    entry.outcome(),
+                    entry.notes());
         }
     }
 }

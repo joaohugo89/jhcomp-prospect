@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import com.jhcomp.prospect.company.infrastructure.persistence.LeadSourceEntity.S
 import com.jhcomp.prospect.identity.application.MemberQueryService;
 import com.jhcomp.prospect.lead.domain.LeadPriority;
 import com.jhcomp.prospect.lead.domain.LeadStatus;
+import com.jhcomp.prospect.lead.domain.LeadStatusChanged;
 import com.jhcomp.prospect.lead.domain.LeadStatusTransitions;
 import com.jhcomp.prospect.lead.infrastructure.persistence.LeadEntity;
 import com.jhcomp.prospect.lead.infrastructure.persistence.LeadRepository;
@@ -44,6 +46,7 @@ public class LeadService {
     private final CompanyService companyService;
     private final MemberQueryService memberQueryService;
     private final OrganizationContext organizationContext;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     LeadService(
@@ -53,6 +56,7 @@ public class LeadService {
             CompanyService companyService,
             MemberQueryService memberQueryService,
             OrganizationContext organizationContext,
+            ApplicationEventPublisher events,
             Clock clock) {
         this.leadRepository = leadRepository;
         this.statusChangeRepository = statusChangeRepository;
@@ -60,6 +64,7 @@ public class LeadService {
         this.companyService = companyService;
         this.memberQueryService = memberQueryService;
         this.organizationContext = organizationContext;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -164,6 +169,8 @@ public class LeadService {
         Instant now = clock.instant();
         if (lead.changeStatus(newStatus, now)) {
             recordStatusChange(lead, previous, newStatus, reason, user, now);
+            events.publishEvent(new LeadStatusChanged(
+                    lead.getOrganizationId(), lead.getId(), previous, newStatus, blankToNull(reason)));
         }
         return lead;
     }
@@ -205,8 +212,12 @@ public class LeadService {
                 lead.getId(),
                 from,
                 to,
-                reason == null || reason.isBlank() ? null : reason.strip(),
+                blankToNull(reason),
                 user.userId(),
                 now));
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.strip();
     }
 }

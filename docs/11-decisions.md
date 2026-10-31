@@ -33,6 +33,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D22 | Nomes de cookie proprios do projeto | Aprovada | 3 |
 | D23 | Importacao CSV em duas fases | Aprovada | 5 |
 | D24 | Criterios do score v1 e verificacao de site | Proposta | 6 |
+| D25 | Pipeline no codigo, deal sem resultado, interacoes | Proposta | 7 |
 
 ---
 
@@ -558,3 +559,38 @@ dados de quem pediu para nao ser contatado nao tem finalidade.
 
 **Fora do escopo:** IA (Etapa 8), navegacao alem da pagina inicial e
 deteccao automatica de agendamento ou catalogo.
+
+## D25 — Pipeline no codigo, deal sem resultado, interacoes · Proposta (Etapa 7)
+
+Tres pontos que os docs deixam abertos ou que a D2 e a D9 nao fecham.
+
+**Etapas da pipeline no codigo, sem tabela.** A D9 propunha tabelas
+`pipeline` e `pipeline_stage` semeadas por Flyway. Como as etapas sao 1:1 com
+`Lead.status` (D2) e nao tem CRUD no MVP, uma tabela seria segunda fonte de
+verdade a manter sincronizada com o enum, e organizacao criada depois da
+migration ficaria sem pipeline. As etapas vivem em `PipelineStages`; `GET
+/pipeline-stages` as expoe. `DO_NOT_CONTACT` nao e etapa: e bloqueio, fora do
+fluxo comercial. Quando a pipeline precisar ser configuravel, ganha tabela.
+Substitui a parte de tabelas da D9; o "sem CRUD" continua.
+
+**Deal sem resultado.** O deal guarda servico, valor (`numeric(12,2)`, BRL) e
+motivo de perda. Ganho ou perdido e o status do lead: guardar o resultado no
+deal recriaria duas fontes de estado, o que a D2 eliminou. A resposta da API
+traz `outcome` derivado do lead. O deal nasce ao chegar a `PROPOSAL_SENT` ou a
+`WON` sem proposta, por evento publicado na mesma transacao da mudanca de
+status; ao chegar a `LOST`, o motivo informado vira motivo de perda se o deal
+ainda nao tiver um.
+
+**Interacoes.** Registrar interacao nunca muda o status do lead: contato
+registrado nao vira `CONTACTED` sozinho (regra 6). Excecao: pedido de nao
+contato, que precisa valer na hora (doc 06 §9), move o lead para
+`DO_NOT_CONTACT` se o estado permitir. Abordagem de saida (contato, reuniao,
+proposta) a lead bloqueado e recusada (regra 4); o que a empresa fizer por
+iniciativa propria continua registravel. Interacoes entram na timeline do lead.
+A lista de nao contato propriamente dita (`SuppressionEntry`, por identificador
+e canal) e da Etapa 8.
+
+**Dashboard.** Periodo em datas de Brasilia (padrao: ultimos 30 dias), com
+instantes em UTC. Contagem por etapa e uma foto atual; empresas adicionadas,
+contatos registrados e negocios ganhos respeitam o periodo, que volta na
+resposta para o denominador ficar explicito.

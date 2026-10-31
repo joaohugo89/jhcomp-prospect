@@ -50,6 +50,12 @@ Não armazenar tokens de longa duração em `localStorage` sem avaliação de ri
 
 Parâmetros opcionais: `from`, `to`, `segment`, `city`.
 
+Implementado na Etapa 7 (D25): `summary` traz `leadsByStatus` (foto atual),
+`activeLeads`, `companiesAdded`, `contactsRegistered`, `openProposals`,
+`dealsWon`, `wonValue`, `openTasks` e `overdueTasks`, com o período efetivo
+(`from`/`to`, datas de Brasília, padrão últimos 30 dias). `activity` é paginada.
+A contagem por etapa (`/dashboard/pipeline`) está dentro de `summary`.
+
 ## 4. Empresas
 
 | Método | Endpoint | Descrição |
@@ -234,14 +240,31 @@ Contrato implementado na Etapa 6 (D24):
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `/pipelines` | Listar pipelines |
-| GET | `/pipeline-stages` | Listar etapas |
-| POST | `/deals` | Criar oportunidade |
-| PATCH | `/deals/{dealId}/stage` | Mover etapa |
+| GET | `/pipeline-stages` | Listar etapas (D25: no código, 1:1 com `Lead.status`) |
+| GET | `/pipeline/board` | Quadro Kanban: até 50 cards e o total por etapa |
+| GET | `/leads/{leadId}/deal` | Consultar deal (404 antes da proposta) |
+| PUT | `/leads/{leadId}/deal` | Atualizar serviço, valor e motivo de perda |
 | POST | `/leads/{leadId}/interactions` | Registrar interação |
 | GET | `/leads/{leadId}/interactions` | Listar interações |
 | POST | `/tasks` | Criar tarefa |
-| PATCH | `/tasks/{taskId}` | Atualizar tarefa |
+| PATCH | `/tasks/{taskId}` | Atualizar tarefa (estado completo) |
+| GET | `/leads/{leadId}/tasks` | Listar tarefas, abertas primeiro |
+
+Contrato implementado na Etapa 7 (D2, D25):
+
+- Mover card é `PATCH /leads/{leadId}/status`. Não existem `/pipelines`,
+  `POST /deals` nem `PATCH /deals/{id}/stage`: o deal nasce sozinho na
+  proposta, e a etapa é o status do lead.
+- **Deal:** `{"service": "...", "estimatedValue": 1500.50, "lossReason": "..."}`,
+  valor com no máximo duas casas e não negativo. `outcome` (`OPEN`, `WON`,
+  `LOST`) vem do status do lead. Antes da proposta, `PUT` responde `409`.
+- **Interação:** `type` (`CONTACT`, `REPLY`, `MEETING`, `PROPOSAL`,
+  `DO_NOT_CONTACT_REQUEST`, `NOTE`), `channel`, `direction` (`OUTBOUND`,
+  `INBOUND`, `INTERNAL`), `occurredAt` (não no futuro), `outcome`, `notes`.
+  Abordagem de saída a lead `DO_NOT_CONTACT` responde `409`.
+- **Tarefa:** `{"leadId", "title", "dueAt", "assignedUserId"}`; o responsável
+  precisa ser membro ativo (outro, `404`). O `PATCH` recebe o estado completo
+  com `status` `OPEN` ou `DONE`.
 
 ## 10. Outreach
 
