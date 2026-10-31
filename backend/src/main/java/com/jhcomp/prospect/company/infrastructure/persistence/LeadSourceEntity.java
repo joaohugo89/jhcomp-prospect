@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.jhcomp.prospect.company.domain.SourceType;
 import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
+import com.jhcomp.prospect.shared.text.Texts;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -78,20 +79,16 @@ public class LeadSourceEntity extends AssignedIdEntity {
         this.leadId = leadId;
         this.sourceType = data.type();
         this.sourceName = data.name().strip();
-        this.sourceReference = blankToNull(data.reference());
-        this.sourceUrl = blankToNull(data.url());
+        this.sourceReference = Texts.blankToNull(data.reference());
+        this.sourceUrl = Texts.blankToNull(data.url());
         this.collectedAt = data.collectedAt();
-        this.note = blankToNull(data.note());
+        this.note = Texts.blankToNull(data.note());
         this.collectedByUserId = collectedByUserId;
     }
 
     /** Dados de uma origem, como informados pelo operador ou pela importacao. */
     public record SourceData(
             SourceType type, String name, String reference, String url, Instant collectedAt, String note) {}
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
-    }
 
     public UUID getCompanyId() {
         return companyId;

@@ -4,7 +4,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -62,6 +66,18 @@ public class OutreachService {
     private static final Logger log = LoggerFactory.getLogger(OutreachService.class);
 
     private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(5);
+
+    /**
+     * Descricoes fixas dos achados que sao oportunidade de servico. Criterios
+     * de qualificacao interna (segmento, area atendida, cadastro) nao sao
+     * assunto da mensagem e ficam fora do mapa.
+     */
+    private static final Map<Criterion, String> OPPORTUNITIES = new EnumMap<>(Map.of(
+            Criterion.SITE_ABSENT, "a empresa não tem site",
+            Criterion.NO_HTTPS, "o site não abre com conexão segura (HTTPS)",
+            Criterion.NO_MOBILE_VIEWPORT, "a página inicial do site não está adaptada para celular",
+            Criterion.NO_CONTACT_LINK, "a página inicial do site não tem link direto de contato",
+            Criterion.NO_ONLINE_BOOKING_OR_CATALOG, "a empresa não tem agendamento ou catálogo online"));
 
     private final OutreachMessageRepository repository;
     private final SuppressionService suppressionService;
@@ -132,11 +148,12 @@ public class OutreachService {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
         LeadEntity lead = leadService.find(leadId);
         CompanyEntity company = lead.getCompany();
-        List<ChannelOption> channels = List.of(OutreachChannel.values()).stream()
+        Set<OutreachChannel> blocked = suppressionService.blockedChannels(lead);
+        List<ChannelOption> channels = Arrays.stream(OutreachChannel.values())
                 .map(channel -> new ChannelOption(
                         channel,
                         SuppressionService.recipientOf(company, channel).isPresent() ? displayRecipient(company, channel) : null,
-                        suppressionService.isBlocked(lead, channel)))
+                        blocked.contains(channel)))
                 .toList();
         return new ComposeContext(
                 organizationQueryService.currentOrganizationName(), user.displayName(), lead.getStatus(),
@@ -321,22 +338,7 @@ public class OutreachService {
         };
     }
 
-    /**
-     * Descricoes fixas dos achados que sao oportunidade de servico. Criterios
-     * de qualificacao interna (segmento, area atendida, cadastro) nao sao
-     * assunto da mensagem.
-     */
     private static List<String> findings(List<Criterion> criteria) {
-        return criteria.stream()
-                .map(criterion -> switch (criterion) {
-                    case SITE_ABSENT -> "a empresa não tem site";
-                    case NO_HTTPS -> "o site não abre com conexão segura (HTTPS)";
-                    case NO_MOBILE_VIEWPORT -> "a página inicial do site não está adaptada para celular";
-                    case NO_CONTACT_LINK -> "a página inicial do site não tem link direto de contato";
-                    case NO_ONLINE_BOOKING_OR_CATALOG -> "a empresa não tem agendamento ou catálogo online";
-                    case BUSINESS_INFO_SUFFICIENT, SERVICE_FIT, LOCATION_SERVED -> null;
-                })
-                .filter(description -> description != null)
-                .toList();
+        return criteria.stream().filter(OPPORTUNITIES::containsKey).map(OPPORTUNITIES::get).toList();
     }
 }

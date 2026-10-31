@@ -186,10 +186,6 @@ public class OutreachMessageEntity extends AssignedIdEntity {
         return sentAt;
     }
 
-    public UUID getSendRecordedByUserId() {
-        return sendRecordedByUserId;
-    }
-
     public Instant getCreatedAt() {
         return createdAt;
     }

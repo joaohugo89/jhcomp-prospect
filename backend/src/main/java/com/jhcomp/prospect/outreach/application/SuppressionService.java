@@ -4,8 +4,10 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.event.EventListener;
@@ -94,21 +96,41 @@ public class SuppressionService implements ContactBlockCheck {
         return repository.findByOrganizationIdOrderByCreatedAtDescIdAsc(organizationContext.requireOrganizationId(), pageable);
     }
 
-    /** Lead em {@code DO_NOT_CONTACT} ou com identificador bloqueado no canal. */
+    /**
+     * Lead em {@code DO_NOT_CONTACT} ou com identificador bloqueado no canal.
+     * Canal nulo (abordagem sem canal de outreach) e conferido contra todos.
+     */
     @Transactional(readOnly = true)
     public boolean isBlocked(LeadEntity lead, OutreachChannel channel) {
+        Set<OutreachChannel> blocked = blockedChannels(lead);
+        return channel == null ? !blocked.isEmpty() : blocked.contains(channel);
+    }
+
+    /**
+     * Canais bloqueados para a empresa do lead, numa unica consulta. Entrada
+     * sem canal, ou lead em {@code DO_NOT_CONTACT}, bloqueia todos.
+     */
+    @Transactional(readOnly = true)
+    public Set<OutreachChannel> blockedChannels(LeadEntity lead) {
         if (lead.getStatus() == LeadStatus.DO_NOT_CONTACT) {
-            return true;
+            return EnumSet.allOf(OutreachChannel.class);
         }
         List<ContactIdentifier> identifiers = identifiersOf(lead.getCompany());
         if (identifiers.isEmpty()) {
-            return false;
+            return EnumSet.noneOf(OutreachChannel.class);
         }
-        return repository.findByOrganizationIdAndIdentifierIn(
-                        lead.getOrganizationId(), identifiers.stream().map(ContactIdentifier::value).toList())
-                .stream()
-                .filter(entry -> identifiers.contains(new ContactIdentifier(entry.getIdentifierType(), entry.getIdentifier())))
-                .anyMatch(entry -> entry.getChannel() == null || channel == null || entry.getChannel() == channel);
+        Set<OutreachChannel> blocked = EnumSet.noneOf(OutreachChannel.class);
+        for (SuppressionEntryEntity entry : repository.findByOrganizationIdAndIdentifierIn(
+                lead.getOrganizationId(), identifiers.stream().map(ContactIdentifier::value).toList())) {
+            if (!identifiers.contains(new ContactIdentifier(entry.getIdentifierType(), entry.getIdentifier()))) {
+                continue;
+            }
+            if (entry.getChannel() == null) {
+                return EnumSet.allOf(OutreachChannel.class);
+            }
+            blocked.add(entry.getChannel());
+        }
+        return blocked;
     }
 
     /** Canal do CRM sem equivalente (presencial, outro) e conferido contra todos. */

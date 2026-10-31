@@ -32,7 +32,7 @@ interface ErrorStateProps {
   readonly onRetry?: () => void;
 }
 
-export function ErrorState({
+function ErrorState({
   message = 'Não foi possível carregar os dados. Tente novamente em instantes.',
   onRetry,
 }: ErrorStateProps): React.JSX.Element {
@@ -72,10 +72,7 @@ export function LoadStateView({
       return <EmptyState title={notFoundMessage} />;
     case 'forbidden':
       return (
-        <EmptyState
-          title="Sem permissão"
-          description="Seu papel nesta organização não permite acessar esta área."
-        />
+        <EmptyState title="Sem permissão" description="Seu papel nesta organização não permite acessar esta área." />
       );
     case 'error':
       return <ErrorState onRetry={onRetry} />;

@@ -3,6 +3,7 @@ package com.jhcomp.prospect.dashboard;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.jhcomp.prospect.lead.domain.LeadStatus;
+import com.jhcomp.prospect.shared.text.Texts;
 
 /**
  * Consultas agregadas do dashboard (RF-070, doc 08 §4).
@@ -45,6 +49,9 @@ public class DashboardQuery {
             String toStatus, String interactionType, String channel) {}
 
     /** Empresa do lead dentro dos filtros de segmento e cidade. */
+    /** Fora do funil ativo: encerrados e bloqueados. */
+    private static final EnumSet<LeadStatus> INACTIVE = EnumSet.of(LeadStatus.WON, LeadStatus.LOST, LeadStatus.DO_NOT_CONTACT);
+
     private static final String COMPANY_FILTER = """
             (cast(:segment as text) is null or c.segment = :segment)
             and (cast(:city as text) is null or lower(c.city) = lower(:city))
@@ -72,7 +79,7 @@ public class DashboardQuery {
                 });
 
         long active = byStatus.entrySet().stream()
-                .filter(entry -> !List.of("WON", "LOST", "DO_NOT_CONTACT").contains(entry.getKey()))
+                .filter(entry -> !INACTIVE.contains(LeadStatus.valueOf(entry.getKey())))
                 .mapToLong(Map.Entry::getValue)
                 .sum();
 
@@ -167,11 +174,7 @@ public class DashboardQuery {
                 .addValue("organizationId", filters.organizationId())
                 .addValue("from", Timestamp.from(filters.from()))
                 .addValue("to", Timestamp.from(filters.to()))
-                .addValue("segment", blankToNull(filters.segment()))
-                .addValue("city", blankToNull(filters.city()));
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
+                .addValue("segment", Texts.blankToNull(filters.segment()))
+                .addValue("city", Texts.blankToNull(filters.city()));
     }
 }

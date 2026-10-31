@@ -53,11 +53,13 @@ class BaselineMigrationTest extends PostgresIntegrationTest {
     @Test
     @DisplayName("unaccent normaliza acentuacao usada em nomes de empresa")
     void unaccentNormalizesBusinessNames() {
-        // Caso real do doc 10 §4: nome com acento e espaco excedente.
+        // Caso real do doc 10 §4: nome com acento e espaco excedente, inclusive
+        // tabulacao. "\\s" no Java: com uma barra so, "\s" e um espaco literal
+        // (Java 15+) e a regex do SQL deixaria a tabulacao passar.
         var normalized = jdbc.queryForObject(
-                "select lower(unaccent(trim(regexp_replace(?, '\s+', ' ', 'g'))))",
+                "select lower(unaccent(trim(regexp_replace(?, '\\s+', ' ', 'g'))))",
                 String.class,
-                "  Salão  Beleza & Estética  ");
+                "  Salão \t Beleza & Estética  ");
 
         assertThat(normalized).isEqualTo("salao beleza & estetica");
     }

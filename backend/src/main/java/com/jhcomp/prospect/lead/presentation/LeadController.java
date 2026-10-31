@@ -49,8 +49,6 @@ public class LeadController {
             "score", "score",
             "companyName", "company.normalizedName");
 
-    private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id"));
-
     private final LeadService leadService;
 
     LeadController(LeadService leadService) {
@@ -84,7 +82,7 @@ public class LeadController {
 
         var criteria = new LeadSpecifications.Criteria(
                 status, priority, segment, city, search, scoreMin, scoreMax, source);
-        var pageable = PageRequests.of(page, size, sort, SORTABLE, DEFAULT_SORT);
+        var pageable = PageRequests.of(page, size, sort, SORTABLE, LeadService.DEFAULT_SORT);
         return PageResponse.from(leadService.list(criteria, pageable), LeadResponse::from);
     }
 

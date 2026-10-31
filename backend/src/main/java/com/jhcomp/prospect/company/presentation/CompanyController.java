@@ -43,8 +43,6 @@ public class CompanyController {
             "createdAt", "createdAt",
             "updatedAt", "updatedAt");
 
-    private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id"));
-
     private final CompanyService companyService;
 
     CompanyController(CompanyService companyService) {
@@ -70,7 +68,7 @@ public class CompanyController {
             @RequestParam(required = false) String sort) {
 
         var criteria = new CompanySpecifications.Criteria(search, segment, city, state, includeArchived);
-        var pageable = PageRequests.of(page, size, sort, SORTABLE, DEFAULT_SORT);
+        var pageable = PageRequests.of(page, size, sort, SORTABLE, CompanyService.DEFAULT_SORT);
         return PageResponse.from(companyService.list(criteria, pageable), CompanyResponse::from);
     }
 

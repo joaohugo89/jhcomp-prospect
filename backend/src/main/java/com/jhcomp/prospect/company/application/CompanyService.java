@@ -14,6 +14,7 @@ import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,10 @@ import com.jhcomp.prospect.shared.security.OrganizationContext;
  */
 @Service
 public class CompanyService {
+
+    /** Mais recentes primeiro; desempate por id para a paginacao ser estavel. */
+    public static final Sort DEFAULT_SORT =
+            Sort.by(Sort.Direction.DESC, CompanyEntity::getCreatedAt).and(Sort.by(CompanyEntity::getId));
 
     /** Origem atribuida quando o operador cadastra sem informar uma. */
     static final String DEFAULT_SOURCE_NAME = "Cadastro manual";

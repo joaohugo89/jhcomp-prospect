@@ -19,6 +19,7 @@ import com.jhcomp.prospect.shared.error.ConflictException;
 import com.jhcomp.prospect.shared.error.InvalidRequestException;
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
+import com.jhcomp.prospect.shared.text.Texts;
 
 /**
  * Interacoes do lead (RF-041).
@@ -92,18 +93,19 @@ public class InteractionService {
                 input.channel(),
                 input.direction(),
                 input.occurredAt(),
-                blankToNull(input.outcome()),
-                blankToNull(input.notes()),
+                Texts.blankToNull(input.outcome()),
+                Texts.blankToNull(input.notes()),
                 user.userId(),
                 now));
 
         if (input.type() == InteractionType.DO_NOT_CONTACT_REQUEST) {
+            // A lista de nao contato vale mesmo para lead ganho ou perdido, que
+            // nao muda mais de status (D26).
             events.publishEvent(new DoNotContactRequested(lead.getOrganizationId(), lead.getId(), input.occurredAt()));
-        }
-        if (input.type() == InteractionType.DO_NOT_CONTACT_REQUEST
-                && LeadStatusTransitions.isAllowed(lead.getStatus(), LeadStatus.DO_NOT_CONTACT)
-                && lead.getStatus() != LeadStatus.DO_NOT_CONTACT) {
-            leadService.changeStatus(lead.getId(), LeadStatus.DO_NOT_CONTACT, "Pedido de não contato registrado", false);
+            if (lead.getStatus() != LeadStatus.DO_NOT_CONTACT
+                    && LeadStatusTransitions.isAllowed(lead.getStatus(), LeadStatus.DO_NOT_CONTACT)) {
+                leadService.changeStatus(lead.getId(), LeadStatus.DO_NOT_CONTACT, "Pedido de não contato registrado", false);
+            }
         }
         return interaction;
     }
@@ -113,9 +115,5 @@ public class InteractionService {
         LeadEntity lead = leadService.find(leadId);
         return repository.findByOrganizationIdAndLeadIdOrderByOccurredAtDescIdAsc(
                 lead.getOrganizationId(), lead.getId(), pageable);
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
     }
 }

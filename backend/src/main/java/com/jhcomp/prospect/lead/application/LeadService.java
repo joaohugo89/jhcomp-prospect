@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import com.jhcomp.prospect.shared.error.InvalidRequestException;
 import com.jhcomp.prospect.shared.error.ResourceNotFoundException;
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
+import com.jhcomp.prospect.shared.text.Texts;
 
 /**
  * Casos de uso de lead (RF-011, RF-012, RF-013; doc 06 §2).
@@ -39,6 +41,10 @@ import com.jhcomp.prospect.shared.security.OrganizationContext;
  */
 @Service
 public class LeadService {
+
+    /** Mais recentes primeiro; desempate por id para a paginacao ser estavel. */
+    public static final Sort DEFAULT_SORT =
+            Sort.by(Sort.Direction.DESC, LeadEntity::getCreatedAt).and(Sort.by(LeadEntity::getId));
 
     private final LeadRepository leadRepository;
     private final LeadStatusChangeRepository statusChangeRepository;
@@ -170,7 +176,7 @@ public class LeadService {
         if (lead.changeStatus(newStatus, now)) {
             recordStatusChange(lead, previous, newStatus, reason, user, now);
             events.publishEvent(new LeadStatusChanged(
-                    lead.getOrganizationId(), lead.getId(), previous, newStatus, blankToNull(reason)));
+                    lead.getOrganizationId(), lead.getId(), previous, newStatus, Texts.blankToNull(reason)));
         }
         return lead;
     }
@@ -212,12 +218,8 @@ public class LeadService {
                 lead.getId(),
                 from,
                 to,
-                blankToNull(reason),
+                Texts.blankToNull(reason),
                 user.userId(),
                 now));
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
     }
 }

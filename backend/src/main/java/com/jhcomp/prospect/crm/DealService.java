@@ -14,6 +14,7 @@ import com.jhcomp.prospect.lead.domain.LeadStatusChanged;
 import com.jhcomp.prospect.lead.infrastructure.persistence.LeadEntity;
 import com.jhcomp.prospect.shared.error.ConflictException;
 import com.jhcomp.prospect.shared.error.ResourceNotFoundException;
+import com.jhcomp.prospect.shared.text.Texts;
 
 /**
  * Deals (D2, RF-043).
@@ -51,7 +52,7 @@ public class DealService {
         LeadEntity lead = leadService.find(leadId);
         DealEntity deal = dealRepository.findByOrganizationIdAndLeadId(lead.getOrganizationId(), lead.getId())
                 .orElseThrow(() -> new ConflictException("Deal exists only after a proposal is sent"));
-        deal.update(blankToNull(service), estimatedValue, blankToNull(lossReason), clock.instant());
+        deal.update(Texts.blankToNull(service), estimatedValue, Texts.blankToNull(lossReason), clock.instant());
         return new DealView(deal, lead.getStatus());
     }
 
@@ -67,9 +68,5 @@ public class DealService {
             dealRepository.findByOrganizationIdAndLeadId(event.organizationId(), event.leadId())
                     .ifPresent(deal -> deal.recordLossReasonIfAbsent(event.reason(), clock.instant()));
         }
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
     }
 }

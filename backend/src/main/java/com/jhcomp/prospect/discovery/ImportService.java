@@ -1,12 +1,9 @@
 package com.jhcomp.prospect.discovery;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +34,8 @@ import com.jhcomp.prospect.shared.error.InvalidRequestException;
 import com.jhcomp.prospect.shared.error.ResourceNotFoundException;
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
+import com.jhcomp.prospect.shared.text.Texts;
+import com.jhcomp.prospect.shared.text.Hashes;
 
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -121,9 +120,9 @@ public class ImportService {
                 importId,
                 user.organizationId(),
                 cleanFileName(command.fileName()),
-                sha256(command.content()),
+                Hashes.sha256Hex(command.content()),
                 sourceName(command),
-                blankToNull(command.datasetNote()),
+                Texts.blankToNull(command.datasetNote()),
                 objectMapper.writeValueAsString(toMappingJson(table.headers(), columns)),
                 objectMapper.writeValueAsString(ignored),
                 rows.size() - rejected - duplicates,
@@ -423,7 +422,7 @@ public class ImportService {
     }
 
     private static String sourceName(AnalyzeCommand command) {
-        String name = blankToNull(command.sourceName());
+        String name = Texts.blankToNull(command.sourceName());
         return name != null ? name : "Importacao CSV: " + cleanFileName(command.fileName());
     }
 
@@ -435,17 +434,5 @@ public class ImportService {
             return "arquivo.csv";
         }
         return name.length() > 200 ? name.substring(0, 200) : name;
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
-    }
-
-    private static String sha256(byte[] content) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 must be available in every JVM", exception);
-        }
     }
 }

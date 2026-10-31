@@ -21,7 +21,7 @@ const UNSAFE_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
 const sessionExpiredListeners = new Set<() => void>();
 
-export const apiBaseUrl: string = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL;
+const apiBaseUrl: string = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL;
 
 /** Erro de API já normalizado, sempre lançado por este módulo. */
 export class HttpError extends Error implements ApiError {

@@ -106,10 +106,6 @@ public class LeadAnalysisEntity extends AssignedIdEntity {
         return leadId;
     }
 
-    public String getAnalysisType() {
-        return analysisType;
-    }
-
     public AnalysisStatus getStatus() {
         return status;
     }

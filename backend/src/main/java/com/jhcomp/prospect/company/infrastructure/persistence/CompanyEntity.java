@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
+import com.jhcomp.prospect.shared.text.Texts;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -112,16 +113,16 @@ public class CompanyEntity extends AssignedIdEntity {
 
     private void apply(CompanyData data) {
         this.name = data.name().strip();
-        this.tradeName = blankToNull(data.tradeName());
-        this.segment = blankToNull(data.segment());
+        this.tradeName = Texts.blankToNull(data.tradeName());
+        this.segment = Texts.blankToNull(data.segment());
         this.city = data.city().strip();
         this.state = data.state().strip().toUpperCase(java.util.Locale.ROOT);
-        this.websiteUrl = blankToNull(data.websiteUrl());
-        this.instagramUrl = blankToNull(data.instagramUrl());
-        this.phone = blankToNull(data.phone());
+        this.websiteUrl = Texts.blankToNull(data.websiteUrl());
+        this.instagramUrl = Texts.blankToNull(data.instagramUrl());
+        this.phone = Texts.blankToNull(data.phone());
         this.businessEmail = ContactNormalizer.email(data.businessEmail()).orElse(null);
-        this.address = blankToNull(data.address());
-        this.notes = blankToNull(data.notes());
+        this.address = Texts.blankToNull(data.address());
+        this.notes = Texts.blankToNull(data.notes());
 
         // Derivados. Nulos quando o valor informado nao permite normalizacao
         // confiavel; um palpite aproximaria registros distintos.
@@ -177,10 +178,6 @@ public class CompanyEntity extends AssignedIdEntity {
 
     public boolean isArchived() {
         return archivedAt != null;
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
     }
 
     public UUID getOrganizationId() {

@@ -2,12 +2,9 @@ package com.jhcomp.prospect.analysis.infrastructure.web;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -19,6 +16,7 @@ import org.springframework.stereotype.Component;
 import com.jhcomp.prospect.analysis.application.WebsiteChecker;
 import com.jhcomp.prospect.analysis.domain.WebsiteObservation;
 import com.jhcomp.prospect.analysis.domain.WebsiteObservation.Outcome;
+import com.jhcomp.prospect.shared.text.Hashes;
 
 /**
  * Verificacao do site: robots.txt, HTTPS e sinais da pagina inicial (doc 06 §6).
@@ -171,7 +169,7 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
                     response.status(),
                     VIEWPORT.matcher(html).find(),
                     CONTACT_LINK.matcher(html).find(),
-                    sha256(response.body()),
+                    Hashes.sha256Hex(response.body()),
                     null,
                     now);
         }
@@ -262,14 +260,6 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
             String requested, URI current, boolean httpsAvailable, Integer status, String detail, Instant now) {
         return new WebsiteObservation(Outcome.PAGE_UNUSABLE, requested, current.toString(), httpsAvailable, status,
                 false, false, null, detail, now);
-    }
-
-    private static String sha256(byte[] content) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 must be available in every JVM", exception);
-        }
     }
 
     @Override

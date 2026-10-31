@@ -2,7 +2,8 @@ import { useId, useState } from 'react';
 
 import { actionErrorMessage, fieldErrorsOf } from '../../app/errors';
 import { formatDateTime } from '../../app/format';
-import { MESSAGE_STATUS_LABEL, OUTREACH_CHANNEL_LABEL } from '../../app/labels';
+import { OUTREACH_CHANNEL_LABEL } from '../../app/labels';
+import { MessageStatusBadge } from '../../components/Badges';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { FormField } from '../../components/FormField';
 import { buttonPrimary, buttonSecondary, input } from '../../components/styles';
@@ -13,15 +14,6 @@ import { RecordSendForm } from './RecordSendForm';
 const BLOCKED_MESSAGE = 'Esta empresa tem pedido de não contato: a mensagem não pode seguir.';
 
 const FINAL: ReadonlySet<MessageStatus> = new Set(['SENT', 'FAILED', 'CANCELLED']);
-
-const STATUS_TONE: Readonly<Record<MessageStatus, string>> = {
-  DRAFT: 'bg-white text-slate-800 ring-slate-400',
-  NEEDS_REVIEW: 'bg-amber-50 text-amber-900 ring-amber-400',
-  APPROVED: 'bg-sky-50 text-sky-900 ring-sky-400',
-  SENT: 'bg-emerald-50 text-emerald-900 ring-emerald-400',
-  FAILED: 'bg-red-50 text-red-900 ring-red-400',
-  CANCELLED: 'bg-slate-100 text-slate-600 ring-slate-300',
-};
 
 /**
  * Uma mensagem: revisão, edição, aprovação e registro de envio (RF-051, RF-052).
@@ -83,11 +75,7 @@ export function MessageCard({
     >
       <header className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">{OUTREACH_CHANNEL_LABEL[message.channel]}</span>
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_TONE[message.status]}`}
-        >
-          {MESSAGE_STATUS_LABEL[message.status]}
-        </span>
+        <MessageStatusBadge status={message.status} />
         <span className="text-slate-500">{formatDateTime(message.createdAt)}</span>
       </header>
       <p className="mt-1 text-xs text-slate-500">
