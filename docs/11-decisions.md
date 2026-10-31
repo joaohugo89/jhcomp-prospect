@@ -25,7 +25,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D14 | Importação CSV síncrona no MVP | Proposta | 5 |
 | D15 | Tabela de jobs em vez de `@Async` | Proposta | 6 |
 | D16 | Granularidade de módulos: 12 para 8 | Proposta | 3 |
-| D17 | Escopo de testes E2E reduzido | Proposta | 9 |
+| D17 | Escopo de testes E2E reduzido | Aprovada | 9 |
 | D18 | `audit_event.ip_address` como `text` | Aprovada | 3 |
 | D19 | Semente de usuario por perfil, nao por migration | Aprovada | 3 |
 | D20 | Limitador de login com reserva atomica e teto de memoria | Aprovada | 3 |
@@ -35,6 +35,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D24 | Criterios do score v1 e verificacao de site | Proposta | 6 |
 | D25 | Pipeline no codigo, deal sem resultado, interacoes | Proposta | 7 |
 | D26 | Outreach com IA revisada e lista de nao contato | Aprovada | 8 |
+| D27 | Producao em VPS com Caddy, backup e monitoramento | Aprovada | 9 |
 
 ---
 
@@ -239,7 +240,7 @@ negócio. `docs/03` §4 já permite simplificar módulos pequenos.
 **Motivo:** o maior risco do projeto é um desenvolvedor sozinho afogado em
 camadas. As fronteiras de dependência de `docs/03` §5 permanecem válidas.
 
-## D17 — Escopo de testes E2E reduzido · Proposta (Etapa 9)
+## D17 — Escopo de testes E2E reduzido · Aprovada (Etapa 9, 2026-11-06)
 
 `docs/10` §2 lista 12 fluxos end-to-end.
 
@@ -251,6 +252,13 @@ integração de API.
 **Motivo:** suíte E2E grande mantida por uma pessoa fica frágil e passa a ser
 ignorada. A cobertura de risco permanece equivalente, com custo de manutenção
 muito menor.
+
+**Implementação.** Playwright (Chromium), em `frontend/e2e/*.e2e.ts`, contra o
+ambiente completo pela porta do nginx, com a CSP e os cookies reais. Os
+fluxos verificam tambem, pelo servidor, que a abordagem bloqueada responde 409,
+e falham em qualquer violacao de CSP. Dados ficticios com sufixo unico, porque
+o banco persiste entre execucoes. Rodam no CI (job `e2e`). O fluxo 12 do doc 10
+(previa de site) nao existe: Website Studio esta fora do MVP (D13).
 
 ## D18 — `audit_event.ip_address` e `text`, nao `inet` · Aprovada
 
@@ -667,3 +675,59 @@ tudo antes de gerar (doc 08 §9).
 
 **Fora do escopo:** provedor real, envio por integracao (RF-054, P2), remocao
 de bloqueio e disparo em massa.
+
+## D27 — Producao em VPS com Caddy, backup e monitoramento · Aprovada (Etapa 9, 2026-11-06)
+
+O doc 09 §9 pede deploy, backup e restauracao testados, ambiente protegido e
+monitorado, sem definir onde nem como. O responsavel escolheu VPS Linux.
+
+**Topologia.** `docker-compose.prod.yml` separado do de desenvolvimento, e nao
+um override: um override herdaria as portas de depuracao (8081, 15432). So o
+Caddy publica porta (80 e 443) e cuida do TLS (Let's Encrypt) e do HSTS. Banco,
+API e nginx ficam so na rede interna. `COMPOSE_FILE` no `.env` do servidor faz
+`docker compose` usar o arquivo de producao sem `-f`. Logs com rotacao.
+
+**Perfil `prod`.** Cookie de sessao `Secure` fixo, documentacao da API
+desligada e `server.forward-headers-strategy: native`. Sem o ultimo, todo
+pedido pareceria vir do container do nginx: o limite de login por IP (D20)
+passaria a valer para todos os usuarios juntos, e qualquer um bloquearia o
+login de todos. O Tomcat aceita `X-Forwarded-For` so de proxy interno, e o
+Caddy substitui o que o cliente enviar; o ensaio confirmou que um
+`X-Forwarded-For` forjado nao chega a auditoria. O nginx repassa o
+`X-Forwarded-Proto` recebido, para o cookie CSRF tambem sair `Secure`.
+
+**Primeiro administrador (fecha a consequencia da D19).** Comando de execucao
+unica: perfil `bootstrap` (`scripts/create-admin.sh`), que sobe a API em porta
+aleatoria nao publicada, cria organizacao e administrador e encerra o processo.
+Recusa rodar com organizacao existente, exige senha de 12 caracteres e falha
+com codigo de saida diferente de zero, em vez de so registrar aviso. A senha
+vai por variavel de ambiente herdada, sem aparecer na linha de comando.
+Nao ha cadastro de membros na aplicacao no MVP: e pendencia, nao decisao.
+
+**Cabecalhos.** CSP restrita a propria origem (o build do Vite nao tem script
+nem estilo inline), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`,
+`X-Robots-Tag`. Os cabecalhos ficam num arquivo incluido em cada `location` do
+nginx: `add_header` dentro de `location` descarta os herdados do `server`, e
+por isso a pagina HTML estava sem nenhum deles antes desta etapa.
+
+**Health.** `/api/v1/health` passa a conferir a conexao com o banco e responde
+503 `DOWN` sem ela. Um "UP" com o banco fora do ar enganaria o health check do
+container e o monitor externo.
+
+**Backup.** `pg_dump` em formato custom, diario por cron, conferido com
+`pg_restore --list` antes de ser aceito, com SHA-256 e retencao de 14 dias.
+`verify-backup.sh` restaura num PostgreSQL descartavel e compara contagens com
+o banco em uso; `restore.sh` faz backup de seguranca antes de apagar. Copia
+fora do servidor e responsabilidade operacional, documentada em
+`docs/12-operations.md`; o dump nao e criptografado pelo script.
+
+**Monitoramento.** Monitor externo no health publico (unico alerta que
+funciona com o servidor inteiro fora) e `healthcheck.sh` no cron: containers,
+health por HTTPS, idade do backup e disco, com webhook opcional.
+
+**CI.** Job E2E com o ambiente completo, validacao do compose de producao e do
+Caddyfile, `npm audit` das dependencias de producao, `shellcheck` dos scripts e
+Dependabot semanal para Maven, npm, imagens e actions.
+
+**Fora do escopo:** Website Studio (D13), provedor de IA real (D26), cadastro
+de membros, alta disponibilidade e replica do banco.

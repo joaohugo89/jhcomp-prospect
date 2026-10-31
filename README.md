@@ -30,6 +30,7 @@ Ajudar a JH.COMP a encontrar empresas em Poços de Caldas e região, organizar o
 | [09 - Roadmap do MVP](docs/09-mvp-roadmap.md) | Escopo, fases, prioridades e entregas |
 | [10 - Estratégia de testes](docs/10-testing-strategy.md) | Pirâmide de testes, cenários e qualidade |
 | [11 - Registro de decisões](docs/11-decisions.md) | Decisões que resolvem lacunas dos documentos 01–10 |
+| [12 - Operação em produção](docs/12-operations.md) | Deploy, primeiro administrador, backup, restauração e monitoramento |
 
 ## Escopo do MVP
 
@@ -77,6 +78,16 @@ docker compose up -d --build
 
 Aplicação em http://localhost:8090. O frontend e a API ficam na mesma origem:
 o nginx do frontend faz proxy de `/api/v1` para o backend.
+
+Testes end-to-end (com o ambiente acima no ar):
+
+```bash
+cd frontend && npx playwright install chromium
+E2E_ADMIN_PASSWORD=<LOCAL_ADMIN_PASSWORD do .env> npm run e2e
+```
+
+Produção (VPS Linux com Caddy e HTTPS automático): ver
+[docs/12-operations.md](docs/12-operations.md).
 
 Detalhes de comandos, portas e convenções em [CLAUDE.md](CLAUDE.md).
 

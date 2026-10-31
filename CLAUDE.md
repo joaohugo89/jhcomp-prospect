@@ -47,6 +47,10 @@ já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
   Geração síncrona sem transação durante a chamada; saída validada antes de
   virar rascunho. Bloqueio de não contato por identificador normalizado,
   conferido ao gerar, aprovar e registrar envio; sem remoção no MVP.
+- **D27** Produção: VPS com `docker-compose.prod.yml`, só o Caddy publica
+  porta. Perfil `prod` confia em `X-Forwarded-For` só de proxy interno (sem
+  isso o limite de login por IP vale para todos juntos). Primeiro admin por
+  `scripts/create-admin.sh` (perfil `bootstrap`). Operação em `docs/12`.
 - **D16** 8 módulos, não 12: `enrichment` dentro de `company`, `organization`
   dentro de `identity`. As 4 camadas completas só em `company`, `lead`,
   `analysis` e `outreach`; `discovery` e `dashboard` são planos.
@@ -84,7 +88,22 @@ cd frontend && npm run dev                # UI em :5174
 cd frontend && npm run typecheck && npm run lint && npm test -- --run && npm run build
 ```
 
-Conferência rápida: `curl http://localhost:8081/api/v1/health`.
+Conferência rápida: `curl http://localhost:8081/api/v1/health` (confere o
+banco; 503 se ele estiver fora).
+
+### E2E e operação
+
+```bash
+cd frontend && E2E_ADMIN_PASSWORD=... npm run e2e   # 2 fluxos (D17), ambiente em container no ar
+scripts/backup.sh                                    # dump + SHA-256 + retenção
+scripts/verify-backup.sh <dump> --compare            # restaura em banco descartável e compara
+scripts/restore.sh <dump> --yes                      # APAGA o banco atual
+```
+
+Ensaio do compose de produção nesta máquina: `APP_DOMAIN=localhost`,
+`HTTP_PORT=8180`, `HTTPS_PORT=8443`, `docker compose -p jhcomp-rehearsal -f
+docker-compose.prod.yml --env-file <arquivo fora do repo>` e Playwright com
+`E2E_IGNORE_HTTPS_ERRORS=true`. Derrubar com `down -v` no mesmo projeto.
 OpenAPI em `/api/v1/openapi`, Swagger UI em `/api/v1/docs`.
 
 Skills do projeto não são versionadas (só `skills-lock.json`, com hash de cada
@@ -183,6 +202,24 @@ Cada uma custou tempo real. Não reintroduzir.
 - **A API simulada do frontend casa rota por prefixo.** `GET /leads/` responde
   também `/leads/{id}/qualquer-coisa` com o JSON do lead. Seção nova no
   detalhe do lead exige declarar a rota nos testes de `leads` e `crm`.
+- **nginx: `add_header` dentro de `location` descarta os do `server`.** A
+  página HTML ficou sem nenhum cabeçalho de segurança por isso. Os cabeçalhos
+  vivem em `frontend/security-headers.conf`, incluído em **cada** `location`;
+  `location` novo precisa do `include`. Conferir com `curl -I` em `/`.
+- **Perfil sem servidor web quebra o `SecurityConfig`**
+  (`web-application-type: none` → falta `HttpSecurity`). O bootstrap sobe com
+  `server.port: 0` e encerra pelo `BootstrapExit`.
+- **`"\s"` numa string Java é um espaço literal** (Java 15+), não "espaço em
+  branco" de regex. Regex dentro de literal sempre com `"\\s"`, `"\\d"`, também
+  em SQL montado em Java. Um teste passava por acaso porque a entrada só tinha
+  espaços.
+- **`server.error.*` não é mais lido no Boot 4** (depreciação nível `error`):
+  as chaves são `spring.web.error.*`. Propriedade com depreciação `error` é
+  ignorada em silêncio; o aviso do editor é a única pista.
+- **`flyway_schema_history.version` é texto**: `max(version)` dá `9` com a V10
+  aplicada. Ordenar por `installed_rank`.
+- **Git Bash converte caminho em argumento do `docker run`** (`/mnt` vira
+  `C:/Program Files/Git/mnt`). Usar `MSYS_NO_PATHCONV=1` e `$(pwd -W)`.
 - **`curl -F file=@/c/...` no Git Bash não traduz o caminho do Windows**: a
   requisição falha sem mensagem. Rodar de dentro da pasta, com caminho
   relativo.
