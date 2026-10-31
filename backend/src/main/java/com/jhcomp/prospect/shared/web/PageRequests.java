@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import com.jhcomp.prospect.shared.error.InvalidRequestException;
+import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 /**
  * Paginacao e ordenacao recebidas da API (RNF-002, doc 05 §1).
@@ -59,6 +60,6 @@ public final class PageRequests {
 
         // Desempate estavel por id: sem ele, registros com o mesmo valor podem
         // trocar de pagina entre duas requisicoes.
-        return Sort.by(direction, property).and(Sort.by("id"));
+        return Sort.by(direction, property).and(Sort.by(AssignedIdEntity::getId));
     }
 }

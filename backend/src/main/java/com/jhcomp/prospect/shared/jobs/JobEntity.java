@@ -138,8 +138,4 @@ public class JobEntity extends AssignedIdEntity {
     public int getAttempts() {
         return attempts;
     }
-
-    public String getLastError() {
-        return lastError;
-    }
 }

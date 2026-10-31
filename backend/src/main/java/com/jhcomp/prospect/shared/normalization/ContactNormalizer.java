@@ -37,6 +37,9 @@ public final class ContactNormalizer {
 
     private static final Pattern LEADING_WWW = Pattern.compile("^www\\.");
 
+    /** Esquema de URL ({@code https://}); sem ele, {@link URI} le tudo como caminho. */
+    private static final Pattern HAS_SCHEME = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]*://.*");
+
     /** Regras do Instagram: letras, digitos, ponto e sublinhado, ate 30. */
     private static final Pattern INSTAGRAM_HANDLE = Pattern.compile("[a-z0-9._]{1,30}");
 
@@ -127,7 +130,7 @@ public final class ContactNormalizer {
         String candidate = rawUrl.strip();
 
         // Sem esquema, URI trata tudo como caminho e nao enxerga o host.
-        if (!candidate.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*")) {
+        if (!HAS_SCHEME.matcher(candidate).matches()) {
             candidate = "http://" + candidate;
         }
 
@@ -183,7 +186,7 @@ public final class ContactNormalizer {
 
         String candidate = rawValue.strip();
         if (candidate.contains("/")) {
-            String withScheme = candidate.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*") ? candidate : "https://" + candidate;
+            String withScheme = HAS_SCHEME.matcher(candidate).matches() ? candidate : "https://" + candidate;
             URI uri;
             try {
                 uri = URI.create(withScheme);

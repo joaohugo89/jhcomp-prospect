@@ -18,14 +18,13 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    # Chaves entre colchetes: e a forma documentada de manter o nome exato de
+    # uma chave de mapa (HibernatePropertiesTest confere o que chega).
     properties:
-      hibernate:
-        jdbc:
-          # RNF-009: timestamps persistidos em UTC.
-          time_zone: UTC
-        # Falha cedo em consulta que gere N+1 por colecao paginada.
-        query:
-          fail_on_pagination_over_collection_fetch: true
+      # RNF-009: timestamps persistidos em UTC.
+      "[hibernate.jdbc.time_zone]": UTC
+      # Falha cedo em consulta que gere N+1 por colecao paginada.
+      "[hibernate.query.fail_on_pagination_over_collection_fetch]": true
 
   flyway:
     enabled: true
@@ -43,6 +42,14 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+
+  web:
+    # RNF-003: nunca expor stack trace nem mensagem interna. No Boot 4 estas
+    # chaves sairam de server.error.*, que deixou de ser lido: o antigo
+    # "server.error.include-stacktrace: never" nao tinha efeito nenhum.
+    error:
+      include-stacktrace: never
+      include-message: never
 
   threads:
     virtual:
@@ -72,10 +79,6 @@ server:
         same-site: lax
         path: /
 
-  error:
-    # RNF-003: nunca expor stack trace.
-    include-stacktrace: never
-    include-message: never
   # Formulario urlencoded e o descarte de corpo recusado. O upload multipart
   # tem o proprio limite em spring.servlet.multipart (importacao, D14).
   tomcat:
@@ -91,7 +94,7 @@ springdoc:
 logging:
   level:
     root: INFO
-    com.jhcomp.prospect: ${APP_LOG_LEVEL:INFO}
+    "[com.jhcomp.prospect]": ${APP_LOG_LEVEL:INFO}
   pattern:
     # requestId vem do RequestIdFilter e tambem volta no cabecalho X-Request-Id:
     # e o que liga o que o usuario viu ao que o servidor registrou.

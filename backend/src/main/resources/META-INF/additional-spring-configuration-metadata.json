@@ -1,0 +1,49 @@
+{
+  "properties": [
+    {
+      "name": "jhcomp.jobs.worker.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Liga o worker que processa a fila de jobs persistente (D15). Desligado nos testes e no perfil bootstrap.",
+      "defaultValue": true
+    },
+    {
+      "name": "jhcomp.jobs.poll-interval",
+      "type": "java.time.Duration",
+      "description": "Intervalo entre consultas do worker a fila de jobs."
+    },
+    {
+      "name": "jhcomp.analysis.served-states",
+      "type": "java.lang.String",
+      "description": "UFs atendidas, separadas por virgula, para o criterio LOCATION_SERVED do score (D24).",
+      "defaultValue": "MG"
+    },
+    {
+      "name": "jhcomp.analysis.served-segments",
+      "type": "java.lang.String",
+      "description": "Segmentos atendidos, separados por virgula, para o criterio SERVICE_FIT (D24). Vazio deixa o criterio para revisao manual."
+    },
+    {
+      "name": "jhcomp.bootstrap.admin-email",
+      "type": "java.lang.String",
+      "description": "E-mail do administrador criado pelo bootstrap local (perfil local, D19).",
+      "defaultValue": "admin@jhcomp.local"
+    },
+    {
+      "name": "jhcomp.bootstrap.admin-password",
+      "type": "java.lang.String",
+      "description": "Senha do administrador do bootstrap local. Sem valor, nada e criado. Nunca usar em producao (D19)."
+    },
+    {
+      "name": "jhcomp.bootstrap.organization-name",
+      "type": "java.lang.String",
+      "description": "Nome da organizacao criada pelo bootstrap local.",
+      "defaultValue": "JH.COMP"
+    },
+    {
+      "name": "jhcomp.outreach.ai.provider",
+      "type": "java.lang.String",
+      "description": "Provedor de IA da geracao de mensagens (D26). No MVP so existe o fake.",
+      "defaultValue": "fake"
+    }
+  ]
+}

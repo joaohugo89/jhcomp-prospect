@@ -9,7 +9,6 @@ public enum ApiErrorType {
     VALIDATION_ERROR("Request validation failed"),
     AUTHENTICATION_REQUIRED("Authentication required"),
     INVALID_CREDENTIALS("Invalid credentials"),
-    SESSION_EXPIRED("Session expired"),
     FORBIDDEN("Operation not permitted"),
     RESOURCE_NOT_FOUND("Resource not found"),
     CONFLICT("Conflicting state"),
