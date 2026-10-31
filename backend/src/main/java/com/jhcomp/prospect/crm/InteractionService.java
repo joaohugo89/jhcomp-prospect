@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,16 +35,22 @@ public class InteractionService {
 
     private final InteractionRepository repository;
     private final LeadService leadService;
+    private final ContactBlockCheck contactBlockCheck;
+    private final ApplicationEventPublisher events;
     private final OrganizationContext organizationContext;
     private final Clock clock;
 
     InteractionService(
             InteractionRepository repository,
             LeadService leadService,
+            ContactBlockCheck contactBlockCheck,
+            ApplicationEventPublisher events,
             OrganizationContext organizationContext,
             Clock clock) {
         this.repository = repository;
         this.leadService = leadService;
+        this.contactBlockCheck = contactBlockCheck;
+        this.events = events;
         this.organizationContext = organizationContext;
         this.clock = clock;
     }
@@ -60,8 +67,9 @@ public class InteractionService {
      * Registra a interacao.
      *
      * <p>Abordagem de saida a lead bloqueado e recusada (regra 4 do produto):
-     * o bloqueio vale para registrar contato, nao so para gerar mensagem.
-     * Contato iniciado pela empresa continua registravel.
+     * o bloqueio vale para registrar contato, nao so para gerar mensagem, e
+     * inclui a lista de nao contato. Contato iniciado pela empresa continua
+     * registravel.
      */
     @Transactional
     public InteractionEntity record(UUID leadId, NewInteraction input) {
@@ -72,9 +80,8 @@ public class InteractionService {
         if (input.occurredAt().isAfter(now.plus(FUTURE_TOLERANCE))) {
             throw new InvalidRequestException("occurredAt must not be in the future");
         }
-        if (lead.getStatus() == LeadStatus.DO_NOT_CONTACT
-                && input.type().isApproach()
-                && input.direction() == InteractionDirection.OUTBOUND) {
+        if (input.type().isApproach() && input.direction() == InteractionDirection.OUTBOUND
+                && (lead.getStatus() == LeadStatus.DO_NOT_CONTACT || contactBlockCheck.isBlocked(lead, input.channel()))) {
             throw new ConflictException("Lead is marked as do not contact");
         }
 
@@ -90,6 +97,9 @@ public class InteractionService {
                 user.userId(),
                 now));
 
+        if (input.type() == InteractionType.DO_NOT_CONTACT_REQUEST) {
+            events.publishEvent(new DoNotContactRequested(lead.getOrganizationId(), lead.getId(), input.occurredAt()));
+        }
         if (input.type() == InteractionType.DO_NOT_CONTACT_REQUEST
                 && LeadStatusTransitions.isAllowed(lead.getStatus(), LeadStatus.DO_NOT_CONTACT)
                 && lead.getStatus() != LeadStatus.DO_NOT_CONTACT) {

@@ -4,6 +4,7 @@ import java.net.URI;
 import java.text.Normalizer;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -35,6 +36,12 @@ public final class ContactNormalizer {
     private static final Pattern NON_DIGITS = Pattern.compile("\\D");
 
     private static final Pattern LEADING_WWW = Pattern.compile("^www\\.");
+
+    /** Regras do Instagram: letras, digitos, ponto e sublinhado, ate 30. */
+    private static final Pattern INSTAGRAM_HANDLE = Pattern.compile("[a-z0-9._]{1,30}");
+
+    /** Primeiros segmentos de URL do Instagram que nao sao perfil. */
+    private static final Set<String> INSTAGRAM_RESERVED = Set.of("p", "reel", "reels", "explore", "stories", "tv", "accounts");
 
     private ContactNormalizer() {
     }
@@ -158,6 +165,43 @@ public final class ContactNormalizer {
         // basta recusar o que claramente nao e endereco.
         return normalized.indexOf('@') > 0 && normalized.indexOf('@') < normalized.length() - 1
                 ? Optional.of(normalized)
+                : Optional.empty();
+    }
+
+    /**
+     * Perfil do Instagram em minusculas, sem {@code @}.
+     *
+     * <p>Aceita {@code @perfil}, {@code perfil} ou a URL do perfil. Recusa URL
+     * de outro host e caminhos que nao sao perfil ({@code /p/...},
+     * {@code /explore/...}): bloquear uma postagem no lugar do perfil deixaria
+     * o perfil livre para contato.
+     */
+    public static Optional<String> instagram(String rawValue) {
+        if (isBlank(rawValue)) {
+            return Optional.empty();
+        }
+
+        String candidate = rawValue.strip();
+        if (candidate.contains("/")) {
+            String withScheme = candidate.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*") ? candidate : "https://" + candidate;
+            URI uri;
+            try {
+                uri = URI.create(withScheme);
+            } catch (IllegalArgumentException exception) {
+                return Optional.empty();
+            }
+            String host = uri.getHost() == null ? "" : LEADING_WWW.matcher(uri.getHost().toLowerCase(Locale.ROOT)).replaceFirst("");
+            String path = uri.getPath() == null ? "" : uri.getPath();
+            String[] segments = path.replaceAll("^/+|/+$", "").split("/");
+            if (!host.equals("instagram.com") || segments.length != 1) {
+                return Optional.empty();
+            }
+            candidate = segments[0];
+        }
+
+        String handle = candidate.replaceFirst("^@", "").toLowerCase(Locale.ROOT);
+        return INSTAGRAM_HANDLE.matcher(handle).matches() && !INSTAGRAM_RESERVED.contains(handle)
+                ? Optional.of(handle)
                 : Optional.empty();
     }
 

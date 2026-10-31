@@ -119,6 +119,26 @@ public class AnalysisService {
                 lead.getOrganizationId(), lead.getId(), pageable);
     }
 
+    /**
+     * Criterios confirmados da ultima analise concluida (D3), em ordem fixa.
+     * Vazio sem analise: o que nao foi confirmado nao pode ser afirmado
+     * numa mensagem (doc 06 §8).
+     */
+    @Transactional(readOnly = true)
+    public List<Criterion> confirmedCriteria(UUID leadId) {
+        LeadEntity lead = leadService.find(leadId);
+        return analysisRepository
+                .findFirstByOrganizationIdAndLeadIdAndStatusOrderByCompletedAtDescIdAsc(
+                        lead.getOrganizationId(), lead.getId(), AnalysisStatus.COMPLETED)
+                .map(analysis -> findingRepository.findByOrganizationIdAndAnalysisId(
+                                lead.getOrganizationId(), analysis.getId()).stream()
+                        .filter(finding -> finding.getStatus() == FindingStatus.CONFIRMED)
+                        .map(AnalysisFindingEntity::getCriterion)
+                        .sorted()
+                        .toList())
+                .orElse(List.of());
+    }
+
     @Transactional(readOnly = true)
     public AnalysisDetail find(UUID analysisId) {
         return detail(requireAnalysis(analysisId));

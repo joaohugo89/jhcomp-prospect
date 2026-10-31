@@ -17,6 +17,7 @@ public enum ApiErrorType {
     MALFORMED_REQUEST("Malformed request"),
     METHOD_NOT_ALLOWED("Method not allowed"),
     PAYLOAD_TOO_LARGE("Payload too large"),
+    AI_PROVIDER_ERROR("AI provider error"),
     UNEXPECTED_ERROR("Unexpected error");
 
     private final String title;
