@@ -61,7 +61,7 @@ public class BoardService {
     @Transactional(readOnly = true)
     public List<Column> board(Filters filters) {
         UUID organizationId = organizationContext.requireOrganizationId();
-        var pageable = PageRequest.of(0, CARDS_PER_STAGE, Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by("id")));
+        var pageable = PageRequest.of(0, CARDS_PER_STAGE, Sort.by(Sort.Direction.DESC, LeadEntity::getUpdatedAt).and(Sort.by(LeadEntity::getId)));
 
         List<PipelineStages.Stage> stages = PipelineStages.DEFAULT;
         List<Page<LeadEntity>> pages = new ArrayList<>(stages.size());

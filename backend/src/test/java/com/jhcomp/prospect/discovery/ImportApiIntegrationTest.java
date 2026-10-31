@@ -364,6 +364,9 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     void listsImports() throws Exception {
         String first = analyze(SAMPLE);
         String second = analyze("nome;cidade;uf\nA;B;MG\n");
+        // O relogio da JVM no Windows tem resolucao de ate ~16 ms: duas analises
+        // seguidas podem receber o mesmo instante, e o desempate por id e aleatorio.
+        jdbc.update("UPDATE import_batch SET created_at = created_at - interval '1 hour' WHERE id = ?::uuid", first);
 
         mockMvc.perform(get("/imports").session(session))
                 .andExpect(jsonPath("$.totalElements").value(2))

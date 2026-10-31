@@ -196,15 +196,17 @@ public class SafeHttpFetcher implements AutoCloseable {
 
     private static Response read(ClassicHttpResponse response, int maxBytes, long deadline) throws IOException {
         Header location = response.getFirstHeader("Location");
+        String locationValue = location == null ? null : location.getValue();
         HttpEntity entity = response.getEntity();
-        ContentType type = entity == null || entity.getContentType() == null
-                ? null
-                : ContentType.parseLenient(entity.getContentType());
-        String mime = type == null ? null : type.getMimeType();
+        ContentType type = entity == null ? null : ContentType.parseLenient(entity.getContentType());
+        if (entity == null || type == null) {
+            return new Response(response.getCode(), locationValue, null, new byte[0], StandardCharsets.UTF_8);
+        }
+        String mime = type.getMimeType();
         boolean text = mime != null && mime.toLowerCase(Locale.ROOT).startsWith("text/");
         byte[] body = text ? readLimited(entity.getContent(), maxBytes, deadline) : new byte[0];
-        Charset charset = type != null && type.getCharset() != null ? type.getCharset() : StandardCharsets.UTF_8;
-        return new Response(response.getCode(), location == null ? null : location.getValue(), mime, body, charset);
+        Charset charset = type.getCharset() != null ? type.getCharset() : StandardCharsets.UTF_8;
+        return new Response(response.getCode(), locationValue, mime, body, charset);
     }
 
     /**

@@ -164,6 +164,14 @@ Cada uma custou tempo real. Não reintroduzir.
 - **Relógio do banco em container difere do da JVM.** No Windows a VM do Docker
   pode estar segundos adiantada. Em teste, nunca comparar `now()` do SQL com
   instante da aplicação; usar instante bem no passado.
+- **Relógio da JVM no Windows tem resolução de até ~16 ms.** Duas operações
+  seguidas podem receber o mesmo `Instant`; ordenar por `createdAt` com
+  desempate por UUID fica aleatório. Em teste de ordenação, afastar os
+  instantes por SQL em vez de contar com o relógio.
+- **"Null type safety … unchecked conversion" do VS Code é falso positivo** da
+  análise de nulos do Eclipse em method reference sobre genérico do JDK. Está
+  desligado em `.vscode/java-compiler.prefs` (local). Não trocar method
+  reference por lambda por causa dele.
 - **`curl -F file=@/c/...` no Git Bash não traduz o caminho do Windows**: a
   requisição falha sem mensagem. Rodar de dentro da pasta, com caminho
   relativo.

@@ -3,7 +3,6 @@ package com.jhcomp.prospect.discovery;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;

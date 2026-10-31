@@ -37,6 +37,7 @@ public class LeadStatusChangeEntity extends AssignedIdEntity {
     @Column(name = "to_status", nullable = false)
     private LeadStatus toStatus;
 
+    @Column(name = "reason")
     private String reason;
 
     @Column(name = "changed_by_user_id", nullable = false)
