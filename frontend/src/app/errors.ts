@@ -13,7 +13,10 @@ const FIELD_MESSAGES: readonly [RegExp, string][] = [
   [/email address/, 'Informe um e-mail válido.'],
   [/size must be between/, 'Texto longo demais.'],
   [/past or in the present/, 'A data não pode estar no futuro.'],
-  [/more cells than the header/, 'A linha tem mais colunas que o cabeçalho. Verifique delimitadores dentro de valores sem aspas.'],
+  [
+    /more cells than the header/,
+    'A linha tem mais colunas que o cabeçalho. Verifique delimitadores dentro de valores sem aspas.',
+  ],
 ];
 
 export function fieldMessage(message: string): string {
@@ -33,7 +36,10 @@ export function fieldErrorsOf(cause: unknown): ReadonlyMap<string, string> {
  *
  * @param conflict texto para 409, que depende da operação
  */
-export function actionErrorMessage(cause: unknown, conflict = 'A operação conflita com o estado atual do registro.'): string {
+export function actionErrorMessage(
+  cause: unknown,
+  conflict = 'A operação conflita com o estado atual do registro.',
+): string {
   if (!(cause instanceof HttpError)) {
     return 'Não foi possível falar com a API. Verifique a conexão e tente novamente.';
   }
@@ -48,6 +54,8 @@ export function actionErrorMessage(cause: unknown, conflict = 'A operação conf
       return 'Seu papel nesta organização não permite esta operação.';
     case 'TOO_MANY_REQUESTS':
       return 'Muitas requisições. Aguarde alguns instantes e tente novamente.';
+    case 'AI_PROVIDER_ERROR':
+      return 'O rascunho não pôde ser gerado agora. Nada foi salvo; tente novamente em instantes.';
     default:
       return 'Não foi possível concluir a operação. Tente novamente em instantes.';
   }

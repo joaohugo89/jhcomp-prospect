@@ -15,6 +15,7 @@ import { ImportsPage } from './modules/imports/ImportsPage';
 import { LeadDetailPage } from './modules/leads/LeadDetailPage';
 import { LeadsPage } from './modules/leads/LeadsPage';
 import { MembersPage } from './modules/members/MembersPage';
+import { SuppressionPage } from './modules/outreach/SuppressionPage';
 import { fetchSession, logout } from './services/authService';
 import { onSessionExpired } from './services/httpClient';
 import type { Session } from './types/session';
@@ -94,12 +95,12 @@ export function App(): React.JSX.Element {
         }
       }}
     >
-      <Screen route={route} />
+      <Screen route={route} session={auth.session} />
     </AppShell>
   );
 }
 
-function Screen({ route }: { readonly route: Route }): React.JSX.Element {
+function Screen({ route, session }: { readonly route: Route; readonly session: Session }): React.JSX.Element {
   switch (route.name) {
     case 'dashboard':
       return <DashboardPage />;
@@ -122,6 +123,8 @@ function Screen({ route }: { readonly route: Route }): React.JSX.Element {
       return <ImportDetailPage key={route.id} id={route.id} />;
     case 'members':
       return <MembersPage />;
+    case 'suppression':
+      return <SuppressionPage session={session} />;
     case 'notFound':
       return (
         <EmptyState

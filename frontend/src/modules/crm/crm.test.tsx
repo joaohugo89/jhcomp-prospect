@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { LEAD_ID, fakeApi, json, lead, page } from '../../test/fakeApi';
+import { LEAD_ID, fakeApi, json, lead, outreachContext, page } from '../../test/fakeApi';
 import { DashboardPage } from '../dashboard/DashboardPage';
 import { LeadDetailPage } from '../leads/LeadDetailPage';
 import { PipelinePage } from './PipelinePage';
@@ -175,6 +175,8 @@ function leadRoutes(overrides: Record<string, () => Response> = {}) {
     [`GET ${base}/timeline`]: () => json(page([])),
     [`GET ${base}/tasks`]: () => json(page([])),
     [`GET ${base}/deal`]: NOT_FOUND,
+    [`GET ${base}/outreach-context`]: () => json(outreachContext),
+    [`GET ${base}/messages`]: () => json(page([])),
     ...overrides,
   });
 }

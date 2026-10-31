@@ -39,6 +39,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: 'Importações',
     active: (route) => route.name === 'imports' || route.name === 'import',
   },
+  { to: '/do-not-contact', label: 'Não contato', active: (route) => route.name === 'suppression' },
   { to: '/settings/members', label: 'Membros', active: (route) => route.name === 'members', adminOnly: true },
 ];
 

@@ -23,7 +23,10 @@ export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-export function page<T>(content: readonly T[], overrides: Partial<{ page: number; totalPages: number; hasNext: boolean }> = {}) {
+export function page<T>(
+  content: readonly T[],
+  overrides: Partial<{ page: number; totalPages: number; hasNext: boolean }> = {},
+) {
   return {
     content,
     page: 0,
@@ -55,9 +58,7 @@ export function fakeApi(routes: Readonly<Record<string, Handler>>): RecordedCall
         return routeMethod === method && routePath !== undefined && path.startsWith(routePath);
       })?.[1];
 
-      return Promise.resolve(
-        handler ? handler(call) : json({ type: 'RESOURCE_NOT_FOUND', status: 404 }, 404),
-      );
+      return Promise.resolve(handler ? handler(call) : json({ type: 'RESOURCE_NOT_FOUND', status: 404 }, 404));
     }),
   );
 
@@ -89,10 +90,29 @@ export const company = {
 
 export const lead = {
   id: LEAD_ID,
-  company: { id: COMPANY_ID, name: 'Barbearia Ficticia', segment: 'BARBERSHOP', city: 'Cidade Exemplo', state: 'MG', archived: false },
+  company: {
+    id: COMPANY_ID,
+    name: 'Barbearia Ficticia',
+    segment: 'BARBERSHOP',
+    city: 'Cidade Exemplo',
+    state: 'MG',
+    archived: false,
+  },
   status: 'CONTACT_APPROVED' as const,
   priority: 'MEDIUM' as const,
   createdAt: '2026-11-01T12:00:00Z',
   updatedAt: '2026-11-02T12:00:00Z',
   allowedTransitions: ['QUALIFIED', 'CONTACTED', 'LOST', 'DO_NOT_CONTACT'] as const,
+};
+
+/** Contexto de composição mínimo, para telas que exibem o lead sem testar outreach. */
+export const outreachContext = {
+  senderOrganization: 'JH.COMP',
+  senderName: 'Administrador',
+  leadStatus: 'CONTACT_APPROVED',
+  companyName: 'Barbearia Ficticia',
+  city: 'Cidade Exemplo',
+  state: 'MG',
+  confirmedFindings: [],
+  channels: [],
 };

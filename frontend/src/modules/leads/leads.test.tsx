@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { LEAD_ID, fakeApi, json, lead, page } from '../../test/fakeApi';
+import { LEAD_ID, fakeApi, json, lead, outreachContext, page } from '../../test/fakeApi';
 import { LeadDetailPage } from './LeadDetailPage';
 
 function routes(statusResponse: () => Response = () => json({ ...lead, status: 'CONTACTED' })) {
@@ -10,12 +10,27 @@ function routes(statusResponse: () => Response = () => json({ ...lead, status: '
     'GET /leads/': () => json(lead),
     'GET /leads/22222222-2222-4222-8222-222222222222/analyses': () => json(page([])),
     'GET /leads/22222222-2222-4222-8222-222222222222/tasks': () => json(page([])),
-    'GET /leads/22222222-2222-4222-8222-222222222222/deal': () => json({ type: 'RESOURCE_NOT_FOUND', status: 404 }, 404),
+    'GET /leads/22222222-2222-4222-8222-222222222222/outreach-context': () => json(outreachContext),
+    'GET /leads/22222222-2222-4222-8222-222222222222/messages': () => json(page([])),
+    'GET /leads/22222222-2222-4222-8222-222222222222/deal': () =>
+      json({ type: 'RESOURCE_NOT_FOUND', status: 404 }, 404),
     'GET /leads/22222222-2222-4222-8222-222222222222/timeline': () =>
       json(
         page([
-          { type: 'STATUS_CHANGE', id: 'e-1', occurredAt: '2026-11-01T12:00:00Z', actorName: 'Operadora', toStatus: 'NEW' },
-          { type: 'SOURCE', id: 'e-2', occurredAt: '2026-11-01T12:00:00Z', sourceType: 'MANUAL', sourceName: 'Indicacao' },
+          {
+            type: 'STATUS_CHANGE',
+            id: 'e-1',
+            occurredAt: '2026-11-01T12:00:00Z',
+            actorName: 'Operadora',
+            toStatus: 'NEW',
+          },
+          {
+            type: 'SOURCE',
+            id: 'e-2',
+            occurredAt: '2026-11-01T12:00:00Z',
+            sourceType: 'MANUAL',
+            sourceName: 'Indicacao',
+          },
         ]),
       ),
     'PATCH /leads/': statusResponse,
@@ -38,7 +53,9 @@ describe('Detalhe do lead', () => {
     render(<LeadDetailPage id={LEAD_ID} />);
 
     const select = await screen.findByLabelText('Novo status');
-    const options = within(select).getAllByRole('option').map((option) => option.textContent);
+    const options = within(select)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
     expect(options).toEqual(['Selecione…', 'Qualificado', 'Contatado', 'Perdido', 'Não contatar']);
     expect(await screen.findByText('Lead aberto como Novo')).toBeInTheDocument();
     expect(screen.getByText(/Origem: Indicacao/)).toBeInTheDocument();

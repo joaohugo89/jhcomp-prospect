@@ -3,6 +3,7 @@ import type { DuplicateSignal, SourceType } from '../types/company';
 import type { InteractionChannel, InteractionDirection, InteractionType } from '../types/crm';
 import type { ImportField, ImportRowStatus, ImportStatus } from '../types/import';
 import type { LeadPriority, LeadStatus } from '../types/lead';
+import type { IdentifierType, MessageStatus, OutreachChannel } from '../types/outreach';
 
 /** Rótulos em português. Os valores da API continuam em inglês, que é o contrato. */
 
@@ -131,4 +132,26 @@ export const DIRECTION_LABEL: Readonly<Record<InteractionDirection, string>> = {
   OUTBOUND: 'Nós entramos em contato',
   INBOUND: 'A empresa entrou em contato',
   INTERNAL: 'Registro interno',
+};
+
+export const OUTREACH_CHANNEL_LABEL: Readonly<Record<OutreachChannel, string>> = {
+  WHATSAPP: 'WhatsApp',
+  EMAIL: 'E-mail',
+  INSTAGRAM: 'Instagram (mensagem direta)',
+  PHONE_CALL: 'Ligação (roteiro)',
+};
+
+export const MESSAGE_STATUS_LABEL: Readonly<Record<MessageStatus, string>> = {
+  DRAFT: 'Rascunho',
+  NEEDS_REVIEW: 'Precisa de revisão',
+  APPROVED: 'Aprovada, não enviada',
+  SENT: 'Envio registrado',
+  FAILED: 'Envio falhou',
+  CANCELLED: 'Descartada',
+};
+
+export const IDENTIFIER_TYPE_LABEL: Readonly<Record<IdentifierType, string>> = {
+  PHONE: 'Telefone',
+  EMAIL: 'E-mail',
+  INSTAGRAM: 'Instagram',
 };

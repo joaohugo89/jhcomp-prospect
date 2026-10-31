@@ -15,14 +15,15 @@ import { AnalysisSection } from '../analysis/AnalysisSection';
 import { DealSection } from '../crm/DealSection';
 import { InteractionForm } from '../crm/InteractionForm';
 import { TasksSection } from '../crm/TasksSection';
+import { OutreachSection } from '../outreach/OutreachSection';
 import { ActivityTimeline } from './ActivityTimeline';
 import { StatusChangeForm } from './StatusChangeForm';
 
 /**
  * Detalhe do lead (doc 08 §7).
  *
- * Visão geral, presença digital, negócio, interações, tarefas e histórico.
- * Mensagens chegam com o módulo de outreach.
+ * Visão geral, presença digital, mensagens, negócio, interações, tarefas e
+ * histórico.
  */
 export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [state, reload] = useLoad(id, (signal) => getLead(id, signal));
@@ -101,6 +102,15 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
             lead={lead}
             onScoreChanged={() => {
               // O score mudou no servidor: descarta a cópia local e relê o lead.
+              setUpdated(null);
+              reload();
+            }}
+          />
+          <OutreachSection
+            lead={lead}
+            onRecorded={() => {
+              // Envio registrado vira interação e pode mudar o status: relê o lead.
+              setInteractions((count) => count + 1);
               setUpdated(null);
               reload();
             }}

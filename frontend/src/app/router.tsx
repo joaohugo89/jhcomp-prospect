@@ -19,6 +19,7 @@ export type Route =
   | { readonly name: 'imports' }
   | { readonly name: 'import'; readonly id: string }
   | { readonly name: 'members' }
+  | { readonly name: 'suppression' }
   | { readonly name: 'notFound' };
 
 const NAVIGATION_EVENT = 'jh:navigate';
@@ -38,6 +39,7 @@ const PATTERNS: readonly [RegExp, (match: RegExpMatchArray) => Route][] = [
   [/^\/imports\/?$/, () => ({ name: 'imports' })],
   [new RegExp(`^/imports/${ID}/?$`), (match) => ({ name: 'import', id: match[1] ?? '' })],
   [/^\/settings\/members\/?$/, () => ({ name: 'members' })],
+  [/^\/do-not-contact\/?$/, () => ({ name: 'suppression' })],
 ];
 
 export function parseRoute(pathname: string): Route {
@@ -85,7 +87,14 @@ interface LinkProps {
  */
 export function Link({ to, className, children, ...rest }: LinkProps): React.JSX.Element {
   function handleClick(event: React.MouseEvent<HTMLAnchorElement>): void {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
       return;
     }
     event.preventDefault();
