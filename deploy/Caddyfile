@@ -1,0 +1,28 @@
+# Caddy: TLS e entrada publica (D27).
+#
+# Certificado automatico para APP_DOMAIN. O Caddy nao confia em
+# X-Forwarded-For vindo do cliente: substitui pelo IP real da conexao, e e
+# esse valor que o backend usa no limite de login e na auditoria (D20).
+
+{
+	# Conta ACME para avisos de expiracao do certificado.
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		# HTTPS obrigatorio no navegador por um ano. Nao inclui subdominios:
+		# o dominio pode ter outros servicos que ainda nao tenham HTTPS.
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	reverse_proxy frontend:80
+
+	log {
+		output stdout
+		format console
+	}
+}

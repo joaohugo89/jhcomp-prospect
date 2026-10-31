@@ -1,0 +1,101 @@
+# JH.COMP Prospect — producao em VPS Linux (D27).
+#
+# Uso no servidor (detalhes em docs/12-operations.md):
+#   cp .env.prod.example .env      # preencher; COMPOSE_FILE ja aponta para este arquivo
+#   docker compose up -d --build
+#   scripts/create-admin.sh        # uma unica vez, no primeiro deploy
+#
+# Diferencas para o docker-compose.yml de desenvolvimento:
+# - so o Caddy publica porta (80 e 443); banco, API e nginx ficam na rede
+#   interna, sem nenhuma porta no host;
+# - perfil "prod": cookie Secure fixo, documentacao da API desligada e
+#   X-Forwarded-For aceito apenas de proxy interno;
+# - sem bootstrap automatico de usuario (D19): o primeiro administrador e
+#   criado por scripts/create-admin.sh;
+# - logs com rotacao, para nao encherem o disco.
+
+name: jhcomp-prospect
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jhcomp_prospect}
+      POSTGRES_USER: ${POSTGRES_USER:-jhcomp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      TZ: UTC
+      PGTZ: UTC
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      # PostgreSQL 18+: um unico mount em /var/lib/postgresql (ver docker-compose.yml).
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jhcomp} -d ${POSTGRES_DB:-jhcomp_prospect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    shm_size: 256mb
+    logging: *logging
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-jhcomp_prospect}
+      POSTGRES_USER: ${POSTGRES_USER:-jhcomp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      BACKEND_PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
+      ANALYSIS_SERVED_STATES: ${ANALYSIS_SERVED_STATES:-MG}
+      ANALYSIS_SERVED_SEGMENTS: ${ANALYSIS_SERVED_SEGMENTS:-}
+    logging: *logging
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging: *logging
+
+  # Unico servico exposto. Obtem e renova o certificado TLS sozinho
+  # (Let's Encrypt), exigindo que APP_DOMAIN aponte para este servidor e que
+  # as portas 80 e 443 estejam livres no firewall.
+  caddy:
+    image: caddy:2.11.9-alpine
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?defina APP_DOMAIN no .env}
+      ACME_EMAIL: ${ACME_EMAIL:?defina ACME_EMAIL no .env}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificados e chaves do ACME: perder este volume obriga a emitir de
+      # novo, sujeito ao limite de emissao do Let's Encrypt.
+      - caddy_data:/data
+      - caddy_config:/config
+    logging: *logging
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

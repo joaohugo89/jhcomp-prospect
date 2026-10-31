@@ -1,0 +1,24 @@
+# Perfil de producao (D27). Ativado por SPRING_PROFILES_ACTIVE=prod.
+#
+# A aplicacao fica atras de Caddy (TLS) e do nginx do frontend. Os dois
+# repassam o IP do cliente em X-Forwarded-For; sem confiar nesses cabecalhos,
+# todo pedido pareceria vir do container do nginx, e o limite de login por IP
+# (D20) passaria a valer para todos os usuarios juntos.
+
+server:
+  # O Tomcat so aceita X-Forwarded-* vindo de proxy da rede interna
+  # (10/8, 172.16/12, 192.168/16, 127/8 por padrao): o cliente externo nao
+  # chega direto ao backend, que nao publica porta em producao.
+  forward-headers-strategy: native
+  servlet:
+    session:
+      cookie:
+        # Fixo, e nao por variavel: em producao o acesso e sempre HTTPS.
+        secure: true
+
+# Documentacao interativa da API fica so em desenvolvimento.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

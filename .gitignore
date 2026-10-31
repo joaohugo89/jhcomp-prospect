@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.prod.example
 *.pem
 *.key
 *.p12
@@ -77,3 +78,6 @@ $RECYCLE.BIN/
 
 # ---- Artefatos de build do TypeScript ----
 *.tsbuildinfo
+
+# ---- Backups locais (scripts/backup.sh) ----
+/backups/

@@ -1,0 +1,15 @@
+# Perfil do comando de primeiro administrador (D19, D27). Usado junto com
+# "prod": SPRING_PROFILES_ACTIVE=prod,bootstrap (ver scripts/create-admin.sh).
+#
+# A aplicacao sobe inteira, porque a configuracao de seguranca depende do
+# contexto web, mas em porta aleatoria e sem worker de jobs. O
+# AdminBootstrapCommand cria organizacao e administrador e o BootstrapExit
+# encerra o processo em seguida. "docker compose run" nao publica porta, entao
+# o servidor web desta execucao nunca fica acessivel.
+server:
+  port: 0
+
+jhcomp:
+  jobs:
+    worker:
+      enabled: false
