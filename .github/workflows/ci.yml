@@ -1,9 +1,8 @@
-# JH.COMP Prospect — pipeline mínimo (doc 10 §9).
+# JH.COMP Prospect — pipeline (doc 10 §9).
 #
-# Esqueleto da Etapa 1: ainda não existem backend nem frontend, por isso cada
-# job detecta se o seu projeto já foi criado e se autopula enquanto não houver.
-# A Etapa 2 cria backend/pom.xml e frontend/package.json e os jobs passam a
-# executar de verdade, sem necessidade de editar este arquivo.
+# higiene -> backend (build, unitários e integração) e frontend (lint, tipos,
+# testes, build, auditoria de dependências) -> E2E no ambiente completo em
+# container (D17) e validação do compose de produção (D27).
 
 name: CI
 
@@ -50,8 +49,8 @@ jobs:
             echo "::error::.env está versionado. Remova-o do controle de versão."
             exit 1
           fi
-          # Qualquer .env* exceto .env.example
-          offenders=$(git ls-files | grep -E '(^|/)\.env' | grep -v '\.env\.example$' || true)
+          # Qualquer .env* exceto os exemplos (.env.example, .env.prod.example)
+          offenders=$(git ls-files | grep -E '(^|/)\.env' | grep -vE '\.env(\.[a-z]+)?\.example$' || true)
           if [ -n "$offenders" ]; then
             echo "::error::Arquivos de ambiente versionados:"; echo "$offenders"; exit 1
           fi
@@ -67,6 +66,11 @@ jobs:
 
       - name: .env.example existe
         run: test -f .env.example || { echo "::error::.env.example ausente."; exit 1; }
+
+      # Scripts de operação (backup, restauração, bootstrap) rodam como root no
+      # servidor: erro de shell ali custa dado. O runner já traz o shellcheck.
+      - name: Shellcheck dos scripts
+        run: shellcheck --severity=warning scripts/*.sh
 
   backend:
     name: Backend (build e testes)
@@ -133,11 +137,93 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      # Bloqueia só o que vai para o navegador; ferramentas de desenvolvimento
+      # ficam com o Dependabot, para que um aviso de lint não pare o deploy.
+      - name: Auditoria de dependências
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+  # Dois fluxos no navegador contra o ambiente completo (D17): nginx, CSP,
+  # cookies e CSRF reais, que o MockMvc e a API simulada não exercitam.
+  e2e:
+    name: E2E (ambiente completo)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configurar ambiente com senhas descartáveis
+        run: |
+          admin_password="$(openssl rand -hex 16)"
+          echo "::add-mask::$admin_password"
+          cp .env.example .env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/" .env
+          sed -i "s/^LOCAL_ADMIN_PASSWORD=.*/LOCAL_ADMIN_PASSWORD=$admin_password/" .env
+          echo "E2E_ADMIN_PASSWORD=$admin_password" >> "$GITHUB_ENV"
+
+      - name: Subir o ambiente
+        run: docker compose up -d --build --wait --wait-timeout 300
+
+      - name: Configurar Node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências e Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Testes E2E
+        working-directory: frontend
+        run: npm run e2e
+
+      - name: Logs dos containers
+        if: failure()
+        run: docker compose logs --no-color > compose-logs.txt
+
+      - name: Publicar relatório E2E
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            compose-logs.txt
+          retention-days: 7
+
+      - name: Derrubar o ambiente
+        if: always()
+        run: docker compose down -v
+
+  # O compose de produção não roda no CI (exige domínio e TLS), mas um erro de
+  # sintaxe ou variável obrigatória faltando só apareceria no servidor.
+  prod-config:
+    name: Compose de produção válido
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validar docker-compose.prod.yml
+        env:
+          APP_DOMAIN: prospect.example.test
+          ACME_EMAIL: ops@example.test
+          POSTGRES_PASSWORD: somente-validacao
+        run: docker compose -f docker-compose.prod.yml config --quiet
+      - name: Validar Caddyfile
+        run: >
+          docker run --rm -e APP_DOMAIN=prospect.example.test -e ACME_EMAIL=ops@example.test
+          -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.11.9-alpine
+          caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
   # Porta de qualidade: falha se qualquer job obrigatório falhar.
   # Jobs pulados (projeto ainda não criado) não bloqueiam.
   gate:
     name: Resultado do CI
-    needs: [hygiene, backend, frontend]
+    needs: [hygiene, backend, frontend, e2e, prod-config]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -146,7 +232,9 @@ jobs:
           echo "hygiene=${{ needs.hygiene.result }}"
           echo "backend=${{ needs.backend.result }}"
           echo "frontend=${{ needs.frontend.result }}"
-          for r in "${{ needs.hygiene.result }}" "${{ needs.backend.result }}" "${{ needs.frontend.result }}"; do
+          echo "e2e=${{ needs.e2e.result }}"
+          echo "prod-config=${{ needs.prod-config.result }}"
+          for r in "${{ needs.hygiene.result }}" "${{ needs.backend.result }}" "${{ needs.frontend.result }}"                    "${{ needs.e2e.result }}" "${{ needs.prod-config.result }}"; do
             case "$r" in
               success|skipped) ;;
               *) echo "::error::Job obrigatório não passou: $r"; exit 1 ;;

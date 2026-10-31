@@ -1,0 +1,27 @@
+# Atualizacoes de dependencia (doc 10 §9, item 7). Semanais e agrupadas, para
+# chegarem como poucos PRs revisaveis, e nao um por biblioteca.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule: { interval: weekly }
+    groups:
+      backend: { patterns: ["*"] }
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    groups:
+      frontend: { patterns: ["*"] }
+
+  - package-ecosystem: docker
+    directories: [/backend, /frontend]
+    schedule: { interval: weekly }
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
