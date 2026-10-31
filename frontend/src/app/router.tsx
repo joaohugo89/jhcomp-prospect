@@ -9,6 +9,8 @@ import { useSyncExternalStore } from 'react';
  * reais e podem ser abertos diretamente.
  */
 export type Route =
+  | { readonly name: 'dashboard' }
+  | { readonly name: 'pipeline' }
   | { readonly name: 'companies' }
   | { readonly name: 'companyNew' }
   | { readonly name: 'company'; readonly id: string }
@@ -25,7 +27,9 @@ const NAVIGATION_EVENT = 'jh:navigate';
 const ID = '([0-9a-fA-F-]{36})';
 
 const PATTERNS: readonly [RegExp, (match: RegExpMatchArray) => Route][] = [
-  [/^\/?$/, () => ({ name: 'leads' })],
+  [/^\/?$/, () => ({ name: 'dashboard' })],
+  [/^\/dashboard\/?$/, () => ({ name: 'dashboard' })],
+  [/^\/pipeline\/?$/, () => ({ name: 'pipeline' })],
   [/^\/leads\/?$/, () => ({ name: 'leads' })],
   [new RegExp(`^/leads/${ID}/?$`), (match) => ({ name: 'lead', id: match[1] ?? '' })],
   [/^\/companies\/?$/, () => ({ name: 'companies' })],

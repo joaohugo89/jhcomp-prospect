@@ -1,5 +1,6 @@
 import type { AnalysisStatus, Confidence, Criterion, EvidenceType, FindingStatus } from '../types/analysis';
 import type { DuplicateSignal, SourceType } from '../types/company';
+import type { InteractionChannel, InteractionDirection, InteractionType } from '../types/crm';
 import type { ImportField, ImportRowStatus, ImportStatus } from '../types/import';
 import type { LeadPriority, LeadStatus } from '../types/lead';
 
@@ -106,4 +107,28 @@ export const EVIDENCE_TYPE_LABEL: Readonly<Record<EvidenceType, string>> = {
   COMPANY_RECORD: 'Cadastro',
   CONFIGURATION: 'Configuração',
   OPERATOR_NOTE: 'Nota do operador',
+};
+
+export const INTERACTION_TYPE_LABEL: Readonly<Record<InteractionType, string>> = {
+  CONTACT: 'Contato',
+  REPLY: 'Resposta',
+  MEETING: 'Reunião',
+  PROPOSAL: 'Proposta',
+  DO_NOT_CONTACT_REQUEST: 'Pedido de não contato',
+  NOTE: 'Anotação',
+};
+
+export const CHANNEL_LABEL: Readonly<Record<InteractionChannel, string>> = {
+  PHONE: 'Telefone',
+  WHATSAPP: 'WhatsApp',
+  EMAIL: 'E-mail',
+  INSTAGRAM: 'Instagram',
+  IN_PERSON: 'Presencial',
+  OTHER: 'Outro',
+};
+
+export const DIRECTION_LABEL: Readonly<Record<InteractionDirection, string>> = {
+  OUTBOUND: 'Nós entramos em contato',
+  INBOUND: 'A empresa entrou em contato',
+  INTERNAL: 'Registro interno',
 };

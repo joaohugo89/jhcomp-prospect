@@ -12,19 +12,24 @@ import { input, link } from '../../components/styles';
 import { changeLeadPriority, getLead } from '../../services/leadService';
 import { LEAD_PRIORITIES, type Lead } from '../../types/lead';
 import { AnalysisSection } from '../analysis/AnalysisSection';
+import { DealSection } from '../crm/DealSection';
+import { InteractionForm } from '../crm/InteractionForm';
+import { TasksSection } from '../crm/TasksSection';
 import { ActivityTimeline } from './ActivityTimeline';
 import { StatusChangeForm } from './StatusChangeForm';
 
 /**
  * Detalhe do lead (doc 08 §7).
  *
- * Visão geral, presença digital e histórico. Mensagens e negociação chegam
- * com os módulos correspondentes.
+ * Visão geral, presença digital, negócio, interações, tarefas e histórico.
+ * Mensagens chegam com o módulo de outreach.
  */
 export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [state, reload] = useLoad(id, (signal) => getLead(id, signal));
   // Lead alterado nesta tela substitui o carregado, sem nova ida à API.
   const [updated, setUpdated] = useState<Lead | null>(null);
+  // Interação registrada não altera o lead, mas precisa aparecer no histórico.
+  const [interactions, setInteractions] = useState(0);
 
   if (state.kind !== 'ready') {
     return <LoadStateView state={state} onRetry={reload} notFoundMessage="Lead não encontrado." />;
@@ -68,6 +73,10 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
 
           <PrioritySection lead={lead} onChanged={setUpdated} />
 
+          <DealSection lead={lead} />
+
+          <TasksSection leadId={lead.id} />
+
           <section aria-labelledby="datas" className="rounded-lg border border-slate-200 bg-white p-6 text-sm">
             <h2 id="datas" className="mb-2 text-base font-semibold">
               Datas
@@ -96,7 +105,18 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
               reload();
             }}
           />
-          <ActivityTimeline leadId={lead.id} refreshKey={`${lead.status}:${lead.updatedAt}`} />
+          <InteractionForm
+            lead={lead}
+            onRecorded={(type) => {
+              setInteractions((count) => count + 1);
+              if (type === 'DO_NOT_CONTACT_REQUEST') {
+                // O pedido muda o status no servidor: relê o lead.
+                setUpdated(null);
+                reload();
+              }
+            }}
+          />
+          <ActivityTimeline leadId={lead.id} refreshKey={`${lead.status}:${lead.updatedAt}:${interactions}`} />
         </div>
       </div>
     </>

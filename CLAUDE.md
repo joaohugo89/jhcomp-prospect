@@ -183,6 +183,9 @@ Cada uma custou tempo real. Não reintroduzir.
 - **Cookie CSRF só é reemitido quando o token é novo.** Asserção sobre
   `Set-Cookie` numa requisição HTTP fica dependente da ordem dos testes; testar
   o `CsrfTokenRepository` diretamente.
+- **Não há `.prettierrc`; `npx prettier` sem opções reescreve o frontend**
+  com aspas duplas e 80 colunas. O estilo é `--single-quote --print-width 120`,
+  e só nos arquivos alterados.
 - **Portas 55107–55806 são reservadas pelo Windows/Hyper-V** nesta máquina
   (`netsh interface ipv4 show excludedportrange protocol=tcp`). Conferir antes
   de escolher porta nova.

@@ -8,7 +8,7 @@ import { changeLeadStatus } from '../../services/leadService';
 import type { Lead, LeadStatus } from '../../types/lead';
 
 /** Estados sem volta por esta tela: pedem confirmação antes de enviar. */
-const IRREVERSIBLE: ReadonlySet<LeadStatus> = new Set(['WON', 'LOST', 'DO_NOT_CONTACT']);
+export const IRREVERSIBLE: ReadonlySet<LeadStatus> = new Set(['WON', 'LOST', 'DO_NOT_CONTACT']);
 
 const IRREVERSIBLE_TEXT: Partial<Record<LeadStatus, string>> = {
   WON: 'A oportunidade será encerrada como ganha. Um novo ciclo exige abrir outro lead.',
@@ -17,9 +17,14 @@ const IRREVERSIBLE_TEXT: Partial<Record<LeadStatus, string>> = {
     'A empresa não deve mais ser abordada. O bloqueio não pode ser desfeito por mudança de status.',
 };
 
+/** O mínimo para mudar o status: serve ao lead completo e ao card do Kanban. */
+export type StatusSubject = Pick<Lead, 'id' | 'status' | 'allowedTransitions'>;
+
 interface StatusChangeFormProps {
-  readonly lead: Lead;
+  readonly lead: StatusSubject;
   readonly onChanged: (lead: Lead) => void;
+  /** Destino já escolhido, como ao soltar um card numa coluna. */
+  readonly initialTarget?: LeadStatus;
 }
 
 /**
@@ -29,8 +34,10 @@ interface StatusChangeFormProps {
  * continua no servidor. `CONTACTED` exige que o operador marque que o contato
  * de fato ocorreu: aprovar ou abrir um aplicativo de mensagem não é contato.
  */
-export function StatusChangeForm({ lead, onChanged }: StatusChangeFormProps): React.JSX.Element {
-  const [target, setTarget] = useState<LeadStatus | ''>('');
+export function StatusChangeForm({ lead, onChanged, initialTarget }: StatusChangeFormProps): React.JSX.Element {
+  const [target, setTarget] = useState<LeadStatus | ''>(
+    initialTarget !== undefined && lead.allowedTransitions.includes(initialTarget) ? initialTarget : '',
+  );
   const [reason, setReason] = useState('');
   const [contactConfirmed, setContactConfirmed] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -115,7 +122,7 @@ export function StatusChangeForm({ lead, onChanged }: StatusChangeFormProps): Re
       )}
 
       <label className="block text-sm font-medium text-slate-700">
-        Motivo (opcional)
+        {target === 'LOST' ? 'Motivo da perda (opcional)' : 'Motivo (opcional)'}
         <textarea
           className={input}
           rows={2}

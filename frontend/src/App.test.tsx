@@ -12,7 +12,7 @@ const unauthenticated = (): Response => json({ type: 'AUTHENTICATION_REQUIRED', 
  */
 describe('App', () => {
   beforeEach(() => {
-    window.history.replaceState(null, '', '/');
+    window.history.replaceState(null, '', '/leads');
   });
 
   afterEach(() => {
@@ -45,6 +45,36 @@ describe('App', () => {
     expect(screen.getByRole('link', { name: 'Leads' })).toHaveAttribute('aria-current', 'page');
     // Status com texto, não só cor (doc 08 §12).
     expect(within(screen.getByRole('table')).getByText('Contato aprovado')).toBeInTheDocument();
+  });
+
+  it('a raiz abre o dashboard', async () => {
+    window.history.replaceState(null, '', '/');
+    fakeApi({
+      'GET /auth/me': () => json(session),
+      'GET /dashboard/summary': () =>
+        json({
+          from: '2026-10-07',
+          to: '2026-11-05',
+          summary: {
+            leadsByStatus: {},
+            activeLeads: 0,
+            companiesAdded: 0,
+            contactsRegistered: 0,
+            openProposals: 0,
+            dealsWon: 0,
+            wonValue: 0,
+            openTasks: 0,
+            overdueTasks: 0,
+          },
+        }),
+      'GET /dashboard/activity': () => json(page([])),
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('navigation', { name: 'Principal' })).toHaveTextContent('Pipeline');
   });
 
   it('operador nao ve o item de membros', async () => {

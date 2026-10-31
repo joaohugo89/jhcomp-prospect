@@ -1,7 +1,13 @@
 import { useState } from 'react';
 
 import { formatDateTime, safeHref } from '../../app/format';
-import { SOURCE_TYPE_LABEL, STATUS_LABEL } from '../../app/labels';
+import {
+  CHANNEL_LABEL,
+  DIRECTION_LABEL,
+  INTERACTION_TYPE_LABEL,
+  SOURCE_TYPE_LABEL,
+  STATUS_LABEL,
+} from '../../app/labels';
 import { useLoad } from '../../app/useLoad';
 import { Pagination } from '../../components/Pagination';
 import { LoadStateView } from '../../components/States';
@@ -72,6 +78,22 @@ function TimelineItem({ entry }: { readonly entry: TimelineEntry }): React.JSX.E
             {entry.sourceUrl}
           </a>
         )}
+        {when}
+      </>
+    );
+  }
+
+  if (entry.type === 'INTERACTION') {
+    const kind = entry.interactionType === undefined ? 'Interação' : INTERACTION_TYPE_LABEL[entry.interactionType];
+    const details = [
+      entry.channel === undefined ? undefined : CHANNEL_LABEL[entry.channel],
+      entry.direction === undefined ? undefined : DIRECTION_LABEL[entry.direction],
+    ].filter((part) => part !== undefined);
+    return (
+      <>
+        <p className="text-slate-900">{details.length === 0 ? kind : `${kind} · ${details.join(' · ')}`}</p>
+        {entry.outcome !== undefined && <p className="text-slate-700">{entry.outcome}</p>}
+        {entry.notes !== undefined && <p className="whitespace-pre-line text-slate-600">{entry.notes}</p>}
         {when}
       </>
     );

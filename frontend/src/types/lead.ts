@@ -1,4 +1,5 @@
 import type { SourceType } from './company';
+import type { InteractionChannel, InteractionDirection, InteractionType } from './crm';
 
 /** Ciclo de vida do lead (doc 06 §2). */
 export const LEAD_STATUSES = [
@@ -44,7 +45,7 @@ export interface Lead {
 }
 
 export interface TimelineEntry {
-  readonly type: 'STATUS_CHANGE' | 'SOURCE';
+  readonly type: 'STATUS_CHANGE' | 'SOURCE' | 'INTERACTION';
   readonly id: string;
   readonly occurredAt: string;
   readonly actorName?: string;
@@ -55,6 +56,11 @@ export interface TimelineEntry {
   readonly sourceName?: string;
   readonly sourceUrl?: string;
   readonly sourceReference?: string;
+  readonly interactionType?: InteractionType;
+  readonly channel?: InteractionChannel;
+  readonly direction?: InteractionDirection;
+  readonly outcome?: string;
+  readonly notes?: string;
 }
 
 export interface LeadFilters {

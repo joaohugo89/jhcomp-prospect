@@ -9,6 +9,8 @@ function routes(statusResponse: () => Response = () => json({ ...lead, status: '
   return fakeApi({
     'GET /leads/': () => json(lead),
     'GET /leads/22222222-2222-4222-8222-222222222222/analyses': () => json(page([])),
+    'GET /leads/22222222-2222-4222-8222-222222222222/tasks': () => json(page([])),
+    'GET /leads/22222222-2222-4222-8222-222222222222/deal': () => json({ type: 'RESOURCE_NOT_FOUND', status: 404 }, 404),
     'GET /leads/22222222-2222-4222-8222-222222222222/timeline': () =>
       json(
         page([

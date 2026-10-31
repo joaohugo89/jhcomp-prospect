@@ -21,11 +21,13 @@ interface NavItem {
 /**
  * Itens de navegação (doc 08 §3).
  *
- * Só entram os itens já implementados. Dashboard, pesquisa de empresas,
- * Pipeline e Outreach chegam nas etapas seguintes; mostrá-los agora seria simular
- * funcionalidade, o que o doc 08 proíbe.
+ * Só entram os itens já implementados. Pesquisa de empresas e Outreach
+ * chegam nas etapas seguintes; mostrá-los agora seria simular funcionalidade,
+ * o que o doc 08 proíbe.
  */
 const NAV_ITEMS: readonly NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', active: (route) => route.name === 'dashboard' },
+  { to: '/pipeline', label: 'Pipeline', active: (route) => route.name === 'pipeline' },
   { to: '/leads', label: 'Leads', active: (route) => route.name === 'leads' || route.name === 'lead' },
   {
     to: '/companies',

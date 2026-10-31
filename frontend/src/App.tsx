@@ -8,6 +8,8 @@ import { LoginPage } from './modules/auth/LoginPage';
 import { CompaniesPage } from './modules/companies/CompaniesPage';
 import { CompanyDetailPage } from './modules/companies/CompanyDetailPage';
 import { CompanyNewPage } from './modules/companies/CompanyNewPage';
+import { PipelinePage } from './modules/crm/PipelinePage';
+import { DashboardPage } from './modules/dashboard/DashboardPage';
 import { ImportDetailPage } from './modules/imports/ImportDetailPage';
 import { ImportsPage } from './modules/imports/ImportsPage';
 import { LeadDetailPage } from './modules/leads/LeadDetailPage';
@@ -99,6 +101,10 @@ export function App(): React.JSX.Element {
 
 function Screen({ route }: { readonly route: Route }): React.JSX.Element {
   switch (route.name) {
+    case 'dashboard':
+      return <DashboardPage />;
+    case 'pipeline':
+      return <PipelinePage />;
     case 'leads':
       return <LeadsPage />;
     case 'lead':

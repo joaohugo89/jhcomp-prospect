@@ -32,7 +32,9 @@ describe('parseRoute', () => {
   const id = '11111111-1111-4111-8111-111111111111';
 
   it.each([
-    ['/', { name: 'leads' }],
+    ['/', { name: 'dashboard' }],
+    ['/dashboard', { name: 'dashboard' }],
+    ['/pipeline/', { name: 'pipeline' }],
     ['/leads', { name: 'leads' }],
     [`/leads/${id}`, { name: 'lead', id }],
     ['/companies/', { name: 'companies' }],

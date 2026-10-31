@@ -32,3 +32,33 @@ export function safeHref(url: string | undefined): string | undefined {
     return undefined;
   }
 }
+
+const CURRENCY = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
+export function formatCurrency(value: number): string {
+  return CURRENCY.format(value);
+}
+
+const pad = (value: number): string => String(value).padStart(2, '0');
+
+/** Data local AAAA-MM-DD, para campos `date`. */
+export function localDate(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Data e hora local AAAA-MM-DDTHH:mm, para campos `datetime-local`. */
+export function localDateTime(date: Date): string {
+  return `${localDate(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** Valor de `datetime-local` (hora local) como instante UTC; vazio ou inválido vira `undefined`. */
+export function toInstant(value: string): string | undefined {
+  if (value === '') {
+    return undefined;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
