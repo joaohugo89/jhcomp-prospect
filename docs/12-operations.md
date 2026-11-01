@@ -56,8 +56,11 @@ cadeado do navegador.
 
 O `create-admin.sh` sobe a API no perfil `bootstrap`, cria organização e
 administrador e encerra. Ele recusa rodar de novo depois que existe uma
-organização. **Não há cadastro de membros na aplicação no MVP**: novos
-usuários dependem de evolução futura (pendência registrada na D27).
+organização. Os demais membros são cadastrados pela própria aplicação, em
+**Membros** (D28): o sistema gera uma senha temporária, mostrada uma única vez
+ao administrador, que a entrega à pessoa por um canal seguro; no primeiro
+acesso ela precisa trocá-la. Se alguém esquecer a senha, o administrador usa
+**Redefinir senha** na mesma tela.
 
 ## 4. Atualizar para uma nova versão
 

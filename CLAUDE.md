@@ -51,6 +51,10 @@ já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
   porta. Perfil `prod` confia em `X-Forwarded-For` só de proxy interno (sem
   isso o limite de login por IP vale para todos juntos). Primeiro admin por
   `scripts/create-admin.sh` (perfil `bootstrap`). Operação em `docs/12`.
+- **D28** Membros: o admin cadastra e recebe senha temporária (uma vez só);
+  com ela a sessão só acessa `/auth/me`, `/auth/logout` e `/auth/password`.
+  Troca/redefinição de senha encerra as outras sessões (`credentials_changed_at`
+  na revalidação D21). Ninguém altera a própria associação.
 - **D16** 8 módulos, não 12: `enrichment` dentro de `company`, `organization`
   dentro de `identity`. As 4 camadas completas só em `company`, `lead`,
   `analysis` e `outreach`; `discovery` e `dashboard` são planos.
@@ -216,6 +220,14 @@ Cada uma custou tempo real. Não reintroduzir.
 - **`server.error.*` não é mais lido no Boot 4** (depreciação nível `error`):
   as chaves são `spring.web.error.*`. Propriedade com depreciação `error` é
   ignorada em silêncio; o aviso do editor é a única pista.
+- **PostgreSQL arredonda, não trunca, fração abaixo do microssegundo.** Um
+  `Instant` com nanos gravado em `timestamptz` pode voltar *maior* que o
+  original. Comparar instante da sessão com o do banco exige truncar em
+  `MICROS` antes de gravar e usar o valor gravado dos dois lados.
+- **`FOR UPDATE` + auditoria `REQUIRES_NEW` = deadlock.** `audit_event` tem FK
+  para `organization`; travar a linha da organização e auditar na mesma
+  requisição faz a transação nova esperar pela que a chamou. Para serializar,
+  usar `pg_advisory_xact_lock`.
 - **`flyway_schema_history.version` é texto**: `max(version)` dá `9` com a V10
   aplicada. Ordenar por `installed_rank`.
 - **Git Bash converte caminho em argumento do `docker run`** (`/mnt` vira

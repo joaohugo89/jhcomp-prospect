@@ -36,6 +36,7 @@ Status: `Aprovada` (decidida pelo responsável) · `Proposta` (a confirmar na et
 | D25 | Pipeline no codigo, deal sem resultado, interacoes | Proposta | 7 |
 | D26 | Outreach com IA revisada e lista de nao contato | Aprovada | 8 |
 | D27 | Producao em VPS com Caddy, backup e monitoramento | Aprovada | 9 |
+| D28 | Gestao de membros e senha temporaria | Aprovada | 10 |
 
 ---
 
@@ -702,7 +703,8 @@ aleatoria nao publicada, cria organizacao e administrador e encerra o processo.
 Recusa rodar com organizacao existente, exige senha de 12 caracteres e falha
 com codigo de saida diferente de zero, em vez de so registrar aviso. A senha
 vai por variavel de ambiente herdada, sem aparecer na linha de comando.
-Nao ha cadastro de membros na aplicacao no MVP: e pendencia, nao decisao.
+Nao ha cadastro de membros na aplicacao no MVP: e pendencia, nao decisao
+(resolvida na D28).
 
 **Cabecalhos.** CSP restrita a propria origem (o build do Vite nao tem script
 nem estilo inline), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`,
@@ -731,3 +733,55 @@ Dependabot semanal para Maven, npm, imagens e actions.
 
 **Fora do escopo:** Website Studio (D13), provedor de IA real (D26), cadastro
 de membros, alta disponibilidade e replica do banco.
+
+## D28 — Gestao de membros e senha temporaria · Aprovada (Etapa 10, 2026-11-06)
+
+O RF-003 pedia papeis e bloqueio de operacoes administrativas; papeis e
+revalidacao existiam (D21), mas nao havia como cadastrar, desativar ou
+redefinir senha de ninguem, nem trocar a propria senha. Em producao so o
+administrador inicial (D27) conseguia entrar.
+
+**Cadastro sem convite.** Nao ha canal de e-mail no MVP. O administrador
+cadastra nome, e-mail e papel; o servidor gera uma senha temporaria de 20
+caracteres (alfabeto sem ambiguos, ~113 bits), devolvida so nessa resposta e
+guardada apenas como hash. O administrador a entrega por canal seguro.
+E-mail ja cadastrado, em qualquer organizacao, e recusado: anexar conta
+existente deixaria um administrador definir senha de quem tambem pertence a
+outra organizacao. O 409 revela que o e-mail existe; aceito porque so
+administradores chegam ao endpoint.
+
+**Troca obrigatoria.** Com senha temporaria (`password_change_required`), a
+sessao so acessa `/auth/me`, `/auth/logout` e `/auth/password`; o resto
+responde 403 `PASSWORD_CHANGE_REQUIRED`, pela regra de autorizacao, e nao so
+pela tela. A troca exige a senha atual tambem quando ela e temporaria (quem so
+tem a sessao nao toma a conta) e passa pelo limitador de login (D20).
+
+**Politica de senha.** `PasswordPolicy`: ao menos 12 caracteres e no maximo
+72 bytes UTF-8, o limite do BCrypt. Comprimento, sem regra de composicao
+(NIST SP 800-63B). Vale para a troca e para o bootstrap de producao.
+
+**Sessoes.** `credentials_changed_at` grava a ultima troca ou redefinicao; a
+revalidacao (D21) encerra sessao aberta antes dele. Trocar a propria senha
+derruba as outras sessoes e mantem a atual, que recebe o mesmo instante;
+redefinir pelo administrador derruba todas as do membro. O instante e
+truncado ao microssegundo antes de gravar: o PostgreSQL arredonda a fracao
+menor, e o valor gravado podia ficar depois do da sessao de quem trocou a
+senha, encerrando justamente ela (teste em `CredentialsInstantTest`).
+
+**Papel e acesso.** O administrador muda papel e remove ou reativa o acesso
+(`organization_member.status`) de outros membros; vale na requisicao seguinte
+(D21). Ninguem altera a propria associacao nem redefine a propria senha por
+esta rota, o que impede a organizacao de ficar sem administrador por engano;
+a contagem de administradores ativos e conferida mesmo assim. Uma trava
+consultiva do PostgreSQL por organizacao serializa mudancas concorrentes. Nao
+e `SELECT ... FOR UPDATE` na organizacao: a auditoria grava em transacao
+propria com chave estrangeira para a organizacao e esperaria para sempre pela
+trava da transacao que a chamou.
+
+**Auditoria.** `MEMBER_CREATE`, `MEMBER_UPDATE`, `PASSWORD_CHANGE` (sucesso e
+falha) e `PASSWORD_RESET`, sem e-mail nem senha no detalhe, e gravados depois
+das regras, para que mudanca recusada nao apareca como feita.
+
+**Fora do escopo:** convite por e-mail, recuperacao de senha sem
+administrador ("esqueci a senha"), MFA, desabilitar a conta do usuario
+(`app_user.status`, que valeria para todas as organizacoes) e excluir membro.

@@ -37,6 +37,22 @@ Exemplo de erro:
 | POST | `/auth/logout` | Encerrar sessão, se aplicável |
 | POST | `/auth/refresh` | Renovar credencial, se adotado |
 | GET | `/auth/me` | Usuário e organização ativa |
+| POST | `/auth/password` | Trocar a própria senha (D28) |
+
+Gestão de membros (D28), somente `ADMIN`:
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| GET | `/organizations/members?includeRevoked=` | Listar membros |
+| GET | `/organizations/members/{memberId}` | Detalhar membro |
+| POST | `/organizations/members` | Cadastrar; resposta traz a senha temporária, só nesta vez |
+| PATCH | `/organizations/members/{memberId}` | Mudar papel e/ou acesso (`role`, `status`) |
+| POST | `/organizations/members/{memberId}/reset-password` | Nova senha temporária |
+
+`/auth/refresh` não existe (D1). Com senha temporária, a sessão só acessa
+`/auth/me`, `/auth/logout` e `/auth/password`; o resto responde `403
+PASSWORD_CHANGE_REQUIRED`. Senha atual errada responde `400
+INVALID_CREDENTIALS`, e não 401, porque a sessão continua válida.
 
 Não armazenar tokens de longa duração em `localStorage` sem avaliação de risco. Definir estratégia de refresh, cookies `HttpOnly`, `Secure`, `SameSite` e proteção CSRF conforme arquitetura de autenticação escolhida.
 

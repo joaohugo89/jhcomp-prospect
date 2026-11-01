@@ -1,5 +1,6 @@
 package com.jhcomp.prospect.identity;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.boot.test.context.TestComponent;
@@ -74,10 +75,12 @@ public class IdentityTestData {
                 email,
                 passwordEncoder.encode(password),
                 "Usuario de Teste",
-                userStatus));
+                userStatus,
+                false,
+                Instant.now()));
 
         OrganizationMemberEntity member = memberRepository.save(new OrganizationMemberEntity(
-                UUID.randomUUID(), organization, user, role, memberStatus));
+                UUID.randomUUID(), organization, user, role, memberStatus, Instant.now()));
 
         return new Member(member.getId(), user.getId(), organization.getId(), email, password);
     }
