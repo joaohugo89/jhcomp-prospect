@@ -208,20 +208,6 @@ public final class ContactNormalizer {
                 : Optional.empty();
     }
 
-    /**
-     * Identificador usado na lista de nao contato.
-     *
-     * <p>Aceita telefone ou e-mail e aplica a mesma normalizacao do resto do
-     * sistema, que e o ponto da decisao D10.
-     */
-    public static Optional<String> contactIdentifier(String rawValue) {
-        if (isBlank(rawValue)) {
-            return Optional.empty();
-        }
-
-        return rawValue.contains("@") ? email(rawValue) : phone(rawValue);
-    }
-
     private static String stripAccents(String value) {
         String decomposed = Normalizer.normalize(value, Normalizer.Form.NFD);
         return COMBINING_MARKS.matcher(decomposed).replaceAll("");

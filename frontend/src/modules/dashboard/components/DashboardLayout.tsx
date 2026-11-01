@@ -24,13 +24,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout(props: DashboardLayoutProps): React.JSX.Element {
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Dashboard</h1>
-          {props.subtitle !== undefined && <div className="mt-1 text-xs text-slate-500">{props.subtitle}</div>}
-        </div>
-        {props.filters}
-      </header>
+      <DashboardHeader subtitle={props.subtitle} filters={props.filters} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">{props.hero}</div>
@@ -44,5 +38,24 @@ export function DashboardLayout(props: DashboardLayoutProps): React.JSX.Element 
         <div className="min-w-0">{props.activity}</div>
       </div>
     </div>
+  );
+}
+
+/** Título, subtítulo e filtros. Também usado sozinho enquanto o resumo carrega. */
+export function DashboardHeader({
+  subtitle,
+  filters,
+}: {
+  readonly subtitle?: React.ReactNode;
+  readonly filters?: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <header className="flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Dashboard</h1>
+        {subtitle !== undefined && <div className="mt-1 text-xs text-slate-500">{subtitle}</div>}
+      </div>
+      {filters}
+    </header>
   );
 }

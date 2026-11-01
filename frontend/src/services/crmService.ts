@@ -120,8 +120,8 @@ export function getDashboardConversion(filters: DashboardFilters, signal?: Abort
 export function getDashboardActivity(
   filters: DashboardFilters,
   page: number,
+  size: number,
   signal?: AbortSignal,
-  size = 15,
 ): Promise<Page<Activity>> {
   return request<Page<Activity>>(
     `/dashboard/activity${dashboardQuery(filters, { page, size })}`,

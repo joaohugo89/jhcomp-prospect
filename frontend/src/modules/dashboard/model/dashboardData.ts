@@ -1,5 +1,4 @@
-import { STATUS_LABEL } from '../../../app/labels';
-import type { SourceType } from '../../../types/company';
+import { SOURCE_TYPE_LABEL, STATUS_LABEL } from '../../../app/labels';
 import { SOURCE_TYPES } from '../../../types/company';
 import type {
   Activity,
@@ -191,15 +190,9 @@ export function toConversao(response: DashboardConversion): Conversao {
   };
 }
 
-const SOURCE_NAME: Readonly<Record<SourceType, string>> = {
-  MANUAL: 'Manual',
-  CSV_IMPORT: 'Importação CSV',
-  INTEGRATION: 'Integração',
-};
-
 function nomeDaOrigem(key: string | undefined): string {
   const tipo = SOURCE_TYPES.find((type) => type === key);
-  return tipo === undefined ? 'Sem origem registrada' : SOURCE_NAME[tipo];
+  return tipo === undefined ? 'Sem origem registrada' : SOURCE_TYPE_LABEL[tipo];
 }
 
 /**

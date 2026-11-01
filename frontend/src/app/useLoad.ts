@@ -22,10 +22,7 @@ export type Load<T> =
  * comparável por igualdade, e não da função `loader`, recriada a cada
  * renderização.
  */
-export function useLoad<T>(
-  key: string,
-  loader: (signal: AbortSignal) => Promise<T>,
-): readonly [Load<T>, () => void] {
+export function useLoad<T>(key: string, loader: (signal: AbortSignal) => Promise<T>): readonly [Load<T>, () => void] {
   const [version, setVersion] = useState(0);
   // Resultado guardado com a chave e a versão que o produziram. Enquanto a
   // requisição atual não responde, o estado é derivado, sem setState síncrono
@@ -82,6 +79,19 @@ function stateOf<T>(
     return { kind: 'loading' };
   }
   return result.version === version || result.load.kind === 'ready' ? result.load : { kind: 'loading' };
+}
+
+/**
+ * Último dado pronto, mantido enquanto uma chave nova carrega (outra página,
+ * outro filtro). Trocar o conteúdo por "Carregando…" encolhe a tela, puxa a
+ * rolagem para cima e tira o foco do botão clicado.
+ */
+export function useLastReady<T>(state: Load<T>): T | null {
+  const [last, setLast] = useState<T | null>(null);
+  if (state.kind === 'ready' && state.data !== last) {
+    setLast(state.data);
+  }
+  return state.kind === 'ready' ? state.data : last;
 }
 
 function toFailure(cause: unknown): Load<never> {

@@ -17,10 +17,7 @@ export function KeyMetrics({
     contagem('Leads ativos', atuais.leadsAtivos, 'em aberto, agora', Users, 'indigo'),
     contagem('Propostas', atuais.propostasEmAberto, 'em aberto, agora', FileText, 'violet'),
     contagem('Tarefas', atuais.tarefasAbertas, 'abertas, agora', ListTodo, 'slate'),
-    {
-      ...contagem('Atrasadas', atuais.tarefasAtrasadas, 'tarefas com prazo vencido', AlarmClock, 'slate'),
-      ...(atuais.tarefasAtrasadas > 0 ? { estado: 'alerta' as const } : {}),
-    },
+    contagem('Atrasadas', atuais.tarefasAtrasadas, 'tarefas com prazo vencido', AlarmClock, 'slate', true),
   ];
   return <MetricGrid titulo="Métricas-chave" legenda="Período e situação de agora" metricas={metricas} />;
 }
@@ -31,6 +28,9 @@ function contagem(
   subtitulo: string,
   icone: MetricCardProps['icone'],
   tom: MetricCardProps['tom'],
+  /** Valor acima de zero pede ação (ex.: tarefa atrasada). */
+  alertaSeHouver = false,
 ): MetricCardProps {
-  return { titulo, valor: String(valor), subtitulo, estado: valor === 0 ? 'vazio' : 'normal', icone, tom };
+  const estado = valor === 0 ? 'vazio' : alertaSeHouver ? 'alerta' : 'normal';
+  return { titulo, valor: String(valor), subtitulo, estado, icone, tom };
 }

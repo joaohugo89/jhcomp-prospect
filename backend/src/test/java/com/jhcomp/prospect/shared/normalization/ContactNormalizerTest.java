@@ -91,26 +91,6 @@ class ContactNormalizerTest {
     }
 
     @Nested
-    @DisplayName("identificador de nao contato")
-    class ContactIdentifier {
-
-        /** D10: a lista de nao contato usa a mesma normalizacao da deduplicacao. */
-        @Test
-        @DisplayName("telefone usa a mesma regra da deduplicacao")
-        void phoneMatchesDedup() {
-            assertThat(ContactNormalizer.contactIdentifier("(35) 98888-7777"))
-                    .isEqualTo(ContactNormalizer.phone("+55 35 988887777"));
-        }
-
-        @Test
-        @DisplayName("e-mail em minusculas")
-        void email() {
-            assertThat(ContactNormalizer.contactIdentifier(" Contato@Loja.Example.Test "))
-                    .contains("contato@loja.example.test");
-        }
-    }
-
-    @Nested
     @DisplayName("instagram")
     class Instagram {
 

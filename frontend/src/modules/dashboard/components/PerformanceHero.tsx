@@ -18,7 +18,7 @@ interface MetricOption {
 }
 
 /** As métricas do período, com as mesmas definições dos cartões. */
-export const HERO_METRICS: readonly [MetricOption, ...MetricOption[]] = [
+const HERO_METRICS: readonly [MetricOption, ...MetricOption[]] = [
   { key: 'valorGanho', label: 'Valor ganho', currency: true },
   { key: 'empresasAdicionadas', label: 'Empresas adicionadas', currency: false },
   { key: 'contatosRegistrados', label: 'Contatos registrados', currency: false },

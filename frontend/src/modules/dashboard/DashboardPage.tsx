@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { localDate } from '../../app/format';
-import { useLoad } from '../../app/useLoad';
+import { useLastReady, useLoad } from '../../app/useLoad';
 import { Pagination } from '../../components/Pagination';
 import { LoadStateView } from '../../components/States';
 import {
@@ -11,11 +11,9 @@ import {
   getDashboardTimeline,
   type DashboardFilters,
 } from '../../services/crmService';
-import type { Activity } from '../../types/crm';
-import type { Page } from '../../types/page';
 import { ConversionGauge } from './components/ConversionGauge';
 import { ConversionReport } from './components/ConversionReport';
-import { DashboardLayout } from './components/DashboardLayout';
+import { DashboardHeader, DashboardLayout } from './components/DashboardLayout';
 import { HeaderFilters, PRESETS } from './components/HeaderFilters';
 import { KeyMetrics } from './components/KeyMetrics';
 import { LeadSourceSplit } from './components/LeadSourceSplit';
@@ -29,7 +27,6 @@ import {
   toDashboardData,
   toSerie,
   type DashboardData,
-  type SerieTemporal,
 } from './model/dashboardData';
 
 /** Feed curto, da altura do funil ao lado; o resto fica nas páginas seguintes. */
@@ -66,12 +63,8 @@ export function DashboardPage(): React.JSX.Element {
     getDashboardTimeline(filters, unit, signal),
   );
   // Ao recarregar, o gráfico anterior fica, atenuado: sem salto de layout.
-  const [serie, setSerie] = useState<SerieTemporal | null>(null);
-  const [serieSource, setSerieSource] = useState<unknown>(null);
-  if (timeline.kind === 'ready' && timeline.data !== serieSource) {
-    setSerieSource(timeline.data);
-    setSerie(toSerie(timeline.data));
-  }
+  const lastTimeline = useLastReady(timeline);
+  const serie = lastTimeline === null ? null : toSerie(lastTimeline);
 
   if (summary.kind !== 'ready') {
     return (
@@ -153,10 +146,7 @@ function DashboardShell({
 }: FiltersProps & { readonly children: React.ReactNode }): React.JSX.Element {
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Dashboard</h1>
-        <Filters {...props} />
-      </header>
+      <DashboardHeader filters={<Filters {...props} />} />
       {children}
     </div>
   );
@@ -166,18 +156,14 @@ function DashboardShell({
  * Carrega a atividade paginada e entrega a `RecentActivityList` já convertida.
  *
  * Ao trocar de página, a página atual continua na tela, atenuada, até a nova
- * chegar. Trocar a lista por "Carregando…" encolhia a página, o navegador
- * puxava a rolagem para cima e o botão clicado sumia, levando o foco junto.
+ * chegar (`useLastReady`): a rolagem não pula e o foco fica no botão clicado.
  */
 function RecentActivityPanel({ filters }: { readonly filters: DashboardFilters }): React.JSX.Element {
   const [page, setPage] = useState(0);
   const [state, reload] = useLoad(`${page}`, (signal) =>
-    getDashboardActivity(filters, page, signal, ACTIVITY_PAGE_SIZE),
+    getDashboardActivity(filters, page, ACTIVITY_PAGE_SIZE, signal),
   );
-  const [shown, setShown] = useState<Page<Activity> | null>(null);
-  if (state.kind === 'ready' && state.data !== shown) {
-    setShown(state.data);
-  }
+  const shown = useLastReady(state);
   const loadingNext = state.kind === 'loading' && shown !== null;
 
   return (

@@ -192,7 +192,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
 }
 
 /** Teto "redondo" do eixo, dividido em quatro passos iguais. */
-export function niceTop(max: number, integer: boolean): number {
+function niceTop(max: number, integer: boolean): number {
   if (max <= 0) {
     return TICKS;
   }
