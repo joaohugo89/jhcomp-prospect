@@ -71,6 +71,7 @@ export const session = {
   displayName: 'Administrador',
   organizationId: 'org-1',
   role: 'ADMIN' as const,
+  passwordChangeRequired: false,
 };
 
 export const COMPANY_ID = '11111111-1111-4111-8111-111111111111';

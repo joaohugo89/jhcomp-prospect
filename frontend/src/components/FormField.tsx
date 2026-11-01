@@ -9,7 +9,7 @@ interface FormFieldProps {
   readonly error?: string | undefined;
   readonly hint?: string;
   readonly required?: boolean;
-  readonly type?: 'text' | 'email' | 'url' | 'tel' | 'search';
+  readonly type?: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password';
   readonly multiline?: boolean;
   readonly maxLength?: number;
   readonly autoComplete?: string;

@@ -5,6 +5,7 @@ import { AppShell } from './components/AppShell';
 import { EmptyState, LoadingState } from './components/States';
 import { buttonPrimary } from './components/styles';
 import { LoginPage } from './modules/auth/LoginPage';
+import { ForcedPasswordChange, PasswordPage } from './modules/auth/PasswordPages';
 import { CompaniesPage } from './modules/companies/CompaniesPage';
 import { CompanyDetailPage } from './modules/companies/CompanyDetailPage';
 import { CompanyNewPage } from './modules/companies/CompanyNewPage';
@@ -81,26 +82,48 @@ export function App(): React.JSX.Element {
     );
   }
 
+  async function signOut(): Promise<void> {
+    try {
+      await logout();
+    } finally {
+      // Mesmo que a chamada falhe, a interface volta ao login: insistir em
+      // mostrar uma sessão que talvez não exista mais seria pior.
+      setAuth({ kind: 'anonymous', expired: false });
+    }
+  }
+
+  function updateSession(session: Session): void {
+    setAuth({ kind: 'authenticated', session });
+  }
+
+  if (auth.session.passwordChangeRequired) {
+    return (
+      <ForcedPasswordChange
+        session={auth.session}
+        onChanged={updateSession}
+        onSignOut={() => {
+          void signOut();
+        }}
+      />
+    );
+  }
+
   return (
-    <AppShell
-      session={auth.session}
-      route={route}
-      onSignOut={async () => {
-        try {
-          await logout();
-        } finally {
-          // Mesmo que a chamada falhe, a interface volta ao login: insistir em
-          // mostrar uma sessão que talvez não exista mais seria pior.
-          setAuth({ kind: 'anonymous', expired: false });
-        }
-      }}
-    >
-      <Screen route={route} session={auth.session} />
+    <AppShell session={auth.session} route={route} onSignOut={signOut}>
+      <Screen route={route} session={auth.session} onSessionChanged={updateSession} />
     </AppShell>
   );
 }
 
-function Screen({ route, session }: { readonly route: Route; readonly session: Session }): React.JSX.Element {
+function Screen({
+  route,
+  session,
+  onSessionChanged,
+}: {
+  readonly route: Route;
+  readonly session: Session;
+  readonly onSessionChanged: (session: Session) => void;
+}): React.JSX.Element {
   switch (route.name) {
     case 'dashboard':
       return <DashboardPage />;
@@ -122,9 +145,11 @@ function Screen({ route, session }: { readonly route: Route; readonly session: S
     case 'import':
       return <ImportDetailPage key={route.id} id={route.id} />;
     case 'members':
-      return <MembersPage />;
+      return <MembersPage session={session} />;
     case 'suppression':
       return <SuppressionPage session={session} />;
+    case 'password':
+      return <PasswordPage onChanged={onSessionChanged} />;
     case 'notFound':
       return (
         <EmptyState

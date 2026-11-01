@@ -19,3 +19,8 @@ export function logout(): Promise<void> {
 export function fetchSession(signal?: AbortSignal): Promise<Session> {
   return request<Session>('/auth/me', signal ? { signal } : {});
 }
+
+/** Troca da própria senha. Encerra as outras sessões do usuário; esta continua (D28). */
+export function changePassword(currentPassword: string, newPassword: string): Promise<Session> {
+  return request<Session>('/auth/password', { method: 'POST', body: { currentPassword, newPassword } });
+}

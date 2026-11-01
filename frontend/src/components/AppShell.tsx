@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Link, type Route } from '../app/router';
 import type { Session } from '../types/session';
-import { buttonSecondary } from './styles';
+import { buttonSecondary, link } from './styles';
 
 interface AppShellProps {
   readonly session: Session;
@@ -99,6 +99,13 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
           <span className="text-slate-700">
             {session.displayName} · <span className="text-slate-500">{ROLE_LABEL[session.role]}</span>
           </span>
+          <Link
+            to="/settings/password"
+            className={link}
+            {...(route.name === 'password' ? { 'aria-current': 'page' as const } : {})}
+          >
+            Minha senha
+          </Link>
           <button
             type="button"
             className={buttonSecondary}
