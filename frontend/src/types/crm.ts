@@ -28,16 +28,24 @@ export interface BoardCard {
   readonly priority: LeadPriority;
   readonly score?: number;
   readonly service?: string;
+  /** Valor estimado do negócio, em reais. */
+  readonly estimatedValue?: number;
   readonly lastInteractionType?: InteractionType;
   readonly lastInteractionAt?: string;
   readonly nextTaskTitle?: string;
   readonly nextTaskDueAt?: string;
+  /** Quando o lead chegou na etapa atual. */
+  readonly stageEnteredAt: string;
   readonly allowedTransitions: readonly LeadStatus[];
 }
 
 export interface BoardColumn {
   readonly stage: Stage;
   readonly total: number;
+  /** Soma dos negócios da etapa inteira (não só dos cards mostrados), em reais. */
+  readonly totalValue: number;
+  /** Nas colunas finais: só os encerrados nesses últimos dias. */
+  readonly recentDays?: number;
   readonly cards: readonly BoardCard[];
 }
 

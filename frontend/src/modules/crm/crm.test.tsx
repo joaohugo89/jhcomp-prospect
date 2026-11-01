@@ -29,6 +29,8 @@ const card = {
   priority: 'HIGH',
   score: 70,
   nextTaskTitle: 'Ligar de novo',
+  estimatedValue: 1500,
+  stageEnteredAt: new Date(Date.now() - 10 * 86_400_000).toISOString(),
   allowedTransitions: ['QUALIFIED', 'CONTACTED', 'LOST', 'DO_NOT_CONTACT'],
 };
 
@@ -36,6 +38,8 @@ function board(total = 1) {
   return STAGES.map(([key, name], position) => ({
     stage: { key, name, position, terminal: key === 'WON' || key === 'LOST' },
     total: key === 'CONTACT_APPROVED' ? total : 0,
+    totalValue: key === 'CONTACT_APPROVED' ? 4200 : 0,
+    ...(key === 'WON' || key === 'LOST' ? { recentDays: 30 } : {}),
     cards: key === 'CONTACT_APPROVED' ? [card] : [],
   }));
 }
@@ -55,9 +59,10 @@ function drag(target: string): void {
 describe('Pipeline', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    window.localStorage.clear();
   });
 
-  it('mostra as etapas, o total e o card com o que o operador precisa', async () => {
+  it('mostra as etapas, o total, o valor e o card compacto com sinais de acao', async () => {
     fakeApi({ 'GET /pipeline/board': () => json(board(60)) });
 
     render(<PipelinePage />);
@@ -67,11 +72,88 @@ describe('Pipeline', () => {
       'href',
       `/leads/${LEAD_ID}`,
     );
-    expect(within(approved).getByText('Alta')).toBeInTheDocument();
-    expect(within(approved).getByText(/Próxima tarefa: Ligar de novo/)).toBeInTheDocument();
+    // Cabeçalho: contagem e valor da etapa inteira, não só do card mostrado.
+    expect(within(approved).getByLabelText('60 leads')).toBeInTheDocument();
+    expect(within(approved).getByText(/4\.200,00/)).toBeInTheDocument();
+    expect(within(approved).getByText(/1\.500,00/)).toBeInTheDocument();
+    expect(within(approved).getByText('10 dias na etapa')).toBeInTheDocument();
     expect(within(approved).getByText(/Mostrando 1 de 60/)).toBeInTheDocument();
+    // Compacto: prioridade e próxima tarefa ficam para o detalhado; "Sem análise" não aparece.
+    expect(within(approved).queryByText('Alta')).not.toBeInTheDocument();
+    expect(within(approved).queryByText(/Sem análise/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('region')).toHaveLength(STAGES.length);
     expect(screen.queryByRole('region', { name: /Não contatar/ })).not.toBeInTheDocument();
+
+    const summary = screen.getByLabelText('Resumo do quadro');
+    expect(summary).toHaveTextContent(/Em aberto60 leads · R\$\s4\.200,00/);
+    expect(summary).toHaveTextContent('Ganho nos últimos 30 dias');
+  });
+
+  it('modo detalhado mostra prioridade, score e proxima tarefa e fica guardado', async () => {
+    fakeApi({ 'GET /pipeline/board': () => json(board()) });
+
+    const { unmount } = render(<PipelinePage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Detalhado' }));
+
+    const approved = screen.getByRole('region', { name: /^Contato aprovado/ });
+    expect(within(approved).getByText('Alta')).toBeInTheDocument();
+    expect(within(approved).getByLabelText('Score 70 de 100')).toBeInTheDocument();
+    expect(within(approved).getByText(/Próxima tarefa: Ligar de novo/)).toBeInTheDocument();
+
+    unmount();
+    render(<PipelinePage />);
+    expect(await screen.findByRole('button', { name: 'Detalhado' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('sinaliza tarefa atrasada, lead parado e sem interacao, com texto e nao so cor', async () => {
+    const stale = {
+      ...card,
+      nextTaskDueAt: new Date(Date.now() - 86_400_000).toISOString(),
+      lastInteractionType: 'CONTACT',
+      lastInteractionAt: new Date(Date.now() - 20 * 86_400_000).toISOString(),
+    };
+    fakeApi({
+      'GET /pipeline/board': () =>
+        json(board().map((item) => (item.cards.length > 0 ? { ...item, cards: [stale] } : item))),
+    });
+
+    render(<PipelinePage />);
+
+    const sinais = await screen.findByRole('list', { name: 'Situação do lead' });
+    expect(sinais).toHaveTextContent('Tarefa atrasada');
+    expect(sinais).toHaveTextContent('10 dias na etapa');
+    expect(sinais).toHaveTextContent('Sem interação há 20 dias');
+  });
+
+  it('coluna vazia comeca recolhida, aceita expandir e lembra a escolha', async () => {
+    fakeApi({ 'GET /pipeline/board': () => json(board()) });
+
+    const { unmount } = render(<PipelinePage />);
+    const expandir = await screen.findByRole('button', { name: 'Expandir Contatado' });
+    expect(screen.getByRole('region', { name: /^Contatado/ })).toHaveTextContent('Contatado · 0');
+    expect(screen.queryByRole('button', { name: 'Expandir Contato aprovado' })).not.toBeInTheDocument();
+
+    await userEvent.click(expandir);
+    expect(screen.getByRole('region', { name: /^Contatado/ })).toHaveTextContent('Nenhum lead nesta etapa.');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Recolher Contato aprovado' }));
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+
+    unmount();
+    render(<PipelinePage />);
+    expect(await screen.findByRole('button', { name: 'Recolher Contatado' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expandir Contato aprovado' })).toBeInTheDocument();
+  });
+
+  it('colunas finais avisam a janela de 30 dias e apontam a lista completa', async () => {
+    fakeApi({ 'GET /pipeline/board': () => json(board()) });
+
+    render(<PipelinePage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Expandir Ganho' }));
+
+    const ganho = screen.getByRole('region', { name: /^Ganho/ });
+    expect(ganho).toHaveTextContent('últimos 30 dias');
+    expect(within(ganho).getByRole('link', { name: 'lista de leads' })).toHaveAttribute('href', '/leads');
   });
 
   it('move pelo botao, sem arrastar', async () => {

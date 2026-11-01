@@ -1,27 +1,40 @@
 import { useState } from 'react';
 
 import { actionErrorMessage } from '../../app/errors';
-import { formatDateTime } from '../../app/format';
-import { INTERACTION_TYPE_LABEL, STATUS_LABEL } from '../../app/labels';
+import { formatCurrency } from '../../app/format';
+import { usePreference } from '../../app/preferences';
 import { Link } from '../../app/router';
 import { useFilters } from '../../app/useFilters';
 import { useLoad } from '../../app/useLoad';
-import { PriorityBadge, ScoreIndicator } from '../../components/Badges';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, LoadStateView } from '../../components/States';
-import { buttonPrimary, buttonSecondary, input, link } from '../../components/styles';
+import { buttonPrimary, buttonSecondary, input } from '../../components/styles';
 import { getBoard, type BoardFilters } from '../../services/crmService';
 import { changeLeadStatus } from '../../services/leadService';
 import type { BoardCard, BoardColumn } from '../../types/crm';
-import type { LeadStatus } from '../../types/lead';
-import { IRREVERSIBLE, StatusChangeForm } from '../leads/StatusChangeForm';
+import { LEAD_STATUSES, type LeadStatus } from '../../types/lead';
+import { IRREVERSIBLE } from '../leads/StatusChangeForm';
+import type { Density, Moving } from './PipelineCard';
+import { PipelineColumn } from './PipelineColumn';
 
 const NO_FILTERS: BoardFilters = { search: '', segment: '', city: '' };
 
-/** Card com o formulário de mudança aberto e, se veio de arrastar, o destino. */
-interface Moving {
-  readonly leadId: string;
-  readonly target?: LeadStatus;
+/** Escolha de quem usa, por etapa; sem escolha, etapa vazia começa recolhida. */
+type CollapsedStages = Readonly<Partial<Record<LeadStatus, boolean>>>;
+
+function parseDensity(raw: unknown): Density | undefined {
+  return raw === 'compact' || raw === 'detailed' ? raw : undefined;
+}
+
+function parseCollapsed(raw: unknown): CollapsedStages | undefined {
+  if (typeof raw !== 'object' || raw === null) {
+    return undefined;
+  }
+  const entries = Object.entries(raw).filter(
+    (entry): entry is [LeadStatus, boolean] =>
+      LEAD_STATUSES.some((status) => status === entry[0]) && typeof entry[1] === 'boolean',
+  );
+  return Object.fromEntries(entries);
 }
 
 /**
@@ -38,6 +51,14 @@ export function PipelinePage(): React.JSX.Element {
   const [moving, setMoving] = useState<Moving | null>(null);
   const [dragging, setDragging] = useState<BoardCard | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [density, setDensity] = usePreference<Density>('pipeline.density', 'compact', parseDensity);
+  const [collapsedStages, setCollapsedStages] = usePreference<CollapsedStages>(
+    'pipeline.collapsed',
+    {},
+    parseCollapsed,
+  );
+  // "Agora" dos sinais: fixo enquanto a tela está aberta, para todos os cards concordarem.
+  const [now] = useState(() => Date.now());
 
   async function drop(card: BoardCard, target: LeadStatus): Promise<void> {
     if (target === card.status || !card.allowedTransitions.includes(target)) {
@@ -59,7 +80,11 @@ export function PipelinePage(): React.JSX.Element {
 
   return (
     <>
-      <PageHeader title="Pipeline" description="Arraste um card ou use “Mover” para mudar o status do lead." />
+      <PageHeader
+        title="Pipeline"
+        description="Arraste um card ou use “Mover” para mudar o status do lead."
+        actions={<DensityToggle density={density} onChange={setDensity} />}
+      />
 
       <form
         role="search"
@@ -131,203 +156,104 @@ export function PipelinePage(): React.JSX.Element {
               })}
         />
       ) : (
-        <div className="-mx-4 overflow-x-auto px-4 pb-4">
-          <div className="flex gap-3">
-            {state.data.map((column) => (
-              <Column
-                key={column.stage.key}
-                column={column}
-                dragging={dragging}
-                moving={moving}
-                onDragStart={setDragging}
-                onDragEnd={() => {
-                  setDragging(null);
-                }}
-                onDrop={(card) => {
-                  setDragging(null);
-                  void drop(card, column.stage.key);
-                }}
-                onMove={setMoving}
-                onMoved={() => {
-                  setMoving(null);
-                  reload();
-                }}
-              />
-            ))}
+        <>
+          <BoardSummary columns={state.data} />
+          {/* A partir do tablet o quadro ocupa o resto da tela (AppShell, FULL_SCREEN):
+              as colunas dividem a largura e cada uma rola por dentro. */}
+          <div className="-mx-4 overflow-x-auto px-4 pb-4 md:min-h-0 md:flex-1 md:pb-2">
+            <div className="flex gap-3 md:h-full">
+              {state.data.map((column) => (
+                <PipelineColumn
+                  key={column.stage.key}
+                  column={column}
+                  density={density}
+                  now={now}
+                  collapsed={collapsedStages[column.stage.key] ?? column.total === 0}
+                  onToggle={() => {
+                    const current = collapsedStages[column.stage.key] ?? column.total === 0;
+                    setCollapsedStages({ ...collapsedStages, [column.stage.key]: !current });
+                  }}
+                  dragging={dragging}
+                  moving={moving}
+                  onDragStart={setDragging}
+                  onDragEnd={() => {
+                    setDragging(null);
+                  }}
+                  onDrop={(card) => {
+                    setDragging(null);
+                    void drop(card, column.stage.key);
+                  }}
+                  onMove={setMoving}
+                  onMoved={() => {
+                    setMoving(null);
+                    reload();
+                  }}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </>
   );
 }
 
-interface ColumnProps {
-  readonly column: BoardColumn;
-  readonly dragging: BoardCard | null;
-  readonly moving: Moving | null;
-  readonly onDragStart: (card: BoardCard) => void;
-  readonly onDragEnd: () => void;
-  readonly onDrop: (card: BoardCard) => void;
-  readonly onMove: (moving: Moving | null) => void;
-  readonly onMoved: () => void;
-}
-
-function Column({
-  column,
-  dragging,
-  moving,
-  onDragStart,
-  onDragEnd,
-  onDrop,
-  onMove,
-  onMoved,
-}: ColumnProps): React.JSX.Element {
-  const { stage, total, cards } = column;
-  const accepts = dragging !== null && dragging.allowedTransitions.includes(stage.key);
-  const headingId = `coluna-${stage.key}`;
+/** Totais do quadro: o que está em aberto e o que foi ganho na janela das colunas finais. */
+function BoardSummary({ columns }: { readonly columns: readonly BoardColumn[] }): React.JSX.Element {
+  const open = columns.filter((column) => !column.stage.terminal);
+  const won = columns.find((column) => column.stage.key === 'WON');
+  const openLeads = open.reduce((sum, column) => sum + column.total, 0);
+  const openValue = open.reduce((sum, column) => sum + column.totalValue, 0);
 
   return (
-    // Arrastar é atalho de mouse; o teclado usa o botão "Mover" de cada card.
-    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-    <section
-      aria-labelledby={headingId}
-      className={`flex w-72 shrink-0 flex-col rounded-lg border p-3 ${
-        accepts ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-slate-100'
-      }`}
-      onDragOver={(event) => {
-        if (accepts) {
-          event.preventDefault();
-        }
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        if (dragging !== null && accepts) {
-          onDrop(dragging);
-        }
-      }}
-    >
-      <h2 id={headingId} className="mb-2 flex items-baseline justify-between text-sm font-semibold text-slate-800">
-        {stage.name}
-        <span className="font-mono text-xs font-normal text-slate-600" aria-label={`${total} leads`}>
-          {total}
-        </span>
-      </h2>
-      {cards.length === 0 ? (
-        <p className="py-4 text-center text-xs text-slate-500">Nenhum lead nesta etapa.</p>
-      ) : (
-        <ul className="space-y-2">
-          {cards.map((card) => (
-            <li key={card.leadId}>
-              <Card
-                card={card}
-                moving={moving?.leadId === card.leadId ? moving : null}
-                onDragStart={() => {
-                  onDragStart(card);
-                }}
-                onDragEnd={onDragEnd}
-                onMove={onMove}
-                onMoved={onMoved}
-              />
-            </li>
-          ))}
-        </ul>
+    <dl aria-label="Resumo do quadro" className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+      <div className="flex items-baseline gap-1.5">
+        <dt className="text-slate-500">Em aberto</dt>
+        <dd className="font-semibold text-slate-900 tabular-nums">
+          {`${openLeads} ${openLeads === 1 ? 'lead' : 'leads'} · ${formatCurrency(openValue)}`}
+        </dd>
+      </div>
+      {won?.recentDays !== undefined && (
+        <div className="flex items-baseline gap-1.5">
+          <dt className="text-slate-500">{`Ganho nos últimos ${won.recentDays} dias`}</dt>
+          <dd className="font-semibold text-emerald-700 tabular-nums">
+            {`${won.total} · ${formatCurrency(won.totalValue)}`}
+          </dd>
+        </div>
       )}
-      {total > cards.length && (
-        <p className="mt-2 text-xs text-slate-600">
-          {`Mostrando ${cards.length} de ${total}. Use os filtros ou a `}
-          <Link to="/leads" className={link}>
-            lista de leads
-          </Link>
-          .
-        </p>
-      )}
-    </section>
+    </dl>
   );
 }
 
-interface CardProps {
-  readonly card: BoardCard;
-  readonly moving: Moving | null;
-  readonly onDragStart: () => void;
-  readonly onDragEnd: () => void;
-  readonly onMove: (moving: Moving | null) => void;
-  readonly onMoved: () => void;
-}
-
-function Card({ card, moving, onDragStart, onDragEnd, onMove, onMoved }: CardProps): React.JSX.Element {
-  const draggable = card.allowedTransitions.length > 0;
-
+/** Compacto mostra mais leads por tela; detalhado traz tudo o que o card sabe. */
+function DensityToggle({
+  density,
+  onChange,
+}: {
+  readonly density: Density;
+  readonly onChange: (density: Density) => void;
+}): React.JSX.Element {
+  const options: readonly [Density, string][] = [
+    ['compact', 'Compacto'],
+    ['detailed', 'Detalhado'],
+  ];
   return (
-    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-    <article
-      draggable={draggable}
-      onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', card.leadId);
-        onDragStart();
-      }}
-      onDragEnd={onDragEnd}
-      className={`rounded-md border border-slate-200 bg-white p-3 text-sm shadow-sm ${draggable ? 'cursor-grab' : ''}`}
-    >
-      <Link to={`/leads/${card.leadId}`} className={`${link} break-words`}>
-        {card.companyName}
-      </Link>
-      <p className="text-xs text-slate-600">
-        {[card.segment, `${card.city}/${card.state}`].filter((part) => part !== undefined).join(' · ')}
-      </p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <PriorityBadge priority={card.priority} />
-        <span className="text-xs text-slate-500">
-          Score: <ScoreIndicator score={card.score} />
-        </span>
-      </div>
-      {card.service !== undefined && <p className="mt-1 text-xs text-slate-700">{`Serviço: ${card.service}`}</p>}
-      {card.lastInteractionType !== undefined && card.lastInteractionAt !== undefined && (
-        <p className="mt-1 text-xs text-slate-600">
-          {`Última interação: ${INTERACTION_TYPE_LABEL[card.lastInteractionType]} em ${formatDateTime(card.lastInteractionAt)}`}
-        </p>
-      )}
-      {card.nextTaskTitle !== undefined && (
-        <p className="mt-1 text-xs text-slate-600">
-          {`Próxima tarefa: ${card.nextTaskTitle}${card.nextTaskDueAt === undefined ? '' : ` até ${formatDateTime(card.nextTaskDueAt)}`}`}
-        </p>
-      )}
-
-      {draggable &&
-        (moving === null ? (
-          <button
-            type="button"
-            className={`${buttonSecondary} mt-2 w-full px-2 py-1`}
-            aria-label={`Mover ${card.companyName}`}
-            onClick={() => {
-              onMove({ leadId: card.leadId });
-            }}
-          >
-            Mover
-          </button>
-        ) : (
-          <div className="mt-3 border-t border-slate-200 pt-3">
-            <StatusChangeForm
-              key={moving.target ?? ''}
-              lead={{
-                id: card.leadId,
-                status: card.status,
-                allowedTransitions: card.allowedTransitions,
-              }}
-              {...(moving.target === undefined ? {} : { initialTarget: moving.target })}
-              onChanged={onMoved}
-            />
-            <button
-              type="button"
-              className={`${link} mt-2 text-xs`}
-              onClick={() => {
-                onMove(null);
-              }}
-            >
-              {`Cancelar (continua em ${STATUS_LABEL[card.status]})`}
-            </button>
-          </div>
-        ))}
-    </article>
+    <div role="group" aria-label="Densidade dos cards" className="inline-flex rounded-lg bg-slate-200/70 p-0.5">
+      {options.map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={density === value}
+          className={`rounded-md px-3 py-1.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand-500 ${
+            density === value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+          }`}
+          onClick={() => {
+            onChange(value);
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
   );
 }

@@ -77,6 +77,24 @@ describe('App', () => {
     expect(screen.getByRole('navigation', { name: 'Principal' })).toHaveTextContent('Pipeline');
   });
 
+  it('so o pipeline ocupa a tela inteira; as outras telas mantem a largura de leitura', async () => {
+    fakeApi({
+      'GET /auth/me': () => json(session),
+      'GET /leads': () => json(page([lead])),
+      'GET /pipeline/board': () => json([]),
+    });
+
+    render(<App />);
+    await screen.findByRole('heading', { level: 1, name: 'Leads' });
+    expect(document.getElementById('conteudo')).toHaveClass('max-w-6xl');
+
+    await userEvent.click(screen.getByRole('link', { name: 'Pipeline' }));
+    await screen.findByRole('heading', { level: 1, name: 'Pipeline' });
+    const main = document.getElementById('conteudo');
+    expect(main).not.toHaveClass('max-w-6xl');
+    expect(main).toHaveClass('md:flex-1');
+  });
+
   it('operador nao ve o item de membros', async () => {
     fakeApi({
       'GET /auth/me': () => json({ ...session, role: 'OPERATOR' }),
@@ -134,7 +152,10 @@ describe('App', () => {
     fakeApi({
       'GET /auth/me': unauthenticated,
       'POST /auth/login': () =>
-        json({ type: 'VALIDATION_ERROR', status: 400, errors: [{ field: 'email', message: 'must be a valid email' }] }, 400),
+        json(
+          { type: 'VALIDATION_ERROR', status: 400, errors: [{ field: 'email', message: 'must be a valid email' }] },
+          400,
+        ),
     });
 
     render(<App />);

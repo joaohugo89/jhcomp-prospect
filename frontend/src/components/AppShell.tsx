@@ -45,10 +45,18 @@ const NAV_ITEMS: readonly NavItem[] = [
 
 const ROLE_LABEL = { ADMIN: 'Administrador', OPERATOR: 'Operador' } as const;
 
+/**
+ * Telas que ocupam a tela inteira a partir do tablet: sem limite de largura e
+ * com a altura da janela, para o conteúdo rolar por dentro (colunas do Kanban).
+ * As demais mantêm a largura de leitura e a rolagem da página.
+ */
+const FULL_SCREEN: ReadonlySet<Route['name']> = new Set(['pipeline']);
+
 /** Estrutura das telas autenticadas: barra lateral, cabeçalho e conteúdo. */
 export function AppShell({ session, route, onSignOut, children }: AppShellProps): React.JSX.Element {
   const [signingOut, setSigningOut] = useState(false);
   const items = NAV_ITEMS.filter((item) => item.adminOnly !== true || session.role === 'ADMIN');
+  const fullScreen = FULL_SCREEN.has(route.name);
 
   async function handleSignOut(): Promise<void> {
     setSigningOut(true);
@@ -60,7 +68,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50 text-slate-900 md:flex">
+    <div className={`min-h-dvh bg-slate-50 text-slate-900 md:flex ${fullScreen ? 'md:h-dvh md:overflow-hidden' : ''}`}>
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow"
@@ -96,7 +104,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
         </nav>
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className={`min-w-0 flex-1 ${fullScreen ? 'md:flex md:min-h-0 md:flex-col' : ''}`}>
         <header className="flex flex-wrap items-center justify-end gap-3 border-b border-slate-200 bg-white px-4 py-2 text-sm">
           <span className="text-slate-700">
             {session.displayName} · <span className="text-slate-500">{ROLE_LABEL[session.role]}</span>
@@ -119,7 +127,13 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
             Sair
           </button>
         </header>
-        <main id="conteudo" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-6 focus:outline-none">
+        <main
+          id="conteudo"
+          tabIndex={-1}
+          className={`px-4 py-6 focus:outline-none ${
+            fullScreen ? 'md:flex md:min-h-0 md:flex-1 md:flex-col md:py-4' : 'mx-auto max-w-6xl'
+          }`}
+        >
           {children}
         </main>
       </div>

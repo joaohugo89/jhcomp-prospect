@@ -294,6 +294,12 @@ Contrato implementado na Etapa 7 (D2, D25):
 - **Tarefa:** `{"leadId", "title", "dueAt", "assignedUserId"}`; o responsável
   precisa ser membro ativo (outro, `404`). O `PATCH` recebe o estado completo
   com `status` `OPEN` ou `DONE`.
+- **Quadro** (`/pipeline/board`, filtros `search`, `segment`, `city`): cada
+  coluna traz `total` e `totalValue` (soma do valor dos negócios da etapa
+  inteira, não só dos cards mostrados, em BRL). `Ganho` e `Perdido` trazem só
+  os encerrados nos últimos 30 dias e `recentDays: 30`; os mais antigos seguem
+  em `/leads`. Cada card traz `estimatedValue` e `stageEnteredAt`, o instante
+  da última mudança de status pela ordem de gravação, base do "dias na etapa".
 
 ## 10. Outreach
 
