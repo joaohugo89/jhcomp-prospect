@@ -40,10 +40,6 @@ import com.jhcomp.prospect.shared.text.Texts;
 @Repository
 public class DashboardQuery {
 
-    /** Filtros. Periodo semiaberto: {@code [from, to)}. */
-    public record Filters(
-            UUID organizationId, Instant from, Instant to, String segment, String city, SourceType source) {}
-
     public record Summary(
             Map<String, Long> leadsByStatus,
             long activeLeads,
@@ -53,7 +49,8 @@ public class DashboardQuery {
             long dealsWon,
             BigDecimal wonValue,
             long openTasks,
-            long overdueTasks) {}
+            long overdueTasks,
+            long companiesWithoutSegment) {}
 
     public record Activity(
             String type, UUID leadId, String companyName, Instant occurredAt, String actorName, String fromStatus,
@@ -97,19 +94,6 @@ public class DashboardQuery {
     /** Fora do funil ativo: encerrados e bloqueados. */
     private static final EnumSet<LeadStatus> INACTIVE = EnumSet.of(LeadStatus.WON, LeadStatus.LOST, LeadStatus.DO_NOT_CONTACT);
 
-    /** Tipo da primeira proveniencia gravada da empresa {@code c}. */
-    private static final String ORIGIN = """
-            (select s.source_type from lead_source s
-              where s.organization_id = c.organization_id and s.company_id = c.id
-              order by s.recorded_seq limit 1)""";
-
-    /** Empresa {@code c} dentro dos filtros de segmento, cidade e origem. */
-    private static final String COMPANY_FILTER = """
-            (cast(:segment as text) is null or c.segment = :segment)
-            and (cast(:city as text) is null or lower(c.city) = lower(:city))
-            and (cast(:source as text) is null or %s = :source)
-            """.formatted(ORIGIN);
-
     private final NamedParameterJdbcTemplate jdbc;
 
     DashboardQuery(NamedParameterJdbcTemplate jdbc) {
@@ -117,8 +101,8 @@ public class DashboardQuery {
     }
 
     @Transactional(readOnly = true)
-    public Summary summary(Filters filters, Instant now) {
-        MapSqlParameterSource params = params(filters).addValue("now", Timestamp.from(now));
+    public Summary summary(DashboardSql.Filters filters, Instant now) {
+        MapSqlParameterSource params = DashboardSql.params(filters).addValue("now", Timestamp.from(now));
 
         Map<String, Long> byStatus = new LinkedHashMap<>();
         jdbc.query("""
@@ -126,7 +110,7 @@ public class DashboardQuery {
                   from lead l join company c on c.id = l.company_id
                  where l.organization_id = :organizationId and %s
                  group by l.status
-                """.formatted(COMPANY_FILTER), params,
+                """.formatted(DashboardSql.LEAD_FILTER), params,
                 row -> {
                     byStatus.put(row.getString("status"), row.getLong("total"));
                 });
@@ -140,7 +124,7 @@ public class DashboardQuery {
                 select count(*) from company c
                  where c.organization_id = :organizationId
                    and c.created_at >= :from and c.created_at < :to and %s
-                """.formatted(COMPANY_FILTER), params);
+                """.formatted(DashboardSql.COMPANY_FILTER), params);
 
         // Contato registrado: abordagem de saida que o operador confirmou ter feito.
         long contacts = count("""
@@ -149,7 +133,7 @@ public class DashboardQuery {
                  where i.organization_id = :organizationId
                    and i.interaction_type = 'CONTACT' and i.direction = 'OUTBOUND'
                    and i.occurred_at >= :from and i.occurred_at < :to and %s
-                """.formatted(COMPANY_FILTER), params);
+                """.formatted(DashboardSql.LEAD_FILTER), params);
 
         Map<String, Object> won = jdbc.queryForMap("""
                 select count(*) as total, coalesce(sum(d.estimated_value), 0) as value
@@ -157,13 +141,20 @@ public class DashboardQuery {
                   left join deal d on d.organization_id = l.organization_id and d.lead_id = l.id
                  where l.organization_id = :organizationId and l.status = 'WON'
                    and l.closed_at >= :from and l.closed_at < :to and %s
-                """.formatted(COMPANY_FILTER), params);
+                """.formatted(DashboardSql.LEAD_FILTER), params);
 
         Map<String, Object> tasks = jdbc.queryForMap("""
                 select count(*) as open, count(*) filter (where t.due_at < :now) as overdue
                   from task t join lead l on l.id = t.lead_id join company c on c.id = l.company_id
                  where t.organization_id = :organizationId and t.status = 'OPEN' and %s
-                """.formatted(COMPANY_FILTER), params);
+                """.formatted(DashboardSql.LEAD_FILTER), params);
+
+        // Qualidade dos dados: sem segmento, a conversao por segmento perde sentido.
+        long withoutSegment = count("""
+                select count(*) from company c
+                 where c.organization_id = :organizationId and c.archived_at is null
+                   and (c.segment is null or btrim(c.segment) = '') and %s
+                """.formatted(DashboardSql.COMPANY_FILTER), params);
 
         return new Summary(
                 byStatus,
@@ -174,13 +165,14 @@ public class DashboardQuery {
                 ((Number) won.get("total")).longValue(),
                 (BigDecimal) won.get("value"),
                 ((Number) tasks.get("open")).longValue(),
-                ((Number) tasks.get("overdue")).longValue());
+                ((Number) tasks.get("overdue")).longValue(),
+                withoutSegment);
     }
 
     /** Conversao dos leads abertos no periodo, por origem e por segmento (RF-071). */
     @Transactional(readOnly = true)
-    public Conversion conversion(Filters filters) {
-        MapSqlParameterSource params = params(filters).addValue("maxSegments", MAX_SEGMENTS);
+    public Conversion conversion(DashboardSql.Filters filters) {
+        MapSqlParameterSource params = DashboardSql.params(filters).addValue("maxSegments", MAX_SEGMENTS);
         String cohort = """
                 select %s as origin, c.segment,
                        exists (select 1 from interaction i
@@ -190,7 +182,7 @@ public class DashboardQuery {
                   from lead l join company c on c.id = l.company_id
                  where l.organization_id = :organizationId
                    and l.created_at >= :from and l.created_at < :to and %s
-                """.formatted(ORIGIN, COMPANY_FILTER);
+                """.formatted(DashboardSql.ORIGIN, DashboardSql.LEAD_FILTER);
         String totals = "count(*) as leads, count(*) filter (where contacted) as contacted,"
                 + " count(*) filter (where won) as won";
 
@@ -219,8 +211,8 @@ public class DashboardQuery {
      */
     @Transactional(readOnly = true)
     public List<TimelinePoint> timeline(
-            Filters filters, LocalDate from, LocalDate to, Granularity granularity, ZoneId zone) {
-        MapSqlParameterSource params = params(filters)
+            DashboardSql.Filters filters, LocalDate from, LocalDate to, Granularity granularity, ZoneId zone) {
+        MapSqlParameterSource params = DashboardSql.params(filters)
                 .addValue("unit", granularity.unit)
                 .addValue("step", "1 " + granularity.unit)
                 .addValue("zone", zone.getId())
@@ -237,7 +229,7 @@ public class DashboardQuery {
                     select %1$s as bucket, count(*) as total
                       from company c
                      where c.organization_id = :organizationId
-                       and c.created_at >= :from and c.created_at < :to and %4$s
+                       and c.created_at >= :from and c.created_at < :to and %5$s
                      group by 1
                 ),
                 contacts as (
@@ -269,7 +261,8 @@ public class DashboardQuery {
                         bucket.formatted("c.created_at"),
                         bucket.formatted("i.occurred_at"),
                         bucket.formatted("l.closed_at"),
-                        COMPANY_FILTER);
+                        DashboardSql.LEAD_FILTER,
+                        DashboardSql.COMPANY_FILTER);
         return jdbc.query(sql, params, (row, rowNumber) -> new TimelinePoint(
                 row.getObject("start", LocalDate.class),
                 row.getLong("companies"),
@@ -280,7 +273,7 @@ public class DashboardQuery {
 
     /** Atividade recente: mudancas de status e interacoes, da mais recente para a mais antiga. */
     @Transactional(readOnly = true)
-    public Page<Activity> activity(Filters filters, Pageable pageable) {
+    public Page<Activity> activity(DashboardSql.Filters filters, Pageable pageable) {
         String events = """
                 select 'STATUS_CHANGE' as type, s.lead_id, c.name as company_name, s.changed_at as occurred_at,
                        s.recorded_seq, u.display_name as actor_name, s.from_status, s.to_status,
@@ -296,8 +289,8 @@ public class DashboardQuery {
                   join lead l on l.id = i.lead_id join company c on c.id = l.company_id
                   join app_user u on u.id = i.created_by_user_id
                  where i.organization_id = :organizationId and i.occurred_at >= :from and i.occurred_at < :to and %1$s
-                """.formatted(COMPANY_FILTER);
-        MapSqlParameterSource params = params(filters)
+                """.formatted(DashboardSql.LEAD_FILTER);
+        MapSqlParameterSource params = DashboardSql.params(filters)
                 .addValue("limit", pageable.getPageSize())
                 .addValue("offset", pageable.getOffset());
 
@@ -321,15 +314,5 @@ public class DashboardQuery {
     private long count(String sql, MapSqlParameterSource params) {
         Long value = jdbc.queryForObject(sql, params, Long.class);
         return value == null ? 0 : value;
-    }
-
-    private static MapSqlParameterSource params(Filters filters) {
-        return new MapSqlParameterSource()
-                .addValue("organizationId", filters.organizationId())
-                .addValue("from", Timestamp.from(filters.from()))
-                .addValue("to", Timestamp.from(filters.to()))
-                .addValue("segment", Texts.blankToNull(filters.segment()))
-                .addValue("city", Texts.blankToNull(filters.city()))
-                .addValue("source", filters.source() == null ? null : filters.source().name());
     }
 }

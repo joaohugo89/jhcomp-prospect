@@ -85,6 +85,13 @@ public class IdentityTestData {
         return new Member(member.getId(), user.getId(), organization.getId(), email, password);
     }
 
+    /** Membro ativo a mais numa organizacao que ja existe. */
+    @Transactional
+    public Member addMember(UUID organizationId, OrganizationRole role) {
+        OrganizationEntity organization = organizationRepository.findById(organizationId).orElseThrow();
+        return createMember(organization, role, UserStatus.ACTIVE, MemberStatus.ACTIVE);
+    }
+
     /** Atalho para o caso mais comum: organizacao ativa com um administrador ativo. */
     @Transactional
     public Member createActiveAdmin(String slugPrefix) {
