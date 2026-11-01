@@ -1,5 +1,6 @@
 package com.jhcomp.prospect.lead.presentation;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.jhcomp.prospect.company.presentation.SourceRequest;
@@ -39,4 +40,19 @@ public final class LeadRequests {
 
     /** Dados editaveis do lead. {@code assignedUserId} nulo remove o responsavel. */
     public record UpdateLeadRequest(UUID assignedUserId) {}
+
+    /** O que uma acao em lote muda. Status nao: exige confirmacao lead a lead. */
+    public enum BulkAction { ASSIGN, PRIORITY }
+
+    /**
+     * Acao em lote. {@code ASSIGN} usa {@code assignedUserId} (nulo remove o
+     * responsavel); {@code PRIORITY} exige {@code priority}.
+     */
+    public record BulkUpdateRequest(
+            @NotNull @Size(min = 1, max = 100) List<@NotNull UUID> leadIds,
+            @NotNull BulkAction action,
+            UUID assignedUserId,
+            LeadPriority priority) {}
+
+    public record BulkUpdateResponse(int updated) {}
 }

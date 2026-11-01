@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jhcomp.prospect.company.application.CompanyService;
+import com.jhcomp.prospect.company.infrastructure.persistence.CompanySegmentsQuery;
 import com.jhcomp.prospect.company.infrastructure.persistence.CompanySpecifications;
 import com.jhcomp.prospect.company.presentation.CompanyResponses.CompanyResponse;
 import com.jhcomp.prospect.company.presentation.CompanyResponses.DuplicateCandidateResponse;
 import com.jhcomp.prospect.company.presentation.CompanyResponses.SourceResponse;
+import com.jhcomp.prospect.shared.security.OrganizationContext;
 import com.jhcomp.prospect.shared.web.PageRequests;
 import com.jhcomp.prospect.shared.web.PageResponse;
 
@@ -44,9 +46,16 @@ public class CompanyController {
             "updatedAt", "updatedAt");
 
     private final CompanyService companyService;
+    private final CompanySegmentsQuery segmentsQuery;
+    private final OrganizationContext organizationContext;
 
-    CompanyController(CompanyService companyService) {
+    CompanyController(
+            CompanyService companyService,
+            CompanySegmentsQuery segmentsQuery,
+            OrganizationContext organizationContext) {
         this.companyService = companyService;
+        this.segmentsQuery = segmentsQuery;
+        this.organizationContext = organizationContext;
     }
 
     @PostMapping
@@ -70,6 +79,12 @@ public class CompanyController {
         var criteria = new CompanySpecifications.Criteria(search, segment, city, state, includeArchived);
         var pageable = PageRequests.of(page, size, sort, SORTABLE, CompanyService.DEFAULT_SORT);
         return PageResponse.from(companyService.list(criteria, pageable), CompanyResponse::from);
+    }
+
+    /** Segmentos em uso, para o filtro e para sugerir no cadastro (sem criar grafias novas por engano). */
+    @GetMapping("/segments")
+    public CompanySegmentsQuery.Segments segments() {
+        return segmentsQuery.segments(organizationContext.requireOrganizationId());
     }
 
     @GetMapping("/{companyId}")

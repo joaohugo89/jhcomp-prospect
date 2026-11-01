@@ -74,7 +74,9 @@ public final class LeadSpecifications {
             if (filtersCompany) {
                 Join<LeadEntity, CompanyEntity> company = root.join("company");
                 if (hasText(criteria.segment())) {
-                    predicates.add(builder.equal(company.get("segment"), criteria.segment().strip()));
+                    predicates.add(builder.equal(
+                            builder.lower(builder.trim(company.get("segment"))),
+                            criteria.segment().strip().toLowerCase(Locale.ROOT)));
                 }
                 if (hasText(criteria.city())) {
                     predicates.add(builder.equal(

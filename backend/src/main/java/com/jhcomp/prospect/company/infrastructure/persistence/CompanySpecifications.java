@@ -42,7 +42,10 @@ public final class CompanySpecifications {
                     root.get("normalizedName"), LikePatterns.contains(term), LikePatterns.ESCAPE)));
 
             if (hasText(criteria.segment())) {
-                predicates.add(builder.equal(root.get("segment"), criteria.segment().strip()));
+                // Mesmo segmento com outra caixa ou espaco nas pontas (CompanyOriginSql.SEGMENT_EQUALS).
+                predicates.add(builder.equal(
+                        builder.lower(builder.trim(root.get("segment"))),
+                        criteria.segment().strip().toLowerCase(Locale.ROOT)));
             }
             if (hasText(criteria.city())) {
                 predicates.add(builder.equal(

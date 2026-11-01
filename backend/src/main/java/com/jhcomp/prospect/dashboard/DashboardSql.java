@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import com.jhcomp.prospect.company.domain.SourceType;
+import com.jhcomp.prospect.company.infrastructure.persistence.CompanyOriginSql;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
@@ -25,17 +26,14 @@ final class DashboardSql {
             UUID assignee) {}
 
     /** Tipo da primeira proveniencia gravada da empresa {@code c} (D29). */
-    static final String ORIGIN = """
-            (select s.source_type from lead_source s
-              where s.organization_id = c.organization_id and s.company_id = c.id
-              order by s.recorded_seq limit 1)""";
+    static final String ORIGIN = CompanyOriginSql.ORIGIN;
 
     /** Empresa {@code c} dentro dos filtros de segmento, cidade e origem. */
     private static final String COMPANY = """
-            (cast(:segment as text) is null or c.segment = :segment)
+            (cast(:segment as text) is null or %s)
             and (cast(:city as text) is null or lower(c.city) = lower(:city))
             and (cast(:source as text) is null or %s = :source)
-            """.formatted(ORIGIN);
+            """.formatted(CompanyOriginSql.SEGMENT_EQUALS, ORIGIN);
 
     /** Lead {@code l} da empresa {@code c}: filtros da empresa e responsavel do lead. */
     static final String LEAD_FILTER = COMPANY + """

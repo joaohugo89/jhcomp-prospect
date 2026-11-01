@@ -3,6 +3,7 @@ package com.jhcomp.prospect.lead.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -179,6 +180,33 @@ public class LeadService {
                     lead.getOrganizationId(), lead.getId(), previous, newStatus, Texts.blankToNull(reason)));
         }
         return lead;
+    }
+
+    /** Teto de uma acao em lote: uma pagina larga da fila, nao a base inteira. */
+    public static final int MAX_BULK = 100;
+
+    /**
+     * Mesma mudanca em varios leads, numa transacao: ou todos mudam, ou
+     * nenhum. Um id de outra organizacao responde 404 e desfaz o lote inteiro,
+     * sem dizer qual era. So responsavel e prioridade: mudar status exige
+     * confirmacao lead a lead (regra 6 e estados finais).
+     *
+     * @param assignee responsavel quando {@code priority} e nulo; nulo remove
+     */
+    @Transactional
+    public int bulkUpdate(List<UUID> leadIds, LeadPriority priority, UUID assignee) {
+        List<UUID> distinct = leadIds.stream().distinct().toList();
+        if (distinct.isEmpty() || distinct.size() > MAX_BULK) {
+            throw new InvalidRequestException("leadIds must have between 1 and " + MAX_BULK + " items");
+        }
+        for (UUID leadId : distinct) {
+            if (priority != null) {
+                changePriority(leadId, priority);
+            } else {
+                assign(leadId, assignee);
+            }
+        }
+        return distinct.size();
     }
 
     @Transactional

@@ -21,6 +21,9 @@ import com.jhcomp.prospect.lead.application.LeadService;
 import com.jhcomp.prospect.lead.domain.LeadPriority;
 import com.jhcomp.prospect.lead.domain.LeadStatus;
 import com.jhcomp.prospect.lead.infrastructure.persistence.LeadSpecifications;
+import com.jhcomp.prospect.lead.presentation.LeadRequests.BulkAction;
+import com.jhcomp.prospect.lead.presentation.LeadRequests.BulkUpdateRequest;
+import com.jhcomp.prospect.lead.presentation.LeadRequests.BulkUpdateResponse;
 import com.jhcomp.prospect.lead.presentation.LeadRequests.ChangePriorityRequest;
 import com.jhcomp.prospect.lead.presentation.LeadRequests.ChangeStatusRequest;
 import com.jhcomp.prospect.lead.presentation.LeadRequests.CreateLeadRequest;
@@ -100,6 +103,19 @@ public class LeadController {
     public LeadResponse changeStatus(@PathVariable UUID leadId, @Valid @RequestBody ChangeStatusRequest request) {
         return LeadResponse.from(leadService.changeStatus(
                 leadId, request.status(), request.reason(), request.isContactConfirmed()));
+    }
+
+    /** Responsavel ou prioridade de varios leads de uma vez (D31); tudo ou nada. */
+    @PostMapping("/bulk")
+    public BulkUpdateResponse bulk(@Valid @RequestBody BulkUpdateRequest request) {
+        if (request.action() == BulkAction.PRIORITY && request.priority() == null) {
+            throw new InvalidRequestException("priority is required for PRIORITY");
+        }
+        int updated = leadService.bulkUpdate(
+                request.leadIds(),
+                request.action() == BulkAction.PRIORITY ? request.priority() : null,
+                request.action() == BulkAction.ASSIGN ? request.assignedUserId() : null);
+        return new BulkUpdateResponse(updated);
     }
 
     @PatchMapping("/{leadId}/priority")
