@@ -1,8 +1,13 @@
 package com.jhcomp.prospect.dashboard;
 
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +22,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.jhcomp.prospect.company.domain.SourceType;
 import com.jhcomp.prospect.lead.domain.LeadStatus;
 import com.jhcomp.prospect.shared.text.Texts;
 
@@ -24,14 +30,19 @@ import com.jhcomp.prospect.shared.text.Texts;
  * Consultas agregadas do dashboard (RF-070, doc 08 §4).
  *
  * <p>SQL direto: sao contagens sobre varias tabelas, que entidade nenhuma
- * representa. Toda consulta filtra por organizacao; segmento e cidade filtram
- * pela empresa do lead.
+ * representa. Toda consulta filtra por organizacao; segmento, cidade e origem
+ * filtram pela empresa do lead.
+ *
+ * <p>Origem da empresa e o tipo da primeira proveniencia gravada: o caminho
+ * pelo qual ela entrou no sistema. Uma importacao que depois completa a
+ * empresa nao muda a origem nem conta a empresa duas vezes (D29).
  */
 @Repository
 public class DashboardQuery {
 
     /** Filtros. Periodo semiaberto: {@code [from, to)}. */
-    public record Filters(UUID organizationId, Instant from, Instant to, String segment, String city) {}
+    public record Filters(
+            UUID organizationId, Instant from, Instant to, String segment, String city, SourceType source) {}
 
     public record Summary(
             Map<String, Long> leadsByStatus,
@@ -48,14 +59,56 @@ public class DashboardQuery {
             String type, UUID leadId, String companyName, Instant occurredAt, String actorName, String fromStatus,
             String toStatus, String interactionType, String channel) {}
 
-    /** Empresa do lead dentro dos filtros de segmento e cidade. */
+    /**
+     * Conversao de um grupo (RF-071). Denominador: leads abertos no periodo.
+     * Contatado: com abordagem de saida registrada; ganho: hoje em {@code WON}.
+     * Abaixo de {@link #MINIMUM_SAMPLE} leads a taxa nao e apresentada.
+     */
+    public record ConversionRow(String key, long leads, long contacted, long won, boolean sufficientSample) {}
+
+    public record Conversion(int minimumSample, List<ConversionRow> bySource, List<ConversionRow> bySegment) {}
+
+    /** Abaixo disso, um unico lead move a taxa em mais de 10 pontos. */
+    static final int MINIMUM_SAMPLE = 10;
+
+    /** Segmento e texto livre; o painel mostra so os maiores grupos. */
+    static final int MAX_SEGMENTS = 10;
+
+    /** Tamanho do intervalo da serie temporal. */
+    public enum Granularity {
+        DAY("day"),
+        WEEK("week"),
+        MONTH("month");
+
+        private final String unit;
+
+        Granularity(String unit) {
+            this.unit = unit;
+        }
+    }
+
+    /**
+     * Um intervalo da serie. {@code start} e o primeiro dia do intervalo dentro
+     * do periodo: a primeira semana ou mes pode comecar depois do inicio natural.
+     */
+    public record TimelinePoint(
+            LocalDate start, long companiesAdded, long contactsRegistered, long dealsWon, BigDecimal wonValue) {}
+
     /** Fora do funil ativo: encerrados e bloqueados. */
     private static final EnumSet<LeadStatus> INACTIVE = EnumSet.of(LeadStatus.WON, LeadStatus.LOST, LeadStatus.DO_NOT_CONTACT);
 
+    /** Tipo da primeira proveniencia gravada da empresa {@code c}. */
+    private static final String ORIGIN = """
+            (select s.source_type from lead_source s
+              where s.organization_id = c.organization_id and s.company_id = c.id
+              order by s.recorded_seq limit 1)""";
+
+    /** Empresa {@code c} dentro dos filtros de segmento, cidade e origem. */
     private static final String COMPANY_FILTER = """
             (cast(:segment as text) is null or c.segment = :segment)
             and (cast(:city as text) is null or lower(c.city) = lower(:city))
-            """;
+            and (cast(:source as text) is null or %s = :source)
+            """.formatted(ORIGIN);
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -124,6 +177,107 @@ public class DashboardQuery {
                 ((Number) tasks.get("overdue")).longValue());
     }
 
+    /** Conversao dos leads abertos no periodo, por origem e por segmento (RF-071). */
+    @Transactional(readOnly = true)
+    public Conversion conversion(Filters filters) {
+        MapSqlParameterSource params = params(filters).addValue("maxSegments", MAX_SEGMENTS);
+        String cohort = """
+                select %s as origin, c.segment,
+                       exists (select 1 from interaction i
+                                where i.organization_id = l.organization_id and i.lead_id = l.id
+                                  and i.interaction_type = 'CONTACT' and i.direction = 'OUTBOUND') as contacted,
+                       l.status = 'WON' as won
+                  from lead l join company c on c.id = l.company_id
+                 where l.organization_id = :organizationId
+                   and l.created_at >= :from and l.created_at < :to and %s
+                """.formatted(ORIGIN, COMPANY_FILTER);
+        String totals = "count(*) as leads, count(*) filter (where contacted) as contacted,"
+                + " count(*) filter (where won) as won";
+
+        List<ConversionRow> bySource = jdbc.query(
+                "select origin as key, " + totals + " from (" + cohort + ") k"
+                        + " group by origin order by leads desc, origin",
+                params, (row, rowNumber) -> conversionRow(row));
+        List<ConversionRow> bySegment = jdbc.query(
+                "select segment as key, " + totals + " from (" + cohort + ") k"
+                        + " group by segment order by leads desc, segment nulls last limit :maxSegments",
+                params, (row, rowNumber) -> conversionRow(row));
+        return new Conversion(MINIMUM_SAMPLE, bySource, bySegment);
+    }
+
+    private static ConversionRow conversionRow(ResultSet row) throws SQLException {
+        long leads = row.getLong("leads");
+        return new ConversionRow(
+                row.getString("key"), leads, row.getLong("contacted"), row.getLong("won"), leads >= MINIMUM_SAMPLE);
+    }
+
+    /**
+     * As metricas do periodo do {@link #summary} em intervalos (dia, semana ou
+     * mes do calendario de {@code zone}), com as mesmas definicoes e filtros.
+     * Todo intervalo do periodo aparece, inclusive os vazios: lacuna no grafico
+     * seria lida como falta de dado, e nao como zero.
+     */
+    @Transactional(readOnly = true)
+    public List<TimelinePoint> timeline(
+            Filters filters, LocalDate from, LocalDate to, Granularity granularity, ZoneId zone) {
+        MapSqlParameterSource params = params(filters)
+                .addValue("unit", granularity.unit)
+                .addValue("step", "1 " + granularity.unit)
+                .addValue("zone", zone.getId())
+                .addValue("firstDay", Date.valueOf(from))
+                .addValue("lastDay", Date.valueOf(to));
+        String bucket = "cast(date_trunc(:unit, %s at time zone :zone) as date)";
+        String sql = """
+                with buckets as (
+                    select cast(b as date) as bucket
+                      from generate_series(date_trunc(:unit, cast(:firstDay as timestamp)),
+                                           cast(:lastDay as timestamp), cast(:step as interval)) b
+                ),
+                companies as (
+                    select %1$s as bucket, count(*) as total
+                      from company c
+                     where c.organization_id = :organizationId
+                       and c.created_at >= :from and c.created_at < :to and %4$s
+                     group by 1
+                ),
+                contacts as (
+                    select %2$s as bucket, count(*) as total
+                      from interaction i
+                      join lead l on l.id = i.lead_id join company c on c.id = l.company_id
+                     where i.organization_id = :organizationId
+                       and i.interaction_type = 'CONTACT' and i.direction = 'OUTBOUND'
+                       and i.occurred_at >= :from and i.occurred_at < :to and %4$s
+                     group by 1
+                ),
+                won as (
+                    select %3$s as bucket, count(*) as total, coalesce(sum(d.estimated_value), 0) as value
+                      from lead l join company c on c.id = l.company_id
+                      left join deal d on d.organization_id = l.organization_id and d.lead_id = l.id
+                     where l.organization_id = :organizationId and l.status = 'WON'
+                       and l.closed_at >= :from and l.closed_at < :to and %4$s
+                     group by 1
+                )
+                select greatest(b.bucket, cast(:firstDay as date)) as start,
+                       coalesce(co.total, 0) as companies, coalesce(ct.total, 0) as contacts,
+                       coalesce(w.total, 0) as won, coalesce(w.value, 0) as won_value
+                  from buckets b
+                  left join companies co on co.bucket = b.bucket
+                  left join contacts ct on ct.bucket = b.bucket
+                  left join won w on w.bucket = b.bucket
+                 order by b.bucket
+                """.formatted(
+                        bucket.formatted("c.created_at"),
+                        bucket.formatted("i.occurred_at"),
+                        bucket.formatted("l.closed_at"),
+                        COMPANY_FILTER);
+        return jdbc.query(sql, params, (row, rowNumber) -> new TimelinePoint(
+                row.getObject("start", LocalDate.class),
+                row.getLong("companies"),
+                row.getLong("contacts"),
+                row.getLong("won"),
+                row.getBigDecimal("won_value")));
+    }
+
     /** Atividade recente: mudancas de status e interacoes, da mais recente para a mais antiga. */
     @Transactional(readOnly = true)
     public Page<Activity> activity(Filters filters, Pageable pageable) {
@@ -175,6 +329,7 @@ public class DashboardQuery {
                 .addValue("from", Timestamp.from(filters.from()))
                 .addValue("to", Timestamp.from(filters.to()))
                 .addValue("segment", Texts.blankToNull(filters.segment()))
-                .addValue("city", Texts.blankToNull(filters.city()));
+                .addValue("city", Texts.blankToNull(filters.city()))
+                .addValue("source", filters.source() == null ? null : filters.source().name());
     }
 }

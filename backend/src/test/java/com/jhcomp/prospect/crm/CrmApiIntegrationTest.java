@@ -12,7 +12,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
+
+import javax.sql.DataSource;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -43,7 +49,13 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private IdentityTestData testData;
 
+    private final JdbcTemplate jdbc;
+
     private MockHttpSession session;
+
+    CrmApiIntegrationTest(@Autowired DataSource dataSource) {
+        this.jdbc = new JdbcTemplate(dataSource);
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -254,5 +266,111 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.summary.dealsWon").value(0));
         mockMvc.perform(get("/dashboard/summary").param("segment", "OUTRO").session(session))
                 .andExpect(jsonPath("$.summary.leadsByStatus", not(hasItem("WON"))));
+    }
+
+    /** Origem e a primeira proveniencia da empresa; importacao posterior nao a muda (D29). */
+    @Test
+    @DisplayName("dashboard filtra pela origem em que a empresa entrou")
+    void dashboardBySource() throws Exception {
+        String leadId = createLead("Loja Origem Manual");
+        // Uma importacao que depois completa a empresa grava nova proveniencia.
+        jdbc.update("""
+                insert into lead_source (id, organization_id, company_id, source_type, source_name, collected_at)
+                select gen_random_uuid(), l.organization_id, l.company_id, 'CSV_IMPORT', 'Planilha ficticia', now()
+                  from lead l where l.id = ?
+                """, UUID.fromString(leadId));
+
+        mockMvc.perform(get("/dashboard/summary").param("source", "MANUAL").session(session))
+                .andExpect(jsonPath("$.summary.leadsByStatus.NEW").value(1))
+                .andExpect(jsonPath("$.summary.companiesAdded").value(1));
+        mockMvc.perform(get("/dashboard/summary").param("source", "CSV_IMPORT").session(session))
+                .andExpect(jsonPath("$.summary.leadsByStatus.NEW").doesNotExist())
+                .andExpect(jsonPath("$.summary.companiesAdded").value(0));
+        mockMvc.perform(get("/dashboard/activity").param("source", "CSV_IMPORT").session(session))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        mockMvc.perform(get("/dashboard/summary").param("source", "PLANILHA").session(session))
+                .andExpect(status().isBadRequest());
+    }
+
+    /** Serie temporal: mesmas definicoes do resumo, intervalos no calendario de Brasilia. */
+    @Test
+    @DisplayName("linha do tempo preenche intervalos vazios e respeita o dia de Brasilia")
+    void timeline() throws Exception {
+        String leadId = createLead("Loja Linha do Tempo");
+        send(post("/leads/" + leadId + "/interactions"), interaction("CONTACT", "OUTBOUND", Instant.now()))
+                .andExpect(status().isCreated());
+        String today = LocalDate.now(ZoneId.of("America/Sao_Paulo")).toString();
+
+        // Padrao: 30 dias por dia, o ultimo e hoje.
+        mockMvc.perform(get("/dashboard/timeline").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.granularity").value("DAY"))
+                .andExpect(jsonPath("$.points.length()").value(30))
+                .andExpect(jsonPath("$.points[-1].start").value(today))
+                .andExpect(jsonPath("$.points[-1].companiesAdded").value(1))
+                .andExpect(jsonPath("$.points[-1].contactsRegistered").value(1))
+                .andExpect(jsonPath("$.points[0].companiesAdded").value(0));
+
+        // 02:00 UTC do dia 10 ainda e dia 9 em Brasilia.
+        jdbc.update("update company set created_at = '2026-03-10T02:00:00Z' where id = "
+                + "(select company_id from lead where id = ?)", UUID.fromString(leadId));
+        mockMvc.perform(get("/dashboard/timeline").param("from", "2026-03-08").param("to", "2026-03-10")
+                        .session(session))
+                .andExpect(jsonPath("$.points[*].start", contains("2026-03-08", "2026-03-09", "2026-03-10")))
+                .andExpect(jsonPath("$.points[*].companiesAdded", contains(0, 1, 0)));
+
+        // A primeira semana comeca no inicio do periodo, nao na segunda-feira anterior.
+        mockMvc.perform(get("/dashboard/timeline").param("from", "2026-03-04").param("to", "2026-03-17")
+                        .param("granularity", "WEEK").session(session))
+                .andExpect(jsonPath("$.points[*].start", contains("2026-03-04", "2026-03-09", "2026-03-16")))
+                .andExpect(jsonPath("$.points[*].companiesAdded", contains(0, 1, 0)));
+
+        mockMvc.perform(get("/dashboard/timeline").param("from", "2026-01-01").param("to", "2026-06-30")
+                        .session(session))
+                .andExpect(jsonPath("$.granularity").value("MONTH"))
+                .andExpect(jsonPath("$.points.length()").value(6))
+                .andExpect(jsonPath("$.points[2].companiesAdded").value(1));
+
+        mockMvc.perform(get("/dashboard/timeline").param("granularity", "HOUR").session(session))
+                .andExpect(status().isBadRequest());
+    }
+
+    /** RF-071: denominador explicito e sem taxa com amostra pequena. */
+    @Test
+    @DisplayName("conversao por origem e segmento so marca amostra suficiente a partir do minimo")
+    void conversion() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            String leadId = createLead("Loja Conversao " + i);
+            if (i < 3) {
+                send(post("/leads/" + leadId + "/interactions"), interaction("CONTACT", "OUTBOUND", Instant.now()))
+                        .andExpect(status().isCreated());
+            }
+            if (i == 0) {
+                move(leadId, "QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "PROPOSAL_SENT");
+                send(put("/leads/" + leadId + "/deal"), "{\"estimatedValue\": 1500}").andExpect(status().isOk());
+                move(leadId, "WON");
+            }
+        }
+        String other = JsonPath.read(send(post("/companies"),
+                "{\"name\": \"Oficina Conversao\", \"segment\": \"AUTO\", \"city\": \"Cidade Exemplo\", \"state\": \"MG\"}")
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        send(post("/leads"), "{\"companyId\": \"%s\"}".formatted(other)).andExpect(status().isCreated());
+
+        mockMvc.perform(get("/dashboard/conversion").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.from").exists())
+                .andExpect(jsonPath("$.conversion.minimumSample").value(10))
+                .andExpect(jsonPath("$.conversion.bySource[0].key").value("MANUAL"))
+                .andExpect(jsonPath("$.conversion.bySource[0].leads").value(11))
+                .andExpect(jsonPath("$.conversion.bySource[0].contacted").value(3))
+                .andExpect(jsonPath("$.conversion.bySource[0].won").value(1))
+                .andExpect(jsonPath("$.conversion.bySegment[0].key").value("RETAIL"))
+                .andExpect(jsonPath("$.conversion.bySegment[0].leads").value(10))
+                .andExpect(jsonPath("$.conversion.bySegment[0].sufficientSample").value(true))
+                .andExpect(jsonPath("$.conversion.bySegment[1].key").value("AUTO"))
+                .andExpect(jsonPath("$.conversion.bySegment[1].sufficientSample").value(false));
+        // Leads abertos fora do periodo nao entram no denominador.
+        mockMvc.perform(get("/dashboard/conversion").param("from", "2020-01-01").param("to", "2020-01-31").session(session))
+                .andExpect(jsonPath("$.conversion.bySource").isEmpty());
     }
 }

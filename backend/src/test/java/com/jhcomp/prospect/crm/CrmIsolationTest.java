@@ -132,5 +132,11 @@ class CrmIsolationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.summary.openTasks").value(0));
         mockMvc.perform(get("/dashboard/activity").session(sessionA))
                 .andExpect(jsonPath("$.totalElements").value(0));
+        mockMvc.perform(get("/dashboard/timeline").session(sessionA))
+                .andExpect(jsonPath("$.points[-1].companiesAdded").value(0))
+                .andExpect(jsonPath("$.points[-1].contactsRegistered").value(0));
+        mockMvc.perform(get("/dashboard/conversion").session(sessionA))
+                .andExpect(jsonPath("$.conversion.bySource").isEmpty())
+                .andExpect(jsonPath("$.conversion.bySegment").isEmpty());
     }
 }
