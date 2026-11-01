@@ -1,216 +1,239 @@
 import { useState } from 'react';
 
-import { formatCurrency, formatDateTime, localDate } from '../../app/format';
-import { CHANNEL_LABEL, INTERACTION_TYPE_LABEL, STATUS_LABEL } from '../../app/labels';
-import { Link } from '../../app/router';
+import { localDate } from '../../app/format';
 import { useLoad } from '../../app/useLoad';
-import { PageHeader } from '../../components/PageHeader';
 import { Pagination } from '../../components/Pagination';
 import { LoadStateView } from '../../components/States';
-import { buttonSecondary, input, link } from '../../components/styles';
-import { getDashboardActivity, getDashboardSummary, type DashboardFilters } from '../../services/crmService';
-import type { Activity, DashboardSummary } from '../../types/crm';
-import { LEAD_STATUSES } from '../../types/lead';
+import {
+  getDashboardActivity,
+  getDashboardConversion,
+  getDashboardSummary,
+  getDashboardTimeline,
+  type DashboardFilters,
+} from '../../services/crmService';
+import type { Activity } from '../../types/crm';
+import type { Page } from '../../types/page';
+import { ConversionGauge } from './components/ConversionGauge';
+import { ConversionReport } from './components/ConversionReport';
+import { DashboardLayout } from './components/DashboardLayout';
+import { HeaderFilters, PRESETS } from './components/HeaderFilters';
+import { KeyMetrics } from './components/KeyMetrics';
+import { LeadSourceSplit } from './components/LeadSourceSplit';
+import { PerformanceHero, type GranularityChoice } from './components/PerformanceHero';
+import { RecentActivityList } from './components/RecentActivityList';
+import { StatusProgressList } from './components/StatusProgressList';
+import {
+  periodoAnterior,
+  toAtividade,
+  toConversao,
+  toDashboardData,
+  toSerie,
+  type DashboardData,
+  type SerieTemporal,
+} from './model/dashboardData';
 
-/** Últimos 30 dias, contando hoje, como o padrão do servidor (D25). */
-function defaultPeriod(): DashboardFilters {
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(today.getDate() - 29);
-  return { from: localDate(start), to: localDate(today) };
-}
+/** Feed curto, da altura do funil ao lado; o resto fica nas páginas seguintes. */
+const ACTIVITY_PAGE_SIZE = 6;
 
-/** Indicadores comerciais e atividade recente (RF-070, RF-071, doc 08 §4). */
+/** Por dia, colunas finas demais deixam de ser legíveis. */
+const MAX_DAILY_DAYS = 92;
+
+/**
+ * Dashboard (RF-070, RF-071, doc 08 §4).
+ *
+ * Esta página é o único ponto que fala com a API: guarda os filtros, busca os
+ * dados e os converte para o modelo de tela (`model/dashboardData`). Os
+ * componentes em `components/` só apresentam o que recebem.
+ */
 export function DashboardPage(): React.JSX.Element {
-  const [draft, setDraft] = useState(defaultPeriod);
-  const [period, setPeriod] = useState(draft);
-  const key = `${period.from}:${period.to}`;
-  const [summary, reloadSummary] = useLoad(key, (signal) => getDashboardSummary(period, signal));
-  const invalid = draft.from === '' || draft.to === '' || draft.from > draft.to;
+  // Rascunho editado no painel; `filters` é o que está aplicado.
+  const [draft, setDraft] = useState(defaultFilters);
+  const [filters, setFilters] = useState(draft);
+  const [granularity, setGranularity] = useState<GranularityChoice>('AUTO');
+  const key = [filters.from, filters.to, filters.segment.trim(), filters.city.trim(), filters.source].join('|');
+
+  // Mesmo tamanho, imediatamente antes: base da variação mostrada no destaque.
+  const anterior = periodoAnterior({ de: filters.from, ate: filters.to });
+  const previousFilters = { ...filters, from: anterior.de, to: anterior.ate };
+
+  const [summary, reloadSummary] = useLoad(key, (signal) => getDashboardSummary(filters, signal));
+  const [previous] = useLoad(`prev|${key}`, (signal) => getDashboardSummary(previousFilters, signal));
+  const [conversion] = useLoad(key, (signal) => getDashboardConversion(filters, signal));
+
+  const dailyAllowed = days(filters) <= MAX_DAILY_DAYS;
+  const unit = granularity === 'AUTO' || (granularity === 'DAY' && !dailyAllowed) ? undefined : granularity;
+  const [timeline, reloadTimeline] = useLoad(`${key}|${unit ?? ''}`, (signal) =>
+    getDashboardTimeline(filters, unit, signal),
+  );
+  // Ao recarregar, o gráfico anterior fica, atenuado: sem salto de layout.
+  const [serie, setSerie] = useState<SerieTemporal | null>(null);
+  const [serieSource, setSerieSource] = useState<unknown>(null);
+  if (timeline.kind === 'ready' && timeline.data !== serieSource) {
+    setSerieSource(timeline.data);
+    setSerie(toSerie(timeline.data));
+  }
+
+  if (summary.kind !== 'ready') {
+    return (
+      <DashboardShell filters={filters} draft={draft} onDraftChange={setDraft} onFilters={setFilters}>
+        <LoadStateView state={summary} onRetry={reloadSummary} />
+      </DashboardShell>
+    );
+  }
+
+  const data: DashboardData = toDashboardData(summary.data);
+  const previousData = previous.kind === 'ready' ? toDashboardData(previous.data).metricasPeriodo : undefined;
+  const conversao = conversion.kind === 'ready' ? toConversao(conversion.data) : undefined;
 
   return (
-    <>
-      <PageHeader title="Dashboard" description="Visão geral da prospecção." />
-
-      <form
-        aria-label="Período"
-        className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!invalid) {
-            setPeriod(draft);
-          }
-        }}
-      >
-        <label className="text-sm font-medium text-slate-700">
-          De
-          <input
-            type="date"
-            className={input}
-            value={draft.from}
-            required
-            onChange={(event) => {
-              setDraft({ ...draft, from: event.target.value });
-            }}
-          />
-        </label>
-        <label className="text-sm font-medium text-slate-700">
-          Até
-          <input
-            type="date"
-            className={input}
-            value={draft.to}
-            required
-            onChange={(event) => {
-              setDraft({ ...draft, to: event.target.value });
-            }}
-          />
-        </label>
-        <button type="submit" className={buttonSecondary} disabled={invalid}>
-          Aplicar
-        </button>
-        {draft.from > draft.to && draft.to !== '' && (
-          <p role="alert" className="text-sm text-red-700">
-            A data inicial deve ser anterior à final.
-          </p>
-        )}
-      </form>
-
-      {summary.kind !== 'ready' ? (
-        <LoadStateView state={summary} onRetry={reloadSummary} />
-      ) : (
-        <Summary data={summary.data} />
-      )}
-
-      <ActivityList key={key} period={period} />
-    </>
+    <DashboardLayout
+      subtitle={`Visão geral da prospecção · ${dataCurta(data.periodo.de)} a ${dataCurta(data.periodo.ate)}`}
+      filters={<Filters filters={filters} draft={draft} onDraftChange={setDraft} onFilters={setFilters} />}
+      hero={
+        <PerformanceHero
+          atual={data.metricasPeriodo}
+          anterior={previousData}
+          serie={serie}
+          recarregando={timeline.kind === 'loading' && serie !== null}
+          leadsNoPeriodo={conversao?.total.leads}
+          granularidade={granularity}
+          diarioPermitido={dailyAllowed}
+          onGranularidade={setGranularity}
+          fallback={<LoadStateView state={timeline} onRetry={reloadTimeline} />}
+        />
+      }
+      highlights={
+        <>
+          <ConversionGauge conversao={conversao} />
+          <LeadSourceSplit conversao={conversao} />
+        </>
+      }
+      metrics={<KeyMetrics periodo={data.metricasPeriodo} atuais={data.metricasAtuais} />}
+      funnel={<StatusProgressList itens={data.leadsPorStatus} filtrado={isFiltered(filters)} />}
+      activity={
+        <div className="space-y-3">
+          {/* Trocar os filtros recria a lista (key), voltando à primeira página. */}
+          <RecentActivityPanel key={key} filters={filters} />
+          {conversao !== undefined && <ConversionReport conversao={conversao} />}
+        </div>
+      }
+    />
   );
 }
 
-function Summary({ data }: { readonly data: DashboardSummary }): React.JSX.Element {
-  const { summary } = data;
-  const periodTiles: readonly [string, string][] = [
-    ['Empresas adicionadas', String(summary.companiesAdded)],
-    ['Contatos registrados', String(summary.contactsRegistered)],
-    ['Negócios ganhos', String(summary.dealsWon)],
-    ['Valor ganho', formatCurrency(summary.wonValue)],
-  ];
-  const currentTiles: readonly [string, string][] = [
-    ['Leads ativos', String(summary.activeLeads)],
-    ['Propostas em aberto', String(summary.openProposals)],
-    ['Tarefas abertas', String(summary.openTasks)],
-    ['Tarefas atrasadas', String(summary.overdueTasks)],
-  ];
-  const statusCounts = LEAD_STATUSES.map((status) => [status, summary.leadsByStatus[status] ?? 0] as const);
-  const totalLeads = statusCounts.reduce((sum, [, count]) => sum + count, 0);
+interface FiltersProps {
+  readonly filters: DashboardFilters;
+  readonly draft: DashboardFilters;
+  readonly onDraftChange: (next: DashboardFilters) => void;
+  readonly onFilters: (next: DashboardFilters) => void;
+}
 
+function Filters({ filters, draft, onDraftChange, onFilters }: FiltersProps): React.JSX.Element {
+  return (
+    <HeaderFilters
+      draft={draft}
+      onDraftChange={onDraftChange}
+      onApply={() => {
+        onFilters(draft);
+      }}
+      onPreset={(count) => {
+        const next = { ...draft, ...lastDays(count) };
+        onDraftChange(next);
+        onFilters(next);
+      }}
+      activePreset={presetOf(filters)}
+    />
+  );
+}
+
+/** Cabeçalho com filtros enquanto o resumo carrega ou falha: o operador ainda pode trocar o período. */
+function DashboardShell({
+  children,
+  ...props
+}: FiltersProps & { readonly children: React.ReactNode }): React.JSX.Element {
   return (
     <div className="space-y-6">
-      <Tiles title={`No período (${formatDay(data.from)} a ${formatDay(data.to)})`} tiles={periodTiles} />
-      <Tiles title="Agora" tiles={currentTiles} />
-
-      <section aria-labelledby="por-status" className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 id="por-status" className="text-base font-semibold">
-          Leads por status
-        </h2>
-        {totalLeads === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">
-            {'Nenhum lead ainda. '}
-            <Link to="/companies" className={link}>
-              Cadastre ou importe empresas
-            </Link>
-            {' para começar.'}
-          </p>
-        ) : (
-          <dl className="mt-3 space-y-2 text-sm">
-            {statusCounts.map(([status, count]) => (
-              <div key={status} className="grid grid-cols-[10rem_3rem_1fr] items-center gap-2">
-                <dt className="text-slate-700">{STATUS_LABEL[status]}</dt>
-                <dd className="text-right font-mono tabular-nums">{count}</dd>
-                <dd aria-hidden="true" className="h-2 rounded bg-slate-100">
-                  <div className="h-2 rounded bg-brand-500" style={{ width: `${(count / totalLeads) * 100}%` }} />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        )}
-      </section>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Dashboard</h1>
+        <Filters {...props} />
+      </header>
+      {children}
     </div>
   );
 }
 
-function Tiles({
-  title,
-  tiles,
-}: {
-  readonly title: string;
-  readonly tiles: readonly [string, string][];
-}): React.JSX.Element {
-  return (
-    <section aria-label={title}>
-      <h2 className="mb-2 text-sm font-semibold text-slate-700">{title}</h2>
-      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {tiles.map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-slate-200 bg-white p-4">
-            <dt className="text-xs text-slate-600">{label}</dt>
-            <dd className="mt-1 font-mono text-2xl font-semibold tabular-nums text-slate-900">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
-
-function ActivityList({ period }: { readonly period: DashboardFilters }): React.JSX.Element {
-  // Trocar o período recria este componente (key), voltando à primeira página.
+/**
+ * Carrega a atividade paginada e entrega a `RecentActivityList` já convertida.
+ *
+ * Ao trocar de página, a página atual continua na tela, atenuada, até a nova
+ * chegar. Trocar a lista por "Carregando…" encolhia a página, o navegador
+ * puxava a rolagem para cima e o botão clicado sumia, levando o foco junto.
+ */
+function RecentActivityPanel({ filters }: { readonly filters: DashboardFilters }): React.JSX.Element {
   const [page, setPage] = useState(0);
-  const [state, reload] = useLoad(`${period.from}:${period.to}:${page}`, (signal) =>
-    getDashboardActivity(period, page, signal),
+  const [state, reload] = useLoad(`${page}`, (signal) =>
+    getDashboardActivity(filters, page, signal, ACTIVITY_PAGE_SIZE),
   );
+  const [shown, setShown] = useState<Page<Activity> | null>(null);
+  if (state.kind === 'ready' && state.data !== shown) {
+    setShown(state.data);
+  }
+  const loadingNext = state.kind === 'loading' && shown !== null;
 
   return (
-    <section aria-labelledby="atividade" className="mt-6 rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="atividade" className="text-base font-semibold">
-        Atividade recente
+    <section aria-labelledby="atividade" aria-busy={loadingNext} className="space-y-3">
+      <h2 id="atividade" className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+        Interações e atividades
       </h2>
-      {state.kind !== 'ready' ? (
+      {shown === null || (state.kind !== 'ready' && state.kind !== 'loading') ? (
         <LoadStateView state={state} onRetry={reload} />
-      ) : state.data.content.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-600">Nenhuma atividade no período.</p>
       ) : (
         <>
-          <ul className="mt-3 divide-y divide-slate-100">
-            {state.data.content.map((item) => (
-              <li key={`${item.type}-${item.leadId}-${item.occurredAt}`} className="py-2 text-sm">
-                <Link to={`/leads/${item.leadId}`} className={link}>
-                  {item.companyName}
-                </Link>
-                <p className="text-slate-700">{describe(item)}</p>
-                <p className="text-xs text-slate-500">
-                  <time dateTime={item.occurredAt}>{formatDateTime(item.occurredAt)}</time>
-                  {item.actorName === undefined ? '' : ` · ${item.actorName}`}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <Pagination page={state.data} onChange={setPage} />
+          <div className={`transition-opacity ${loadingNext ? 'opacity-60' : ''}`}>
+            <RecentActivityList atividades={shown.content.map(toAtividade)} />
+          </div>
+          {shown.content.length > 0 && <Pagination page={shown} onChange={setPage} />}
         </>
       )}
     </section>
   );
 }
 
-function describe(item: Activity): string {
-  if (item.type === 'INTERACTION') {
-    const kind = item.interactionType === undefined ? 'Interação' : INTERACTION_TYPE_LABEL[item.interactionType];
-    return item.channel === undefined ? kind : `${kind} · ${CHANNEL_LABEL[item.channel]}`;
-  }
-  const to = item.toStatus === undefined ? '—' : STATUS_LABEL[item.toStatus];
-  return item.fromStatus === undefined ? `Lead aberto como ${to}` : `${STATUS_LABEL[item.fromStatus]} → ${to}`;
+/** Últimos `count` dias, contando hoje. */
+function lastDays(count: number): Pick<DashboardFilters, 'from' | 'to'> {
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(today.getDate() - (count - 1));
+  return { from: localDate(start), to: localDate(today) };
 }
 
-/** AAAA-MM-DD como DD/MM/AAAA, sem passar por fuso: é data de calendário. */
-function formatDay(value: string): string {
-  const [year, month, day] = value.split('-');
-  return year === undefined || month === undefined || day === undefined ? value : `${day}/${month}/${year}`;
+/** 30 dias é o padrão do servidor (D25). */
+function defaultFilters(): DashboardFilters {
+  return { ...lastDays(30), segment: '', city: '', source: '' };
+}
+
+/** O funil ignora o período; só os outros filtros o esvaziam. */
+function isFiltered(filters: DashboardFilters): boolean {
+  return filters.segment.trim() !== '' || filters.city.trim() !== '' || filters.source !== '';
+}
+
+/** Atalho cujo período coincide com o aplicado, para marcá-lo como ativo. */
+function presetOf(filters: DashboardFilters): number | undefined {
+  return PRESETS.find((count) => {
+    const range = lastDays(count);
+    return range.from === filters.from && range.to === filters.to;
+  });
+}
+
+/** Dias do período, contando as duas pontas. */
+function days(filters: DashboardFilters): number {
+  const start = Date.parse(`${filters.from}T00:00:00Z`);
+  const end = Date.parse(`${filters.to}T00:00:00Z`);
+  return Number.isNaN(start) || Number.isNaN(end) ? 0 : Math.round((end - start) / 86_400_000) + 1;
+}
+
+/** AAAA-MM-DD como DD/MM, sem passar por fuso: é data de calendário. */
+function dataCurta(valor: string): string {
+  const [, mes, dia] = valor.split('-');
+  return mes === undefined || dia === undefined ? valor : `${dia}/${mes}`;
 }
