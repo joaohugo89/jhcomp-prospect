@@ -63,14 +63,27 @@ Não armazenar tokens de longa duração em `localStorage` sem avaliação de ri
 | GET | `/dashboard/summary` | Indicadores gerais |
 | GET | `/dashboard/pipeline` | Contagem por etapa |
 | GET | `/dashboard/activity` | Atividades recentes |
+| GET | `/dashboard/conversion` | Conversão por origem e segmento (RF-071) |
+| GET | `/dashboard/timeline` | Métricas do período por dia, semana ou mês |
 
-Parâmetros opcionais: `from`, `to`, `segment`, `city`.
+Parâmetros opcionais: `from`, `to`, `segment`, `city`, `source`
+(`MANUAL`, `CSV_IMPORT`, `INTEGRATION`; origem da empresa, D29).
 
 Implementado na Etapa 7 (D25): `summary` traz `leadsByStatus` (foto atual),
 `activeLeads`, `companiesAdded`, `contactsRegistered`, `openProposals`,
 `dealsWon`, `wonValue`, `openTasks` e `overdueTasks`, com o período efetivo
 (`from`/`to`, datas de Brasília, padrão últimos 30 dias). `activity` é paginada.
 A contagem por etapa (`/dashboard/pipeline`) está dentro de `summary`.
+
+`conversion` (D29) traz, para os leads abertos no período, `bySource` e
+`bySegment` (até 10 segmentos) com `leads`, `contacted`, `won` e
+`sufficientSample`, além de `minimumSample`. Sem amostra suficiente a tela não
+mostra percentual.
+
+`timeline` (D29) aceita também `granularity` (`DAY`, `WEEK`, `MONTH`; sem ele,
+até 31 dias é por dia, até 120 por semana e acima disso por mês) e devolve
+`points` com `start`, `companiesAdded`, `contactsRegistered`, `dealsWon` e
+`wonValue` para **todo** intervalo do período, inclusive os vazios.
 
 ## 4. Empresas
 

@@ -10,6 +10,8 @@ import { useSyncExternalStore } from 'react';
  */
 export type Route =
   | { readonly name: 'dashboard' }
+  /** Só em desenvolvimento: layout do dashboard com dados simulados. */
+  | { readonly name: 'dashboardPreview' }
   | { readonly name: 'pipeline' }
   | { readonly name: 'companies' }
   | { readonly name: 'companyNew' }
@@ -28,9 +30,17 @@ const NAVIGATION_EVENT = 'jh:navigate';
 /** UUID canônico; um id fora do formato nem chega à API. */
 const ID = '([0-9a-fA-F-]{36})';
 
-const PATTERNS: readonly [RegExp, (match: RegExpMatchArray) => Route][] = [
+type Pattern = [RegExp, (match: RegExpMatchArray) => Route];
+
+/** No build de produção `DEV` é `false`: a pré-visualização com dados simulados nem existe. */
+const DEV_PATTERNS: readonly Pattern[] = import.meta.env.DEV
+  ? [[/^\/dashboard\/preview\/?$/, () => ({ name: 'dashboardPreview' })]]
+  : [];
+
+const PATTERNS: readonly Pattern[] = [
   [/^\/?$/, () => ({ name: 'dashboard' })],
   [/^\/dashboard\/?$/, () => ({ name: 'dashboard' })],
+  ...DEV_PATTERNS,
   [/^\/pipeline\/?$/, () => ({ name: 'pipeline' })],
   [/^\/leads\/?$/, () => ({ name: 'leads' })],
   [new RegExp(`^/leads/${ID}/?$`), (match) => ({ name: 'lead', id: match[1] ?? '' })],

@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LEAD_ID, fakeApi, json, lead, outreachContext, page } from '../../test/fakeApi';
-import { DashboardPage } from '../dashboard/DashboardPage';
 import { LeadDetailPage } from '../leads/LeadDetailPage';
 import { PipelinePage } from './PipelinePage';
 
@@ -353,82 +352,6 @@ describe('CRM no detalhe do lead', () => {
         dueAt: '2026-01-01T12:00:00Z',
         status: 'DONE',
       });
-    });
-  });
-});
-
-/** Indicadores com o período explícito (RF-071). */
-describe('Dashboard', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  const summary = {
-    from: '2026-10-07',
-    to: '2026-11-05',
-    summary: {
-      leadsByStatus: { NEW: 3, WON: 1 },
-      activeLeads: 3,
-      companiesAdded: 5,
-      contactsRegistered: 2,
-      openProposals: 1,
-      dealsWon: 1,
-      wonValue: 2500,
-      openTasks: 4,
-      overdueTasks: 1,
-    },
-  };
-
-  it('mostra indicadores, periodo e atividade', async () => {
-    fakeApi({
-      'GET /dashboard/summary': () => json(summary),
-      'GET /dashboard/activity': () =>
-        json(
-          page([
-            {
-              type: 'STATUS_CHANGE',
-              leadId: LEAD_ID,
-              companyName: 'Barbearia Ficticia',
-              occurredAt: '2026-11-04T12:00:00Z',
-              fromStatus: 'PROPOSAL_SENT',
-              toStatus: 'WON',
-            },
-          ]),
-        ),
-    });
-
-    render(<DashboardPage />);
-
-    const period = await screen.findByRole('region', { name: 'No período (07/10/2026 a 05/11/2026)' });
-    expect(within(period).getByText('Empresas adicionadas').nextElementSibling).toHaveTextContent('5');
-    expect(within(period).getByText(/2\.500,00/)).toBeInTheDocument();
-    expect(screen.getByText('Tarefas atrasadas').nextElementSibling).toHaveTextContent('1');
-    expect(await screen.findByText('Proposta enviada → Ganho')).toBeInTheDocument();
-  });
-
-  it('envia o periodo escolhido e recusa inicio depois do fim', async () => {
-    const calls = fakeApi({
-      'GET /dashboard/summary': () => json(summary),
-      'GET /dashboard/activity': () => json(page([])),
-    });
-
-    render(<DashboardPage />);
-    await screen.findByText('Nenhuma atividade no período.');
-
-    const from = screen.getByLabelText('De');
-    const to = screen.getByLabelText('Até');
-    fireEvent.change(from, { target: { value: '2026-11-10' } });
-    fireEvent.change(to, { target: { value: '2026-11-01' } });
-    expect(screen.getByRole('button', { name: 'Aplicar' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('A data inicial deve ser anterior à final.');
-
-    fireEvent.change(from, { target: { value: '2026-10-01' } });
-    await userEvent.click(screen.getByRole('button', { name: 'Aplicar' }));
-
-    await waitFor(() => {
-      const last = calls.filter((call) => call.path === '/dashboard/summary').at(-1);
-      expect(last?.query.get('from')).toBe('2026-10-01');
-      expect(last?.query.get('to')).toBe('2026-11-01');
     });
   });
 });

@@ -73,7 +73,9 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
           <p className="text-base font-semibold tracking-tight">JH.COMP Prospect</p>
         </div>
         <nav aria-label="Principal" className="px-2 pb-3">
-          <ul className="flex gap-1 md:flex-col">
+          {/* Em tela estreita a faixa de links rola sozinha: a página nunca rola de lado.
+              O p-1 evita que o overflow corte o contorno de foco. */}
+          <ul className="flex gap-1 overflow-x-auto p-1 whitespace-nowrap md:flex-col md:overflow-visible">
             {items.map((item) => {
               const active = item.active(route);
               return (

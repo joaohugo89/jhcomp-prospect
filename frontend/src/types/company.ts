@@ -39,7 +39,8 @@ export interface SourceInput {
   readonly url: string;
 }
 
-export type SourceType = 'MANUAL' | 'CSV_IMPORT' | 'INTEGRATION';
+export const SOURCE_TYPES = ['MANUAL', 'CSV_IMPORT', 'INTEGRATION'] as const;
+export type SourceType = (typeof SOURCE_TYPES)[number];
 
 export interface Source {
   readonly id: string;

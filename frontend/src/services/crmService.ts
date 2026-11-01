@@ -1,4 +1,16 @@
-import type { Activity, BoardColumn, DashboardSummary, Deal, Interaction, NewInteraction, Task } from '../types/crm';
+import type { SourceType } from '../types/company';
+import type {
+  Activity,
+  BoardColumn,
+  DashboardConversion,
+  DashboardSummary,
+  DashboardTimeline,
+  Granularity,
+  Deal,
+  Interaction,
+  NewInteraction,
+  Task,
+} from '../types/crm';
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
@@ -68,25 +80,51 @@ export function updateTask(task: Task, status: Task['status']): Promise<Task> {
   });
 }
 
+/** Período em datas de calendário; texto vazio é "sem filtro". */
 export interface DashboardFilters {
   readonly from: string;
   readonly to: string;
+  readonly segment: string;
+  readonly city: string;
+  readonly source: SourceType | '';
+}
+
+function dashboardQuery(
+  filters: DashboardFilters,
+  extra: Readonly<Record<string, string | number | undefined>> = {},
+): string {
+  const { from, to, segment, city, source } = filters;
+  return toQuery({ from, to, segment: segment.trim(), city: city.trim(), source, ...extra });
 }
 
 export function getDashboardSummary(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardSummary> {
-  return request<DashboardSummary>(
-    `/dashboard/summary${toQuery({ from: filters.from, to: filters.to })}`,
+  return request<DashboardSummary>(`/dashboard/summary${dashboardQuery(filters)}`, signal ? { signal } : {});
+}
+
+/** Sem `granularity`, o servidor escolhe pelo tamanho do período. */
+export function getDashboardTimeline(
+  filters: DashboardFilters,
+  granularity: Granularity | undefined,
+  signal?: AbortSignal,
+): Promise<DashboardTimeline> {
+  return request<DashboardTimeline>(
+    `/dashboard/timeline${dashboardQuery(filters, { granularity })}`,
     signal ? { signal } : {},
   );
+}
+
+export function getDashboardConversion(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardConversion> {
+  return request<DashboardConversion>(`/dashboard/conversion${dashboardQuery(filters)}`, signal ? { signal } : {});
 }
 
 export function getDashboardActivity(
   filters: DashboardFilters,
   page: number,
   signal?: AbortSignal,
+  size = 15,
 ): Promise<Page<Activity>> {
   return request<Page<Activity>>(
-    `/dashboard/activity${toQuery({ from: filters.from, to: filters.to, page, size: 15 })}`,
+    `/dashboard/activity${dashboardQuery(filters, { page, size })}`,
     signal ? { signal } : {},
   );
 }

@@ -98,6 +98,43 @@ export interface DashboardSummary {
   };
 }
 
+/** Conversão de um grupo (RF-071); `key` ausente é segmento não informado. */
+export interface ConversionRow {
+  readonly key?: string;
+  readonly leads: number;
+  readonly contacted: number;
+  readonly won: number;
+  readonly sufficientSample: boolean;
+}
+
+export interface DashboardConversion {
+  readonly from: string;
+  readonly to: string;
+  readonly conversion: {
+    readonly minimumSample: number;
+    readonly bySource: readonly ConversionRow[];
+    readonly bySegment: readonly ConversionRow[];
+  };
+}
+
+export type Granularity = 'DAY' | 'WEEK' | 'MONTH';
+
+/** Um intervalo da série; `start` é o primeiro dia dele dentro do período. */
+export interface TimelinePoint {
+  readonly start: string;
+  readonly companiesAdded: number;
+  readonly contactsRegistered: number;
+  readonly dealsWon: number;
+  readonly wonValue: number;
+}
+
+export interface DashboardTimeline {
+  readonly from: string;
+  readonly to: string;
+  readonly granularity: Granularity;
+  readonly points: readonly TimelinePoint[];
+}
+
 export interface Activity {
   readonly type: 'STATUS_CHANGE' | 'INTERACTION';
   readonly leadId: string;

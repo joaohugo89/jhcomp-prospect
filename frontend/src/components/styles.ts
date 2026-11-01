@@ -14,3 +14,6 @@ export const buttonDanger = `inline-flex items-center justify-center rounded-md 
 export const input = `mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 aria-[invalid=true]:border-red-600 ${focus}`;
 
 export const link = `font-medium text-brand-700 underline-offset-2 hover:underline ${focus}`;
+
+/** Superfície de cartão do dashboard e das seções de resumo. */
+export const card = 'rounded-2xl border border-slate-200/70 bg-white shadow-sm';

@@ -112,7 +112,8 @@ OpenAPI em `/api/v1/openapi`, Swagger UI em `/api/v1/docs`.
 
 Skills do projeto não são versionadas (só `skills-lock.json`, com hash de cada
 uma). Em um clone novo: `npx skills install`. Instaladas:
-`spring-boot-rest-api-standards`, `spring-boot-test-patterns`, `react-patterns`.
+`spring-boot-rest-api-standards`, `spring-boot-test-patterns`, `react-patterns`,
+`kpi-dashboard-design`.
 
 ## Armadilhas desta stack já encontradas
 

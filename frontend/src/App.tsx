@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { Link, useRoute, type Route } from './app/router';
 import { AppShell } from './components/AppShell';
@@ -11,6 +11,12 @@ import { CompanyDetailPage } from './modules/companies/CompanyDetailPage';
 import { CompanyNewPage } from './modules/companies/CompanyNewPage';
 import { PipelinePage } from './modules/crm/PipelinePage';
 import { DashboardPage } from './modules/dashboard/DashboardPage';
+
+// Só em desenvolvimento: no build de produção a condição é `false`, o import some
+// e o mock não chega ao pacote publicado.
+const DashboardPreviewPage = import.meta.env.DEV
+  ? lazy(async () => ({ default: (await import('./modules/dashboard/DashboardPreviewPage')).DashboardPreviewPage }))
+  : null;
 import { ImportDetailPage } from './modules/imports/ImportDetailPage';
 import { ImportsPage } from './modules/imports/ImportsPage';
 import { LeadDetailPage } from './modules/leads/LeadDetailPage';
@@ -127,6 +133,14 @@ function Screen({
   switch (route.name) {
     case 'dashboard':
       return <DashboardPage />;
+    case 'dashboardPreview':
+      return DashboardPreviewPage === null ? (
+        <EmptyState title="Página não encontrada." />
+      ) : (
+        <Suspense fallback={<LoadingState />}>
+          <DashboardPreviewPage />
+        </Suspense>
+      );
     case 'pipeline':
       return <PipelinePage />;
     case 'leads':

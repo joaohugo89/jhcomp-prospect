@@ -785,3 +785,39 @@ das regras, para que mudanca recusada nao apareca como feita.
 **Fora do escopo:** convite por e-mail, recuperacao de senha sem
 administrador ("esqueci a senha"), MFA, desabilitar a conta do usuario
 (`app_user.status`, que valeria para todas as organizacoes) e excluir membro.
+
+## D29 — Filtros e conversao do dashboard · Proposta (2026-11-06)
+
+O doc 08 §4 pede filtro por origem e o RF-071 pede taxas por origem e
+segmento "quando houver amostra suficiente", sem definir origem, coorte nem
+amostra.
+
+**Origem.** E o tipo (`MANUAL`, `CSV_IMPORT`, `INTEGRATION`) da primeira
+proveniencia gravada da empresa (`lead_source.recorded_seq`): o caminho pelo
+qual ela entrou no sistema. Uma importacao que depois completa a empresa
+(D23) grava nova proveniencia mas nao muda a origem, e a empresa nunca conta
+em dois grupos. O filtro `source` vale para `summary`, `activity` e
+`conversion`, junto de `segment` e `city`. A listagem de leads continua
+filtrando por "tem alguma proveniencia desse tipo"; sao perguntas diferentes.
+
+**Conversao.** `GET /dashboard/conversion`. Coorte: leads abertos no periodo
+(`lead.created_at`), dentro dos filtros. Por grupo: leads (o denominador),
+contatados (com abordagem de saida registrada, a mesma definicao de "contatos
+registrados") e ganhos (hoje em `WON`, fechado quando for). Segmento e texto
+livre: so os 10 maiores grupos; segmento vazio forma o grupo "Sem segmento".
+
+**Amostra minima: 10 leads.** Abaixo disso um unico lead move a taxa em mais
+de 10 pontos. O servidor marca `sufficientSample`; a tela mostra so contagens,
+sem percentual, e sinaliza "amostra pequena". O minimo volta na resposta.
+
+**Serie temporal.** `GET /dashboard/timeline` devolve as quatro metricas do
+periodo (empresas adicionadas, contatos registrados, negocios ganhos, valor
+ganho) com as mesmas definicoes e filtros do `summary`, em intervalos de dia,
+semana (segunda a domingo) ou mes do calendario de Brasilia. Todo intervalo
+aparece, com zero quando vazio. A primeira semana ou mes comeca no inicio do
+periodo, nao antes. A tela mostra uma metrica por vez em colunas: valor em
+reais e contagem nao dividem eixo. Por dia so ate 92 dias, acima disso as
+colunas ficam finas demais; os valores tambem ficam numa tabela.
+
+**Fora do escopo:** taxa entre etapas (funil passo a passo) e comparacao com
+o periodo anterior.
