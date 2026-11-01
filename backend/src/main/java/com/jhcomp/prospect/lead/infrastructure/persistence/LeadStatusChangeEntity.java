@@ -68,4 +68,12 @@ public class LeadStatusChangeEntity extends AssignedIdEntity {
         this.changedByUserId = changedByUserId;
         this.changedAt = changedAt;
     }
+
+    public UUID getLeadId() {
+        return leadId;
+    }
+
+    public Instant getChangedAt() {
+        return changedAt;
+    }
 }

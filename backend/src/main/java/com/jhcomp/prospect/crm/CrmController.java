@@ -140,7 +140,10 @@ public class CrmController {
         }
     }
 
-    /** Card compacto do Kanban (doc 08 §8). */
+    /**
+     * Card compacto do Kanban (doc 08 §8). {@code stageEnteredAt}: quando o
+     * lead chegou na etapa atual, para o tempo parado na etapa.
+     */
     public record CardResponse(
             UUID leadId,
             String companyName,
@@ -151,10 +154,12 @@ public class CrmController {
             LeadPriority priority,
             Integer score,
             String service,
+            BigDecimal estimatedValue,
             InteractionType lastInteractionType,
             Instant lastInteractionAt,
             String nextTaskTitle,
             Instant nextTaskDueAt,
+            Instant stageEnteredAt,
             List<LeadStatus> allowedTransitions) {
 
         static CardResponse from(BoardService.Card card) {
@@ -170,21 +175,31 @@ public class CrmController {
                     lead.getPriority(),
                     lead.getScore(),
                     card.deal() == null ? null : card.deal().getService(),
+                    card.deal() == null ? null : card.deal().getEstimatedValue(),
                     card.lastInteraction() == null ? null : card.lastInteraction().getType(),
                     card.lastInteraction() == null ? null : card.lastInteraction().getOccurredAt(),
                     card.nextTask() == null ? null : card.nextTask().getTitle(),
                     card.nextTask() == null ? null : card.nextTask().getDueAt(),
+                    card.stageEnteredAt(),
                     LeadStatusTransitions.allowedFrom(lead.getStatus()).stream()
                             .sorted(Comparator.naturalOrder())
                             .toList());
         }
     }
 
-    public record ColumnResponse(StageResponse stage, long total, List<CardResponse> cards) {
+    /**
+     * Coluna do quadro. {@code totalValue}: soma dos negocios da etapa inteira,
+     * em BRL. {@code recentDays}: nas colunas finais, a janela de fechamento
+     * mostrada; ausente nas etapas em andamento.
+     */
+    public record ColumnResponse(
+            StageResponse stage, long total, BigDecimal totalValue, Integer recentDays, List<CardResponse> cards) {
         static ColumnResponse from(BoardService.Column column) {
             return new ColumnResponse(
                     StageResponse.from(column.stage()),
                     column.total(),
+                    column.totalValue(),
+                    column.recentDays(),
                     column.cards().stream().map(CardResponse::from).toList());
         }
     }

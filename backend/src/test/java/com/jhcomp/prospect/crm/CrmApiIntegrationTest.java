@@ -1,5 +1,6 @@
 package com.jhcomp.prospect.crm;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -120,6 +122,56 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$[1].cards[0].lastInteractionType").value("NOTE"))
                 .andExpect(jsonPath("$[1].cards[0].nextTaskTitle").value("Ligar de novo"))
                 .andExpect(jsonPath("$[1].cards[0].allowedTransitions", hasItem("CONTACT_APPROVED")));
+    }
+
+    /** Itens 2, 3 e 4 do quadro: tempo na etapa, valor da etapa inteira e janela das colunas finais. */
+    @Test
+    @DisplayName("quadro soma o valor da etapa, informa a entrada na etapa e limita os encerrados a 30 dias")
+    void boardValuesAndWindows() throws Exception {
+        String big = createLead("Loja Valor Alto");
+        String small = createLead("Loja Valor Baixo");
+        for (String lead : new String[] {big, small}) {
+            move(lead, "QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "PROPOSAL_SENT");
+        }
+        send(put("/leads/" + big + "/deal"), "{\"estimatedValue\": 1500.50}").andExpect(status().isOk());
+        send(put("/leads/" + small + "/deal"), "{\"estimatedValue\": 499.50}").andExpect(status().isOk());
+        // Chegou na proposta ha 12 dias.
+        jdbc.update("update lead_status_change set changed_at = now() - interval '12 days' "
+                + "where lead_id = ? and to_status = 'PROPOSAL_SENT'", UUID.fromString(big));
+
+        String recent = createLead("Loja Ganha Agora");
+        String old = createLead("Loja Ganha Antes");
+        for (String lead : new String[] {recent, old}) {
+            move(lead, "QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "PROPOSAL_SENT");
+            send(put("/leads/" + lead + "/deal"), "{\"estimatedValue\": 1000}").andExpect(status().isOk());
+            move(lead, "WON");
+        }
+        jdbc.update("update lead set closed_at = now() - interval '40 days' where id = ?", UUID.fromString(old));
+
+        String board = mockMvc.perform(get("/pipeline/board").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[5].stage.key").value("PROPOSAL_SENT"))
+                .andExpect(jsonPath("$[5].total").value(2))
+                .andExpect(jsonPath("$[5].totalValue").value(2000.00))
+                .andExpect(jsonPath("$[5].recentDays").doesNotExist())
+                .andExpect(jsonPath("$[5].cards[*].estimatedValue", hasItem(1500.50)))
+                // Fechado ha 40 dias sai da coluna e do valor; continua na lista de leads.
+                .andExpect(jsonPath("$[6].stage.key").value("WON"))
+                .andExpect(jsonPath("$[6].recentDays").value(30))
+                .andExpect(jsonPath("$[6].total").value(1))
+                .andExpect(jsonPath("$[6].totalValue").value(1000.00))
+                .andExpect(jsonPath("$[6].cards[*].leadId", contains(recent)))
+                .andReturn().getResponse().getContentAsString();
+
+        List<String> entered = JsonPath.read(board, "$[5].cards[?(@.leadId == '" + big + "')].stageEnteredAt");
+        assertThat(Instant.parse(entered.getFirst())).isBefore(Instant.now().minus(11, ChronoUnit.DAYS));
+
+        // O valor respeita os filtros do quadro, como a contagem.
+        mockMvc.perform(get("/pipeline/board").param("segment", "OUTRO").session(session))
+                .andExpect(jsonPath("$[5].total").value(0))
+                .andExpect(jsonPath("$[5].totalValue").value(0));
+        mockMvc.perform(get("/leads").param("status", "WON").session(session))
+                .andExpect(jsonPath("$.totalElements").value(2));
     }
 
     /** D2: deal nasce na proposta e o resultado vem do status do lead. */

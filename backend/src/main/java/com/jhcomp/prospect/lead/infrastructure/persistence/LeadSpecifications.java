@@ -1,5 +1,6 @@
 package com.jhcomp.prospect.lead.infrastructure.persistence;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -30,7 +31,11 @@ public final class LeadSpecifications {
     private LeadSpecifications() {
     }
 
-    /** Criterios de listagem. Campos nulos nao filtram. */
+    /**
+     * Criterios de listagem. Campos nulos nao filtram. {@code closedSince}
+     * deixa so os leads encerrados a partir do instante (colunas finais do
+     * quadro); lead em aberto nao tem data de fechamento e fica de fora.
+     */
     public record Criteria(
             LeadStatus status,
             LeadPriority priority,
@@ -39,7 +44,8 @@ public final class LeadSpecifications {
             String search,
             Integer scoreMin,
             Integer scoreMax,
-            SourceType source) {}
+            SourceType source,
+            Instant closedSince) {}
 
     public static Specification<LeadEntity> matching(UUID organizationId, Criteria criteria) {
         return (root, query, builder) -> {
@@ -48,6 +54,9 @@ public final class LeadSpecifications {
 
             if (criteria.status() != null) {
                 predicates.add(builder.equal(root.get("status"), criteria.status()));
+            }
+            if (criteria.closedSince() != null) {
+                predicates.add(builder.greaterThanOrEqualTo(root.get("closedAt"), criteria.closedSince()));
             }
             if (criteria.priority() != null) {
                 predicates.add(builder.equal(root.get("priority"), criteria.priority()));

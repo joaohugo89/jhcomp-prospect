@@ -81,7 +81,7 @@ public class LeadController {
         }
 
         var criteria = new LeadSpecifications.Criteria(
-                status, priority, segment, city, search, scoreMin, scoreMax, source);
+                status, priority, segment, city, search, scoreMin, scoreMax, source, null);
         var pageable = PageRequests.of(page, size, sort, SORTABLE, LeadService.DEFAULT_SORT);
         return PageResponse.from(leadService.list(criteria, pageable), LeadResponse::from);
     }

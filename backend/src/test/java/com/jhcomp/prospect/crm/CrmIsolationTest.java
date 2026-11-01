@@ -121,10 +121,30 @@ class CrmIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("valor da etapa no quadro de A nao soma negocio de B")
+    void boardValueIsScoped() throws Exception {
+        // A tem um negocio de 100 na proposta; o de B, na mesma etapa, vale 5.000.
+        String companyA = JsonPath.read(body(post("/companies"), sessionA,
+                "{\"name\": \"Empresa Valor A\", \"city\": \"Cidade Exemplo\", \"state\": \"MG\"}"), "$.id");
+        String leadA = JsonPath.read(body(post("/leads"), sessionA, "{\"companyId\": \"%s\"}".formatted(companyA)), "$.id");
+        for (String target : new String[] {"QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "PROPOSAL_SENT"}) {
+            body(patch("/leads/" + leadA + "/status"), sessionA,
+                    "{\"status\": \"%s\", \"contactConfirmed\": true}".formatted(target));
+        }
+        body(put("/leads/" + leadA + "/deal"), sessionA, "{\"estimatedValue\": 100}");
+        jdbc.update("update deal set estimated_value = 5000 where lead_id = ?", UUID.fromString(leadB));
+
+        mockMvc.perform(get("/pipeline/board").session(sessionA))
+                .andExpect(jsonPath("$[5].total").value(1))
+                .andExpect(jsonPath("$[5].totalValue").value(100.0));
+    }
+
+    @Test
     @DisplayName("quadro e dashboard de A nao mostram nem contam dados de B")
     void aggregatesAreScoped() throws Exception {
         mockMvc.perform(get("/pipeline/board").session(sessionA))
                 .andExpect(jsonPath("$[5].total").value(0))
+                .andExpect(jsonPath("$[5].totalValue").value(0))
                 .andExpect(jsonPath("$[5].cards[*].leadId", not(hasItem(leadB))));
         mockMvc.perform(get("/dashboard/summary").session(sessionA))
                 .andExpect(jsonPath("$.summary.activeLeads").value(0))
