@@ -1,6 +1,7 @@
 package com.jhcomp.prospect.shared.security;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,16 +10,20 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -32,6 +37,7 @@ import com.jhcomp.prospect.shared.web.ApiErrorResponse;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -155,18 +161,27 @@ public class SecurityConfig {
                         // Rotas publicas: apenas o que precisa existir antes do login.
                         .requestMatchers("/health", "/auth/login", "/openapi/**", "/docs/**", "/swagger-ui/**")
                         .permitAll()
-                        // Todo o resto exige autenticacao (doc 05 §12).
-                        .anyRequest().authenticated())
+                        // Abertas a quem ainda precisa trocar a senha temporaria (D28).
+                        .requestMatchers("/auth/me", "/auth/logout", "/auth/password").authenticated()
+                        // Todo o resto exige autenticacao (doc 05 §12) e senha definitiva.
+                        .anyRequest().access(SecurityConfig::authenticatedWithFinalPassword))
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(unauthorizedEntryPoint(objectMapper))
-                        .accessDeniedHandler((request, response, exception) ->
-                                writeError(
-                                        objectMapper,
-                                        response,
-                                        HttpStatus.FORBIDDEN,
-                                        ApiErrorType.FORBIDDEN,
-                                        "You do not have permission to perform this operation",
-                                        request.getRequestURI())))
+                        .accessDeniedHandler((request, response, exception) -> {
+                            if (requiresPasswordChange(SecurityContextHolder.getContext().getAuthentication())) {
+                                writeError(objectMapper, response, HttpStatus.FORBIDDEN,
+                                        ApiErrorType.PASSWORD_CHANGE_REQUIRED,
+                                        "Change the temporary password before continuing", request.getRequestURI());
+                                return;
+                            }
+                            writeError(
+                                    objectMapper,
+                                    response,
+                                    HttpStatus.FORBIDDEN,
+                                    ApiErrorType.FORBIDDEN,
+                                    "You do not have permission to perform this operation",
+                                    request.getRequestURI());
+                        }))
                 // Sem formLogin nem httpBasic: o login e o endpoint JSON
                 // /auth/login, e uma pagina de login HTML nao faz sentido numa
                 // API consumida por SPA.
@@ -178,6 +193,23 @@ public class SecurityConfig {
                         .contentTypeOptions(Customizer.withDefaults()));
 
         return http.build();
+    }
+
+    /**
+     * Autenticado e sem senha temporaria pendente. Anonimo continua recebendo
+     * 401 pelo ponto de entrada, e nao 403: a regra so nega quem ja entrou.
+     */
+    private static AuthorizationDecision authenticatedWithFinalPassword(
+            Supplier<? extends Authentication> authentication, RequestAuthorizationContext context) {
+        Authentication current = authentication.get();
+        boolean authenticated = current != null && current.isAuthenticated()
+                && current.getPrincipal() instanceof AuthenticatedUser;
+        return new AuthorizationDecision(authenticated && !requiresPasswordChange(current));
+    }
+
+    private static boolean requiresPasswordChange(Authentication authentication) {
+        return authentication != null && authentication.getPrincipal() instanceof AuthenticatedUser user
+                && user.passwordChangeRequired();
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.jhcomp.prospect.shared.security;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -96,13 +97,26 @@ public class MembershipRevalidationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (membership.getRole() != user.role()) {
+        Instant credentialsChangedAt = membership.getUser().getCredentialsChangedAt();
+        if (credentialsChangedAt != null
+                && (user.authenticatedAt() == null || user.authenticatedAt().isBefore(credentialsChangedAt))) {
+            // Senha trocada ou redefinida depois que esta sessao foi aberta: quem
+            // tinha a senha antiga nao continua dentro (D28).
+            log.info("Sessao encerrada: senha alterada depois do login do usuario {}", user.userId());
+            endSession(request);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        boolean passwordChangeRequired = membership.getUser().isPasswordChangeRequired();
+        if (membership.getRole() != user.role() || passwordChangeRequired != user.passwordChangeRequired()) {
             log.info(
-                    "Papel atualizado na sessao do usuario {}: {} -> {}",
+                    "Sessao do usuario {} atualizada: papel {} -> {}, troca de senha exigida {}",
                     user.userId(),
                     user.role(),
-                    membership.getRole());
-            refreshPrincipal(request, response, user, membership);
+                    membership.getRole(),
+                    passwordChangeRequired);
+            refreshPrincipal(request, response, user.withCurrentState(membership.getRole(), passwordChangeRequired));
         }
 
         filterChain.doFilter(request, response);
@@ -117,19 +131,7 @@ public class MembershipRevalidationFilter extends OncePerRequestFilter {
     }
 
     private void refreshPrincipal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            AuthenticatedUser currentUser,
-            OrganizationMemberEntity membership) {
-
-        AuthenticatedUser refreshed = new AuthenticatedUser(
-                currentUser.userId(),
-                membership.getOrganization().getId(),
-                membership.getUser().getEmail(),
-                membership.getUser().getDisplayName(),
-                membership.getRole(),
-                // O hash de senha nao e guardado na sessao.
-                "");
+            HttpServletRequest request, HttpServletResponse response, AuthenticatedUser refreshed) {
 
         Authentication updated =
                 new UsernamePasswordAuthenticationToken(refreshed, null, refreshed.getAuthorities());

@@ -10,6 +10,7 @@ public enum ApiErrorType {
     AUTHENTICATION_REQUIRED("Authentication required"),
     INVALID_CREDENTIALS("Invalid credentials"),
     FORBIDDEN("Operation not permitted"),
+    PASSWORD_CHANGE_REQUIRED("Password change required"),
     RESOURCE_NOT_FOUND("Resource not found"),
     CONFLICT("Conflicting state"),
     TOO_MANY_REQUESTS("Too many requests"),
