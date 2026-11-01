@@ -78,12 +78,14 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
-function currentPath(): string {
-  return window.location.pathname;
+/** Caminho com a query string: trocar só os filtros da URL também é navegação. */
+function currentLocation(): string {
+  return `${window.location.pathname}${window.location.search}`;
 }
 
 export function useRoute(): Route {
-  return parseRoute(useSyncExternalStore(subscribe, currentPath));
+  const location = useSyncExternalStore(subscribe, currentLocation);
+  return parseRoute(location.split('?')[0] ?? '');
 }
 
 interface LinkProps {
@@ -99,7 +101,9 @@ interface LinkProps {
  */
 export function Link({ to, className, children, ...rest }: LinkProps): React.JSX.Element {
   function handleClick(event: React.MouseEvent<HTMLAnchorElement>): void {
+    // Âncora na mesma página (`#atencao`): o navegador rola sozinho.
     if (
+      to.startsWith('#') ||
       event.defaultPrevented ||
       event.button !== 0 ||
       event.metaKey ||

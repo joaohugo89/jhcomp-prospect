@@ -13,8 +13,7 @@ export const IRREVERSIBLE: ReadonlySet<LeadStatus> = new Set(['WON', 'LOST', 'DO
 const IRREVERSIBLE_TEXT: Partial<Record<LeadStatus, string>> = {
   WON: 'A oportunidade será encerrada como ganha. Um novo ciclo exige abrir outro lead.',
   LOST: 'A oportunidade será encerrada como perdida. Um novo ciclo exige abrir outro lead.',
-  DO_NOT_CONTACT:
-    'A empresa não deve mais ser abordada. O bloqueio não pode ser desfeito por mudança de status.',
+  DO_NOT_CONTACT: 'A empresa não deve mais ser abordada. O bloqueio não pode ser desfeito por mudança de status.',
 };
 
 /** O mínimo para mudar o status: serve ao lead completo e ao card do Kanban. */
@@ -67,7 +66,9 @@ export function StatusChangeForm({ lead, onChanged, initialTarget }: StatusChang
       onChanged(updated);
     } catch (cause: unknown) {
       setConfirming(false);
-      setError(actionErrorMessage(cause, 'Esta mudança de status não é permitida no estado atual. Recarregue a página.'));
+      setError(
+        actionErrorMessage(cause, 'Esta mudança de status não é permitida no estado atual. Recarregue a página.'),
+      );
     } finally {
       setBusy(false);
     }

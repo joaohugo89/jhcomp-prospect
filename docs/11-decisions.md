@@ -821,3 +821,47 @@ colunas ficam finas demais; os valores tambem ficam numa tabela.
 
 **Fora do escopo:** taxa entre etapas (funil passo a passo) e comparacao com
 o periodo anterior.
+
+## D30 — Atencao, funil, responsavel e equipe no dashboard · Proposta (2026-11-06)
+
+O doc 08 §4 pede atividades recentes e tarefas pendentes; o RF-071, taxas
+claras. O dashboard so mostrava fotos e totais: nao dizia o que fazer nem
+onde o processo perde leads.
+
+**Precisa de atencao** (`/dashboard/attention`). Situacao de agora, sem
+periodo, com os demais filtros: tarefas abertas atrasadas ou que vencem hoje
+(dia de Brasilia); leads parados ha 7 dias ou mais numa etapa em andamento (o
+mesmo limite do Kanban; a entrada na etapa e a ultima mudanca pela ordem de
+gravacao); propostas sem toque ha 7 dias (ultima interacao ou, sem ela, a
+chegada na proposta); leads em andamento sem tarefa aberta. `NEW` e triagem e
+fica fora das duas ultimas. Lead em `DO_NOT_CONTACT` fica fora de todas: o
+painel nunca empurra abordagem a quem pediu para nao ser contatado (regra 4).
+Cada secao traz o total e os mais urgentes (padrao 5, maximo 20); o resto se
+acha pelo pipeline.
+
+**Funil de conversao** (`/dashboard/funnel`). Coorte: leads abertos no periodo
+(a mesma da D29). Alcance de uma etapa: quantos chegaram a ela ou alem pelo
+historico; ganho conta como tendo passado por todas, perdido e bloqueado nao
+avancam ninguem. A tela so mostra a passagem de uma etapa para a seguinte
+quando a anterior tem a amostra minima de 10. Tempo na etapa: media de quem
+ja saiu dela; quem ainda esta nao entra. Media so com 10 saidas ou mais.
+
+**Responsavel.** `assignee` filtra todas as rotas do dashboard pelo
+responsavel do lead; empresas adicionadas contam a empresa com algum lead
+dele. Um id de outra organizacao so devolve zero, porque toda consulta ja e
+escopada pela sessao. O lead e atribuido no detalhe (`PATCH /leads/{id}`, que
+ja existia e exige membro ativo).
+
+**Equipe** (`GET /team`). Qualquer membro precisa escolher responsavel, mas a
+gestao de membros e do administrador. A rota nova devolve so id e nome de
+exibicao dos membros ativos: e-mail e papel nao sao necessarios para atribuir
+um lead (minimo necessario, LGPD).
+
+**Drill-down.** A lista de leads le e grava os filtros na URL
+(`status`, `priority`, `city`, `segment`, `source`, `search`); o dashboard leva
+de um numero ou etapa a lista filtrada. O periodo nao vai junto: a lista mostra
+quem esta na etapa agora.
+
+**Fora do escopo:** metas e previsao ponderada (precisam de onde guardar meta
+e probabilidade por etapa, decisao propria); filtro por responsavel na lista
+de leads.

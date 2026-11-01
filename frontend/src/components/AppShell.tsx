@@ -52,6 +52,12 @@ const ROLE_LABEL = { ADMIN: 'Administrador', OPERATOR: 'Operador' } as const;
  */
 const FULL_SCREEN: ReadonlySet<Route['name']> = new Set(['pipeline']);
 
+/**
+ * Painéis com várias colunas: mais largos que a leitura (72rem), para não
+ * sobrar faixa vazia em monitor grande, mas com teto para a linha não esticar demais.
+ */
+const WIDE: ReadonlySet<Route['name']> = new Set(['dashboard', 'dashboardPreview']);
+
 /** Estrutura das telas autenticadas: barra lateral, cabeçalho e conteúdo. */
 export function AppShell({ session, route, onSignOut, children }: AppShellProps): React.JSX.Element {
   const [signingOut, setSigningOut] = useState(false);
@@ -131,7 +137,9 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
           id="conteudo"
           tabIndex={-1}
           className={`px-4 py-6 focus:outline-none ${
-            fullScreen ? 'md:flex md:min-h-0 md:flex-1 md:flex-col md:py-4' : 'mx-auto max-w-6xl'
+            fullScreen
+              ? 'md:flex md:min-h-0 md:flex-1 md:flex-col md:py-4'
+              : `mx-auto ${WIDE.has(route.name) ? 'max-w-[96rem] md:px-6' : 'max-w-6xl'}`
           }`}
         >
           {children}

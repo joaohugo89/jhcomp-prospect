@@ -65,9 +65,12 @@ Não armazenar tokens de longa duração em `localStorage` sem avaliação de ri
 | GET | `/dashboard/activity` | Atividades recentes |
 | GET | `/dashboard/conversion` | Conversão por origem e segmento (RF-071) |
 | GET | `/dashboard/timeline` | Métricas do período por dia, semana ou mês |
+| GET | `/dashboard/attention` | O que pede ação agora (D30) |
+| GET | `/dashboard/funnel` | Alcance por etapa e tempo médio nela (D30) |
 
-Parâmetros opcionais: `from`, `to`, `segment`, `city`, `source`
-(`MANUAL`, `CSV_IMPORT`, `INTEGRATION`; origem da empresa, D29).
+Parâmetros opcionais, iguais em todas as rotas: `from`, `to`, `segment`,
+`city`, `source` (`MANUAL`, `CSV_IMPORT`, `INTEGRATION`; origem da empresa,
+D29) e `assignee` (id do responsável do lead, D30).
 
 Implementado na Etapa 7 (D25): `summary` traz `leadsByStatus` (foto atual),
 `activeLeads`, `companiesAdded`, `contactsRegistered`, `openProposals`,
@@ -84,6 +87,17 @@ mostra percentual.
 até 31 dias é por dia, até 120 por semana e acima disso por mês) e devolve
 `points` com `start`, `companiesAdded`, `contactsRegistered`, `dealsWon` e
 `wonValue` para **todo** intervalo do período, inclusive os vazios.
+
+`summary` traz também `companiesWithoutSegment` (empresas ativas sem segmento).
+`attention` (D30; `limit` de 1 a 20, padrão 5) traz `tasks`, `staleLeads`,
+`quietProposals` e `withoutTask`, cada um com `total` e `items`
+(`leadId`, `companyName`, `status`, `at`, `detail`, `overdue`); é a situação de
+agora, sem período. `funnel` traz `cohort`, `minimumSample` e `stages`
+(`status`, `reached`, `exits`, `avgDays`, `sufficientSample`).
+
+`GET /team` (qualquer membro): membros ativos só com `userId` e `displayName`,
+para atribuir lead (`PATCH /leads/{id}` com `assignedUserId`) e filtrar por
+responsável. E-mail e papel ficam em `/organizations/members`, do administrador.
 
 ## 4. Empresas
 

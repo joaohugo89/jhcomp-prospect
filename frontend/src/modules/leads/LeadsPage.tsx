@@ -1,5 +1,7 @@
+import { useState } from 'react';
+
 import { formatDateTime } from '../../app/format';
-import { PRIORITY_LABEL, STATUS_LABEL } from '../../app/labels';
+import { PRIORITY_LABEL, SOURCE_TYPE_LABEL, STATUS_LABEL } from '../../app/labels';
 import { Link } from '../../app/router';
 import { useFilters } from '../../app/useFilters';
 import { useLoad } from '../../app/useLoad';
@@ -10,9 +12,10 @@ import { Pagination } from '../../components/Pagination';
 import { EmptyState, LoadStateView } from '../../components/States';
 import { buttonPrimary, buttonSecondary, input, link } from '../../components/styles';
 import { listLeads } from '../../services/leadService';
+import { SOURCE_TYPES } from '../../types/company';
 import { LEAD_PRIORITIES, LEAD_STATUSES, type Lead, type LeadFilters } from '../../types/lead';
 
-const NO_FILTERS: LeadFilters = { search: '', status: '', priority: '', city: '' };
+const NO_FILTERS: LeadFilters = { search: '', status: '', priority: '', city: '', segment: '', source: '' };
 
 const COLUMNS: readonly Column<Lead>[] = [
   {
@@ -35,9 +38,40 @@ function parseOption<T extends string>(options: readonly T[], value: string): T 
   return options.find((option) => option === value) ?? '';
 }
 
+/**
+ * Filtros da URL (`/leads?status=WON&source=CSV_IMPORT`): o dashboard abre a
+ * lista já filtrada, e a busca pode ser compartilhada ou favoritada. Valor
+ * desconhecido é ignorado, como se não viesse.
+ */
+function filtersFromUrl(): LeadFilters {
+  const params = new URLSearchParams(window.location.search);
+  const text = (key: string): string => params.get(key)?.trim() ?? '';
+  return {
+    search: text('search'),
+    status: parseOption(LEAD_STATUSES, text('status')),
+    priority: parseOption(LEAD_PRIORITIES, text('priority')),
+    city: text('city'),
+    segment: text('segment'),
+    source: parseOption(SOURCE_TYPES, text('source')),
+  };
+}
+
+/** Grava os filtros aplicados na URL sem nova navegação: voltar e recarregar mantêm a busca. */
+function writeUrl(filters: LeadFilters): void {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (typeof value === 'string' && value.trim() !== '') {
+      params.set(key, value.trim());
+    }
+  }
+  const query = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${query === '' ? '' : `?${query}`}`);
+}
+
 /** Lista de leads (RF-012, doc 08 §6). */
 export function LeadsPage(): React.JSX.Element {
-  const { draft, setDraft, applied, page, setPage, apply, isFiltered, queryKey } = useFilters(NO_FILTERS);
+  const [initial] = useState(filtersFromUrl);
+  const { draft, setDraft, applied, page, setPage, apply, isFiltered, queryKey } = useFilters(NO_FILTERS, initial);
   const [state, reload] = useLoad(queryKey, (signal) => listLeads(applied, page, signal));
 
   return (
@@ -47,10 +81,11 @@ export function LeadsPage(): React.JSX.Element {
       <form
         role="search"
         aria-label="Filtrar leads"
-        className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
+        className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-3 xl:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto]"
         onSubmit={(event) => {
           event.preventDefault();
           apply();
+          writeUrl(draft);
         }}
       >
         <label className="text-sm font-medium text-slate-700">
@@ -107,6 +142,33 @@ export function LeadsPage(): React.JSX.Element {
               setDraft({ ...draft, city: event.target.value });
             }}
           />
+        </label>
+        <label className="text-sm font-medium text-slate-700">
+          Segmento
+          <input
+            className={input}
+            value={draft.segment}
+            onChange={(event) => {
+              setDraft({ ...draft, segment: event.target.value });
+            }}
+          />
+        </label>
+        <label className="text-sm font-medium text-slate-700">
+          Origem
+          <select
+            className={input}
+            value={draft.source}
+            onChange={(event) => {
+              setDraft({ ...draft, source: parseOption(SOURCE_TYPES, event.target.value) });
+            }}
+          >
+            <option value="">Todas</option>
+            {SOURCE_TYPES.map((source) => (
+              <option key={source} value={source}>
+                {SOURCE_TYPE_LABEL[source]}
+              </option>
+            ))}
+          </select>
         </label>
         <div className="flex items-end">
           <button type="submit" className={buttonSecondary}>

@@ -8,10 +8,11 @@ import { useState } from 'react';
  * primeira página, porque a página atual pode nem existir no novo resultado.
  *
  * @param empty filtros sem efeito; precisa ser uma constante de módulo
+ * @param initial filtros já aplicados ao abrir (por exemplo, lidos da URL)
  */
-export function useFilters<F>(empty: F) {
-  const [draft, setDraft] = useState<F>(empty);
-  const [applied, setApplied] = useState<F>(empty);
+export function useFilters<F>(empty: F, initial: F = empty) {
+  const [draft, setDraft] = useState<F>(initial);
+  const [applied, setApplied] = useState<F>(initial);
   const [page, setPage] = useState(0);
 
   return {

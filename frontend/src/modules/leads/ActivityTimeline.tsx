@@ -29,9 +29,7 @@ export function ActivityTimeline({
   readonly refreshKey: string;
 }): React.JSX.Element {
   const [page, setPage] = useState(0);
-  const [state, reload] = useLoad(`${leadId}:${page}:${refreshKey}`, (signal) =>
-    getLeadTimeline(leadId, page, signal),
-  );
+  const [state, reload] = useLoad(`${leadId}:${page}:${refreshKey}`, (signal) => getLeadTimeline(leadId, page, signal));
 
   return (
     <section aria-labelledby="historico" className="rounded-lg border border-slate-200 bg-white p-6">

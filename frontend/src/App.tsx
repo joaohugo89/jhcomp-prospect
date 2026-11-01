@@ -132,7 +132,7 @@ function Screen({
 }): React.JSX.Element {
   switch (route.name) {
     case 'dashboard':
-      return <DashboardPage />;
+      return <DashboardPage session={session} />;
     case 'dashboardPreview':
       return DashboardPreviewPage === null ? (
         <EmptyState title="Página não encontrada." />
@@ -144,7 +144,8 @@ function Screen({
     case 'pipeline':
       return <PipelinePage />;
     case 'leads':
-      return <LeadsPage />;
+      // key: outro filtro na URL (drill-down do dashboard) é outra lista.
+      return <LeadsPage key={window.location.search} />;
     case 'lead':
       // key: trocar de lead recria a tela, sem herdar estado do anterior.
       return <LeadDetailPage key={route.id} id={route.id} />;

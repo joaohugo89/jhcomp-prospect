@@ -17,6 +17,7 @@ import { InteractionForm } from '../crm/InteractionForm';
 import { TasksSection } from '../crm/TasksSection';
 import { OutreachSection } from '../outreach/OutreachSection';
 import { ActivityTimeline } from './ActivityTimeline';
+import { AssigneeSection } from './AssigneeSection';
 import { StatusChangeForm } from './StatusChangeForm';
 
 /**
@@ -73,6 +74,8 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
           </section>
 
           <PrioritySection lead={lead} onChanged={setUpdated} />
+
+          <AssigneeSection lead={lead} onChanged={setUpdated} />
 
           <DealSection lead={lead} />
 
