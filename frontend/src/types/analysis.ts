@@ -21,12 +21,7 @@ export type Confidence = 'LOW' | 'MEDIUM' | 'HIGH';
 export type ReviewStatus = 'PENDING' | 'CONFIRMED' | 'CORRECTED';
 
 export type EvidenceType =
-  | 'HTTP_RESPONSE'
-  | 'HTML_SIGNAL'
-  | 'ROBOTS_TXT'
-  | 'COMPANY_RECORD'
-  | 'CONFIGURATION'
-  | 'OPERATOR_NOTE';
+  'HTTP_RESPONSE' | 'HTML_SIGNAL' | 'ROBOTS_TXT' | 'COMPANY_RECORD' | 'CONFIGURATION' | 'OPERATOR_NOTE';
 
 /** `score` só existe com a análise concluída: pendente ou com falha não é zero (D7). */
 export interface AnalysisSummary {

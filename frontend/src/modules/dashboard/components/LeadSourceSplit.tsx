@@ -1,3 +1,4 @@
+import { Link } from '../../../app/router';
 import type { Conversao } from '../model/dashboardData';
 import { DashboardSection } from './DashboardSection';
 
@@ -14,7 +15,14 @@ const SOURCE_COLOR: Readonly<Record<string, string>> = {
 const OTHER_COLOR = 'bg-slate-400';
 
 /** Origem dos leads abertos no período: participação de cada uma no total. */
-export function LeadSourceSplit({ conversao }: { readonly conversao: Conversao | undefined }): React.JSX.Element {
+export function LeadSourceSplit({
+  conversao,
+  sourceHref,
+}: {
+  readonly conversao: Conversao | undefined;
+  /** Drill-down: a origem abre a lista de leads dela; ausente na pré-visualização. */
+  readonly sourceHref?: (source: string) => string;
+}): React.JSX.Element {
   const total = conversao?.total.leads ?? 0;
 
   return (
@@ -44,7 +52,13 @@ export function LeadSourceSplit({ conversao }: { readonly conversao: Conversao |
                       aria-hidden="true"
                       className={`size-2 shrink-0 rounded-full ${SOURCE_COLOR[grupo.chave ?? ''] ?? OTHER_COLOR}`}
                     />
-                    <span className="truncate">{grupo.nome}</span>
+                    {sourceHref === undefined || grupo.chave === undefined ? (
+                      <span className="truncate">{grupo.nome}</span>
+                    ) : (
+                      <Link to={sourceHref(grupo.chave)} className="truncate hover:text-brand-700 hover:underline">
+                        {grupo.nome}
+                      </Link>
+                    )}
                   </span>
                   <span className="shrink-0 font-semibold text-slate-900 tabular-nums">
                     {grupo.leads}

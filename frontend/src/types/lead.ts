@@ -68,4 +68,6 @@ export interface LeadFilters {
   readonly status: LeadStatus | '';
   readonly priority: LeadPriority | '';
   readonly city: string;
+  readonly segment: string;
+  readonly source: SourceType | '';
 }

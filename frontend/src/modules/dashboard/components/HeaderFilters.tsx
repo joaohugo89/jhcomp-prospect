@@ -5,6 +5,7 @@ import { SOURCE_TYPE_LABEL } from '../../../app/labels';
 import { buttonPrimary, card, input } from '../../../components/styles';
 import type { DashboardFilters } from '../../../services/crmService';
 import { SOURCE_TYPES, type SourceType } from '../../../types/company';
+import type { Teammate } from '../../../types/session';
 
 export const PRESETS: readonly number[] = [7, 30, 90];
 
@@ -17,6 +18,10 @@ interface HeaderFiltersProps {
   readonly onPreset: (days: number) => void;
   /** Atalho cujo período coincide com o aplicado; ausente é período personalizado. */
   readonly activePreset: number | undefined;
+  /** Membros ativos, para filtrar por responsável. */
+  readonly team: readonly Teammate[];
+  /** Quem está usando: vira a opção "Meus leads". */
+  readonly currentUserId: string;
 }
 
 const toolbarButton =
@@ -33,6 +38,8 @@ export function HeaderFilters({
   onApply,
   onPreset,
   activePreset,
+  team,
+  currentUserId,
 }: HeaderFiltersProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -55,7 +62,10 @@ export function HeaderFilters({
   }, [open]);
   const reversed = draft.from !== '' && draft.to !== '' && draft.from > draft.to;
   const invalid = draft.from === '' || draft.to === '' || reversed;
-  const extra = [draft.segment.trim(), draft.city.trim(), draft.source].filter((value) => value !== '').length;
+  const extra = [draft.segment.trim(), draft.city.trim(), draft.source, draft.assignee].filter(
+    (value) => value !== '',
+  ).length;
+  const others = team.filter((member) => member.userId !== currentUserId);
 
   return (
     <div className="relative flex items-center gap-2">
@@ -180,7 +190,24 @@ export function HeaderFilters({
               ))}
             </select>
           </Field>
-          <div className="flex items-end gap-2">
+          <Field label="Responsável">
+            <select
+              className={input}
+              value={draft.assignee}
+              onChange={(event) => {
+                onDraftChange({ ...draft, assignee: event.target.value });
+              }}
+            >
+              <option value="">Todos</option>
+              <option value={currentUserId}>Meus leads</option>
+              {others.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.displayName}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div className="flex items-end gap-2 sm:col-span-2">
             <button type="submit" className={`${buttonPrimary} w-full`} disabled={invalid}>
               Aplicar
             </button>

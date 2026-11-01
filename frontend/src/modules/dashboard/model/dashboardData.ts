@@ -2,7 +2,10 @@ import { SOURCE_TYPE_LABEL, STATUS_LABEL } from '../../../app/labels';
 import { SOURCE_TYPES } from '../../../types/company';
 import type {
   Activity,
+  AttentionSection,
+  DashboardAttention,
   DashboardConversion,
+  DashboardFunnel,
   DashboardSummary,
   DashboardTimeline,
   Granularity,
@@ -71,6 +74,8 @@ export interface DashboardData {
   readonly metricasAtuais: MetricasAtuais;
   /** Todas as etapas, na ordem do funil, inclusive as vazias. */
   readonly leadsPorStatus: readonly StatusLead[];
+  /** Empresas ativas sem segmento: a conversão por segmento fica incompleta. */
+  readonly empresasSemSegmento: number;
 }
 
 export function toDashboardData(response: DashboardSummary): DashboardData {
@@ -94,6 +99,7 @@ export function toDashboardData(response: DashboardSummary): DashboardData {
       nome: STATUS_LABEL[status],
       quantidade: summary.leadsByStatus[status] ?? 0,
     })),
+    empresasSemSegmento: summary.companiesWithoutSegment,
   };
 }
 
@@ -225,4 +231,90 @@ export function periodoAnterior(periodo: PeriodoSelecionado): PeriodoSelecionado
 
 function isoDate(epoch: number): string {
   return new Date(epoch).toISOString().slice(0, 10);
+}
+
+export interface ItemAtencao {
+  readonly leadId: string;
+  readonly empresa: string;
+  readonly status: LeadStatus;
+  readonly em: string;
+  readonly detalhe?: string;
+  readonly atrasada: boolean;
+}
+
+export interface SecaoAtencao {
+  readonly total: number;
+  readonly itens: readonly ItemAtencao[];
+}
+
+/** O que pede ação agora (doc 08 §4). */
+export interface Atencao {
+  readonly tarefas: SecaoAtencao;
+  readonly parados: SecaoAtencao;
+  readonly propostasFrias: SecaoAtencao;
+  readonly semTarefa: SecaoAtencao;
+}
+
+export function toAtencao(response: DashboardAttention): Atencao {
+  return {
+    tarefas: toSecao(response.tasks),
+    parados: toSecao(response.staleLeads),
+    propostasFrias: toSecao(response.quietProposals),
+    semTarefa: toSecao(response.withoutTask),
+  };
+}
+
+function toSecao(section: AttentionSection): SecaoAtencao {
+  return {
+    total: section.total,
+    itens: section.items.map((item) => ({
+      leadId: item.leadId,
+      empresa: item.companyName,
+      status: item.status,
+      em: item.at,
+      ...(item.detail === undefined ? {} : { detalhe: item.detail }),
+      atrasada: item.overdue,
+    })),
+  };
+}
+
+export interface EtapaFunil {
+  readonly status: LeadStatus;
+  readonly nome: string;
+  /** Leads da coorte que chegaram a esta etapa ou além. */
+  readonly alcancados: number;
+  /** Dos que chegaram à etapa anterior, quantos chegaram a esta; ausente sem amostra. */
+  readonly passagem?: number;
+  /** Média de dias de quem já saiu da etapa; ausente sem amostra. */
+  readonly mediaDias?: number;
+  readonly saidas: number;
+}
+
+export interface Funil {
+  readonly amostraMinima: number;
+  readonly coorte: number;
+  readonly etapas: readonly EtapaFunil[];
+}
+
+/**
+ * Funil de conversão. A passagem de uma etapa para a seguinte só tem
+ * percentual quando a anterior tem amostra mínima (D29): "1 de 1" seria 100%.
+ */
+export function toFunil(response: DashboardFunnel): Funil {
+  const { minimumSample, cohort, stages } = response.funnel;
+  return {
+    amostraMinima: minimumSample,
+    coorte: cohort,
+    etapas: stages.map((stage, index) => {
+      const anterior = index === 0 ? cohort : (stages[index - 1]?.reached ?? 0);
+      return {
+        status: stage.status,
+        nome: STATUS_LABEL[stage.status],
+        alcancados: stage.reached,
+        ...(index > 0 && anterior >= minimumSample ? { passagem: stage.reached / anterior } : {}),
+        ...(stage.avgDays === undefined ? {} : { mediaDias: stage.avgDays }),
+        saidas: stage.exits,
+      };
+    }),
+  };
 }

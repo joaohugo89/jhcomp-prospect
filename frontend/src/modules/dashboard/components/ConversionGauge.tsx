@@ -10,7 +10,8 @@ const ARC = Math.PI * RADIUS;
 /**
  * Lead → ganho: dos leads abertos no período, quantos hoje estão ganhos
  * (RF-071, D29). Abaixo da amostra mínima, mostra só as contagens: um
- * percentual com poucos leads engana.
+ * percentual com poucos leads engana. Medidor ao lado dos números, para o
+ * cartão ter a altura do que diz.
  */
 export function ConversionGauge({ conversao }: { readonly conversao: Conversao | undefined }): React.JSX.Element {
   const total = conversao?.total;
@@ -19,14 +20,14 @@ export function ConversionGauge({ conversao }: { readonly conversao: Conversao |
 
   return (
     <DashboardSection id="taxa-conversao" title="Taxa de conversão" description="Leads abertos no período → ganhos">
-      <div className="relative mx-auto mt-4 w-40">
-        <svg aria-hidden="true" viewBox="0 0 100 56" className="w-full overflow-visible">
+      <div className="mt-4 flex items-center gap-5">
+        <svg aria-hidden="true" viewBox="0 0 100 56" className="w-28 shrink-0 overflow-visible">
           {/* Trilho num tom claro da mesma rampa: a meia-lua lê como um medidor só. */}
           <path
             d="M 10 50 A 40 40 0 0 1 90 50"
             fill="none"
             className="stroke-brand-100"
-            strokeWidth={9}
+            strokeWidth={10}
             strokeLinecap="round"
           />
           {taxa !== undefined && taxa > 0 && (
@@ -34,27 +35,27 @@ export function ConversionGauge({ conversao }: { readonly conversao: Conversao |
               d="M 10 50 A 40 40 0 0 1 90 50"
               fill="none"
               className="stroke-brand-600"
-              strokeWidth={9}
+              strokeWidth={10}
               strokeLinecap="round"
               strokeDasharray={`${ARC * taxa} ${ARC}`}
             />
           )}
         </svg>
-        <div className="absolute inset-x-0 bottom-0 text-center">
-          <p className="text-2xl leading-none font-bold text-slate-900">
+        <div className="min-w-0">
+          <p className="text-3xl leading-none font-bold tracking-tight text-slate-900">
             {taxa === undefined ? '—' : `${percent.format(taxa * 100)}%`}
+          </p>
+          <p className="mt-1.5 text-xs text-slate-500">
+            {total === undefined
+              ? 'Carregando…'
+              : total.leads === 0
+                ? 'Nenhum lead aberto no período.'
+                : `${total.ganhos} de ${total.leads} ${total.leads === 1 ? 'lead' : 'leads'}${
+                    taxa === undefined ? ` · amostra pequena (mínimo ${conversao?.amostraMinima ?? 0})` : ''
+                  }`}
           </p>
         </div>
       </div>
-      <p className="mt-3 border-t border-slate-100 pt-3 text-center text-xs text-slate-500">
-        {total === undefined
-          ? 'Carregando…'
-          : total.leads === 0
-            ? 'Nenhum lead aberto no período.'
-            : `${total.ganhos} de ${total.leads} ${total.leads === 1 ? 'lead' : 'leads'}${
-                taxa === undefined ? ` · amostra pequena (mínimo ${conversao?.amostraMinima ?? 0})` : ''
-              }`}
-      </p>
     </DashboardSection>
   );
 }

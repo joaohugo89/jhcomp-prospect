@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 
 import { localDate } from '../../app/format';
 import { useLastReady, useLoad } from '../../app/useLoad';
@@ -6,14 +6,22 @@ import { Pagination } from '../../components/Pagination';
 import { LoadStateView } from '../../components/States';
 import {
   getDashboardActivity,
+  getDashboardAttention,
   getDashboardConversion,
+  getDashboardFunnel,
   getDashboardSummary,
   getDashboardTimeline,
   type DashboardFilters,
 } from '../../services/crmService';
+import { getTeam } from '../../services/teamService';
+import type { Session } from '../../types/session';
+import { AttentionPanel } from './components/AttentionPanel';
+import { ConversionFunnel } from './components/ConversionFunnel';
 import { ConversionGauge } from './components/ConversionGauge';
 import { ConversionReport } from './components/ConversionReport';
 import { DashboardHeader, DashboardLayout } from './components/DashboardLayout';
+import { DataQualityNotice } from './components/DataQualityNotice';
+import { Freshness } from './components/Freshness';
 import { HeaderFilters, PRESETS } from './components/HeaderFilters';
 import { KeyMetrics } from './components/KeyMetrics';
 import { LeadSourceSplit } from './components/LeadSourceSplit';
@@ -22,11 +30,12 @@ import { RecentActivityList } from './components/RecentActivityList';
 import { StatusProgressList } from './components/StatusProgressList';
 import {
   periodoAnterior,
+  toAtencao,
   toAtividade,
   toConversao,
   toDashboardData,
+  toFunil,
   toSerie,
-  type DashboardData,
 } from './model/dashboardData';
 
 /** Feed curto, da altura do funil ao lado; o resto fica nas páginas seguintes. */
@@ -35,6 +44,9 @@ const ACTIVITY_PAGE_SIZE = 6;
 /** Por dia, colunas finas demais deixam de ser legíveis. */
 const MAX_DAILY_DAYS = 92;
 
+/** Ao voltar para a aba depois disso, os números são recarregados sozinhos. */
+const STALE_AFTER_MS = 2 * 60_000;
+
 /**
  * Dashboard (RF-070, RF-071, doc 08 §4).
  *
@@ -42,20 +54,33 @@ const MAX_DAILY_DAYS = 92;
  * dados e os converte para o modelo de tela (`model/dashboardData`). Os
  * componentes em `components/` só apresentam o que recebem.
  */
-export function DashboardPage(): React.JSX.Element {
+export function DashboardPage({ session }: { readonly session: Session }): React.JSX.Element {
   // Rascunho editado no painel; `filters` é o que está aplicado.
   const [draft, setDraft] = useState(defaultFilters);
   const [filters, setFilters] = useState(draft);
   const [granularity, setGranularity] = useState<GranularityChoice>('AUTO');
-  const key = [filters.from, filters.to, filters.segment.trim(), filters.city.trim(), filters.source].join('|');
+  const key = [
+    filters.from,
+    filters.to,
+    filters.segment.trim(),
+    filters.city.trim(),
+    filters.source,
+    filters.assignee,
+  ].join('|');
 
   // Mesmo tamanho, imediatamente antes: base da variação mostrada no destaque.
   const anterior = periodoAnterior({ de: filters.from, ate: filters.to });
   const previousFilters = { ...filters, from: anterior.de, to: anterior.ate };
 
-  const [summary, reloadSummary] = useLoad(key, (signal) => getDashboardSummary(filters, signal));
-  const [previous] = useLoad(`prev|${key}`, (signal) => getDashboardSummary(previousFilters, signal));
-  const [conversion] = useLoad(key, (signal) => getDashboardConversion(filters, signal));
+  const [summary, reloadSummary] = useLoad(key, async (signal) => ({
+    response: await getDashboardSummary(filters, signal),
+    receivedAt: Date.now(),
+  }));
+  const [previous, reloadPrevious] = useLoad(`prev|${key}`, (signal) => getDashboardSummary(previousFilters, signal));
+  const [conversion, reloadConversion] = useLoad(key, (signal) => getDashboardConversion(filters, signal));
+  const [attention, reloadAttention] = useLoad(key, (signal) => getDashboardAttention(filters, signal));
+  const [funnel, reloadFunnel] = useLoad(key, (signal) => getDashboardFunnel(filters, signal));
+  const [team] = useLoad('team', (signal) => getTeam(signal));
 
   const dailyAllowed = days(filters) <= MAX_DAILY_DAYS;
   const unit = granularity === 'AUTO' || (granularity === 'DAY' && !dailyAllowed) ? undefined : granularity;
@@ -66,22 +91,77 @@ export function DashboardPage(): React.JSX.Element {
   const lastTimeline = useLastReady(timeline);
   const serie = lastTimeline === null ? null : toSerie(lastTimeline);
 
+  // Quando o resumo chegou: "Atualizado às" e referência para "há N dias". Vem do
+  // próprio carregamento (fora da renderização, que precisa ser pura).
+  const loadedAt = summary.kind === 'ready' ? summary.data.receivedAt : null;
+  const [refreshRequestedAt, setRefreshRequestedAt] = useState(0);
+  const [activityToken, setActivityToken] = useState(0);
+  const refreshing = loadedAt === null || refreshRequestedAt > loadedAt;
+
+  function refresh(): void {
+    setRefreshRequestedAt(Date.now());
+    setActivityToken((token) => token + 1);
+    reloadSummary();
+    reloadPrevious();
+    reloadConversion();
+    reloadAttention();
+    reloadFunnel();
+    reloadTimeline();
+  }
+
+  const onVisible = useEffectEvent(() => {
+    if (document.visibilityState === 'visible' && loadedAt !== null && Date.now() - loadedAt > STALE_AFTER_MS) {
+      refresh();
+    }
+  });
+  useEffect(() => {
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  const filtersControl = (
+    <div className="flex flex-col items-end gap-1">
+      <Filters
+        filters={filters}
+        draft={draft}
+        onDraftChange={setDraft}
+        onFilters={setFilters}
+        team={team.kind === 'ready' ? team.data.content : []}
+        currentUserId={session.userId}
+      />
+      <Freshness loadedAt={loadedAt} refreshing={refreshing} onRefresh={refresh} />
+    </div>
+  );
+
   if (summary.kind !== 'ready') {
     return (
-      <DashboardShell filters={filters} draft={draft} onDraftChange={setDraft} onFilters={setFilters}>
+      <div className="space-y-6">
+        <DashboardHeader filters={filtersControl} />
         <LoadStateView state={summary} onRetry={reloadSummary} />
-      </DashboardShell>
+      </div>
     );
   }
 
-  const data: DashboardData = toDashboardData(summary.data);
+  const data = toDashboardData(summary.data.response);
   const previousData = previous.kind === 'ready' ? toDashboardData(previous.data).metricasPeriodo : undefined;
   const conversao = conversion.kind === 'ready' ? toConversao(conversion.data) : undefined;
+  const now = loadedAt ?? 0;
+  const leadsHref = (status: string): string => leadsUrl(filters, { status });
+  const sourceHref = (source: string): string => leadsUrl(filters, { source });
 
   return (
     <DashboardLayout
       subtitle={`Visão geral da prospecção · ${dataCurta(data.periodo.de)} a ${dataCurta(data.periodo.ate)}`}
-      filters={<Filters filters={filters} draft={draft} onDraftChange={setDraft} onFilters={setFilters} />}
+      filters={filtersControl}
+      attention={
+        attention.kind === 'ready' ? (
+          <AttentionPanel atencao={toAtencao(attention.data)} now={now} />
+        ) : (
+          <LoadStateView state={attention} onRetry={reloadAttention} />
+        )
+      }
       hero={
         <PerformanceHero
           atual={data.metricasPeriodo}
@@ -98,15 +178,25 @@ export function DashboardPage(): React.JSX.Element {
       highlights={
         <>
           <ConversionGauge conversao={conversao} />
-          <LeadSourceSplit conversao={conversao} />
+          <LeadSourceSplit conversao={conversao} sourceHref={sourceHref} />
+          <DataQualityNotice semSegmento={data.empresasSemSegmento} />
         </>
       }
-      metrics={<KeyMetrics periodo={data.metricasPeriodo} atuais={data.metricasAtuais} />}
-      funnel={<StatusProgressList itens={data.leadsPorStatus} filtrado={isFiltered(filters)} />}
+      metrics={<KeyMetrics periodo={data.metricasPeriodo} atuais={data.metricasAtuais} leadsHref={leadsHref} />}
+      funnel={
+        <>
+          <StatusProgressList itens={data.leadsPorStatus} filtrado={isFiltered(filters)} leadsHref={leadsHref} />
+          {funnel.kind === 'ready' ? (
+            <ConversionFunnel funil={toFunil(funnel.data)} leadsHref={leadsHref} />
+          ) : (
+            <LoadStateView state={funnel} onRetry={reloadFunnel} />
+          )}
+        </>
+      }
       activity={
         <div className="space-y-3">
           {/* Trocar os filtros recria a lista (key), voltando à primeira página. */}
-          <RecentActivityPanel key={key} filters={filters} />
+          <RecentActivityPanel key={key} filters={filters} token={activityToken} />
           {conversao !== undefined && <ConversionReport conversao={conversao} />}
         </div>
       }
@@ -119,9 +209,11 @@ interface FiltersProps {
   readonly draft: DashboardFilters;
   readonly onDraftChange: (next: DashboardFilters) => void;
   readonly onFilters: (next: DashboardFilters) => void;
+  readonly team: React.ComponentProps<typeof HeaderFilters>['team'];
+  readonly currentUserId: string;
 }
 
-function Filters({ filters, draft, onDraftChange, onFilters }: FiltersProps): React.JSX.Element {
+function Filters({ filters, draft, onDraftChange, onFilters, team, currentUserId }: FiltersProps): React.JSX.Element {
   return (
     <HeaderFilters
       draft={draft}
@@ -135,20 +227,9 @@ function Filters({ filters, draft, onDraftChange, onFilters }: FiltersProps): Re
         onFilters(next);
       }}
       activePreset={presetOf(filters)}
+      team={team}
+      currentUserId={currentUserId}
     />
-  );
-}
-
-/** Cabeçalho com filtros enquanto o resumo carrega ou falha: o operador ainda pode trocar o período. */
-function DashboardShell({
-  children,
-  ...props
-}: FiltersProps & { readonly children: React.ReactNode }): React.JSX.Element {
-  return (
-    <div className="space-y-6">
-      <DashboardHeader filters={<Filters {...props} />} />
-      {children}
-    </div>
   );
 }
 
@@ -157,10 +238,17 @@ function DashboardShell({
  *
  * Ao trocar de página, a página atual continua na tela, atenuada, até a nova
  * chegar (`useLastReady`): a rolagem não pula e o foco fica no botão clicado.
+ * `token` muda quando o operador pede para atualizar o dashboard.
  */
-function RecentActivityPanel({ filters }: { readonly filters: DashboardFilters }): React.JSX.Element {
+function RecentActivityPanel({
+  filters,
+  token,
+}: {
+  readonly filters: DashboardFilters;
+  readonly token: number;
+}): React.JSX.Element {
   const [page, setPage] = useState(0);
-  const [state, reload] = useLoad(`${page}`, (signal) =>
+  const [state, reload] = useLoad(`${page}|${token}`, (signal) =>
     getDashboardActivity(filters, page, ACTIVITY_PAGE_SIZE, signal),
   );
   const shown = useLastReady(state);
@@ -185,6 +273,27 @@ function RecentActivityPanel({ filters }: { readonly filters: DashboardFilters }
   );
 }
 
+/**
+ * Lista de leads com os filtros do dashboard (drill-down). O período não vai:
+ * a lista mostra quem está na etapa agora, e não tem filtro de data.
+ */
+function leadsUrl(filters: DashboardFilters, extra: Readonly<Record<string, string>>): string {
+  const params = new URLSearchParams();
+  const base: Readonly<Record<string, string>> = {
+    segment: filters.segment.trim(),
+    city: filters.city.trim(),
+    source: filters.source,
+    ...extra,
+  };
+  for (const [name, value] of Object.entries(base)) {
+    if (value !== '') {
+      params.set(name, value);
+    }
+  }
+  const query = params.toString();
+  return query === '' ? '/leads' : `/leads?${query}`;
+}
+
 /** Últimos `count` dias, contando hoje. */
 function lastDays(count: number): Pick<DashboardFilters, 'from' | 'to'> {
   const today = new Date();
@@ -195,12 +304,14 @@ function lastDays(count: number): Pick<DashboardFilters, 'from' | 'to'> {
 
 /** 30 dias é o padrão do servidor (D25). */
 function defaultFilters(): DashboardFilters {
-  return { ...lastDays(30), segment: '', city: '', source: '' };
+  return { ...lastDays(30), segment: '', city: '', source: '', assignee: '' };
 }
 
-/** O funil ignora o período; só os outros filtros o esvaziam. */
+/** O funil de agora ignora o período; só os outros filtros o esvaziam. */
 function isFiltered(filters: DashboardFilters): boolean {
-  return filters.segment.trim() !== '' || filters.city.trim() !== '' || filters.source !== '';
+  return (
+    filters.segment.trim() !== '' || filters.city.trim() !== '' || filters.source !== '' || filters.assignee !== ''
+  );
 }
 
 /** Atalho cujo período coincide com o aplicado, para marcá-lo como ativo. */

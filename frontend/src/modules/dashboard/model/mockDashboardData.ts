@@ -1,4 +1,12 @@
-import type { AtividadeRecente, Conversao, DashboardData, MetricasPeriodo, SerieTemporal } from './dashboardData';
+import type {
+  Atencao,
+  AtividadeRecente,
+  Conversao,
+  DashboardData,
+  Funil,
+  MetricasPeriodo,
+  SerieTemporal,
+} from './dashboardData';
 
 /**
  * Dados simulados do dashboard, para testes e para a pré-visualização em
@@ -29,6 +37,7 @@ export const mockDashboardData: DashboardData = {
     { status: 'LOST', nome: 'Perdido', quantidade: 0 },
     { status: 'DO_NOT_CONTACT', nome: 'Não contatar', quantidade: 0 },
   ],
+  empresasSemSegmento: 6,
 };
 
 const LEAD_A = '00000000-0000-4000-8000-00000000000a';
@@ -93,4 +102,77 @@ export const mockConversao: Conversao = {
     { nome: 'Sem segmento', leads: 13, contatados: 4, ganhos: 1, amostraSuficiente: true },
   ],
   total: { leads: 24, contatados: 9, ganhos: 2, amostraSuficiente: true },
+};
+
+/** Referência das datas de `mockAtencao`. */
+export const MOCK_NOW = Date.parse('2026-11-06T15:00:00Z');
+
+export const mockAtencao: Atencao = {
+  tarefas: {
+    total: 2,
+    itens: [
+      {
+        leadId: LEAD_B,
+        empresa: 'Padaria Modelo',
+        status: 'CONTACTED',
+        em: '2026-11-04T13:00:00Z',
+        detalhe: 'Enviar orçamento',
+        atrasada: true,
+      },
+      {
+        leadId: LEAD_C,
+        empresa: 'Oficina Demonstração',
+        status: 'QUALIFIED',
+        em: '2026-11-06T20:00:00Z',
+        detalhe: 'Ligar para o responsável',
+        atrasada: false,
+      },
+    ],
+  },
+  parados: {
+    total: 1,
+    itens: [
+      {
+        leadId: LEAD_C,
+        empresa: 'Oficina Demonstração',
+        status: 'QUALIFIED',
+        em: '2026-10-27T12:00:00Z',
+        atrasada: false,
+      },
+    ],
+  },
+  propostasFrias: { total: 0, itens: [] },
+  semTarefa: {
+    total: 1,
+    itens: [
+      {
+        leadId: LEAD_A,
+        empresa: 'Barbearia Exemplo',
+        status: 'IN_CONVERSATION',
+        em: '2026-11-03T12:00:00Z',
+        atrasada: false,
+      },
+    ],
+  },
+};
+
+export const mockFunil: Funil = {
+  amostraMinima: 10,
+  coorte: 24,
+  etapas: [
+    { status: 'NEW', nome: 'Novo', alcancados: 24, mediaDias: 1.5, saidas: 18 },
+    { status: 'QUALIFIED', nome: 'Qualificado', alcancados: 18, passagem: 0.75, mediaDias: 2.4, saidas: 12 },
+    {
+      status: 'CONTACT_APPROVED',
+      nome: 'Contato aprovado',
+      alcancados: 12,
+      passagem: 0.667,
+      mediaDias: 1.1,
+      saidas: 10,
+    },
+    { status: 'CONTACTED', nome: 'Contatado', alcancados: 9, passagem: 0.75, saidas: 7 },
+    { status: 'IN_CONVERSATION', nome: 'Em conversa', alcancados: 6, saidas: 5 },
+    { status: 'PROPOSAL_SENT', nome: 'Proposta enviada', alcancados: 5, saidas: 3 },
+    { status: 'WON', nome: 'Ganho', alcancados: 2, saidas: 0 },
+  ],
 };

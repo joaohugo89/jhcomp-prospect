@@ -7,17 +7,30 @@ import { MetricGrid, type MetricCardProps } from './MetricCard';
 export function KeyMetrics({
   periodo,
   atuais,
+  leadsHref,
 }: {
   readonly periodo: MetricasPeriodo;
   readonly atuais: MetricasAtuais;
+  /** Lista de leads numa etapa, com os filtros do dashboard; ausente na pré-visualização. */
+  readonly leadsHref?: (status: string) => string;
 }): React.JSX.Element {
+  const link = (href: string): { readonly href?: string } => (leadsHref === undefined ? {} : { href });
   const metricas: readonly MetricCardProps[] = [
-    contagem('Empresas', periodo.empresasAdicionadas, 'adicionadas no período', Building, 'brand'),
+    {
+      ...contagem('Empresas', periodo.empresasAdicionadas, 'adicionadas no período', Building, 'brand'),
+      ...link('/companies'),
+    },
     contagem('Contatos', periodo.contatosRegistrados, 'registrados no período', PhoneOutgoing, 'sky'),
-    contagem('Leads ativos', atuais.leadsAtivos, 'em aberto, agora', Users, 'indigo'),
-    contagem('Propostas', atuais.propostasEmAberto, 'em aberto, agora', FileText, 'violet'),
-    contagem('Tarefas', atuais.tarefasAbertas, 'abertas, agora', ListTodo, 'slate'),
-    contagem('Atrasadas', atuais.tarefasAtrasadas, 'tarefas com prazo vencido', AlarmClock, 'slate', true),
+    { ...contagem('Leads ativos', atuais.leadsAtivos, 'em aberto, agora', Users, 'indigo'), ...link('/pipeline') },
+    {
+      ...contagem('Propostas', atuais.propostasEmAberto, 'em aberto, agora', FileText, 'violet'),
+      ...link(leadsHref?.('PROPOSAL_SENT') ?? ''),
+    },
+    { ...contagem('Tarefas', atuais.tarefasAbertas, 'abertas, agora', ListTodo, 'slate'), ...link('#atencao') },
+    {
+      ...contagem('Atrasadas', atuais.tarefasAtrasadas, 'tarefas com prazo vencido', AlarmClock, 'slate', true),
+      ...link('#atencao'),
+    },
   ];
   return <MetricGrid titulo="Métricas-chave" legenda="Período e situação de agora" metricas={metricas} />;
 }

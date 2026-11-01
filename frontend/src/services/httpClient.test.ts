@@ -76,9 +76,7 @@ describe('httpClient', () => {
       ),
     );
 
-    const error = await request('/auth/login', { method: 'POST', body: {} }).catch(
-      (cause: unknown) => cause,
-    );
+    const error = await request('/auth/login', { method: 'POST', body: {} }).catch((cause: unknown) => cause);
 
     expect(error).toBeInstanceOf(HttpError);
     const httpError = error as HttpError;

@@ -1,21 +1,10 @@
-import type {
-  Company,
-  CompanyFilters,
-  CompanyInput,
-  DuplicateCandidate,
-  Source,
-  SourceInput,
-} from '../types/company';
+import type { Company, CompanyFilters, CompanyInput, DuplicateCandidate, Source, SourceInput } from '../types/company';
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
 /** Empresas (doc 05 §4). A organização vem da sessão no backend, nunca daqui. */
 
-export function listCompanies(
-  filters: CompanyFilters,
-  page: number,
-  signal?: AbortSignal,
-): Promise<Page<Company>> {
+export function listCompanies(filters: CompanyFilters, page: number, signal?: AbortSignal): Promise<Page<Company>> {
   const query = toQuery({
     search: filters.search.trim(),
     segment: filters.segment.trim(),

@@ -1,15 +1,21 @@
+import { AttentionPanel } from './components/AttentionPanel';
+import { ConversionFunnel } from './components/ConversionFunnel';
 import { ConversionGauge } from './components/ConversionGauge';
 import { ConversionReport } from './components/ConversionReport';
 import { DashboardLayout } from './components/DashboardLayout';
+import { DataQualityNotice } from './components/DataQualityNotice';
 import { KeyMetrics } from './components/KeyMetrics';
 import { LeadSourceSplit } from './components/LeadSourceSplit';
 import { PerformanceHero } from './components/PerformanceHero';
 import { RecentActivityList } from './components/RecentActivityList';
 import { StatusProgressList } from './components/StatusProgressList';
 import {
+  MOCK_NOW,
+  mockAtencao,
   mockAtividadesRecentes,
   mockConversao,
   mockDashboardData,
+  mockFunil,
   mockMetricasAnteriores,
   mockSerie,
 } from './model/mockDashboardData';
@@ -27,6 +33,7 @@ export function DashboardPreviewPage(): React.JSX.Element {
       filters={
         <p className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900">Pré-visualização</p>
       }
+      attention={<AttentionPanel atencao={mockAtencao} now={MOCK_NOW} />}
       hero={
         <PerformanceHero
           atual={data.metricasPeriodo}
@@ -43,10 +50,16 @@ export function DashboardPreviewPage(): React.JSX.Element {
         <>
           <ConversionGauge conversao={mockConversao} />
           <LeadSourceSplit conversao={mockConversao} />
+          <DataQualityNotice semSegmento={data.empresasSemSegmento} />
         </>
       }
       metrics={<KeyMetrics periodo={data.metricasPeriodo} atuais={data.metricasAtuais} />}
-      funnel={<StatusProgressList itens={data.leadsPorStatus} filtrado={false} />}
+      funnel={
+        <>
+          <StatusProgressList itens={data.leadsPorStatus} filtrado={false} />
+          <ConversionFunnel funil={mockFunil} leadsHref={() => '/leads'} />
+        </>
+      }
       activity={
         <div className="space-y-3">
           <section aria-labelledby="atividade" className="space-y-3">

@@ -10,6 +10,8 @@ export function listLeads(filters: LeadFilters, page: number, signal?: AbortSign
     status: filters.status,
     priority: filters.priority,
     city: filters.city.trim(),
+    segment: filters.segment.trim(),
+    source: filters.source,
     page,
   });
   return request<Page<Lead>>(`/leads${query}`, signal ? { signal } : {});
@@ -37,6 +39,11 @@ export function changeLeadStatus(
     method: 'PATCH',
     body: { status, reason: reason.trim() === '' ? undefined : reason.trim(), contactConfirmed },
   });
+}
+
+/** Define o responsável; `null` remove. O servidor exige membro ativo da organização. */
+export function assignLead(id: string, assignedUserId: string | null): Promise<Lead> {
+  return request<Lead>(`/leads/${encodeURIComponent(id)}`, { method: 'PATCH', body: { assignedUserId } });
 }
 
 export function changeLeadPriority(id: string, priority: LeadPriority): Promise<Lead> {

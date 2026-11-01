@@ -103,6 +103,50 @@ export interface DashboardSummary {
     readonly wonValue: number;
     readonly openTasks: number;
     readonly overdueTasks: number;
+    /** Empresas ativas sem segmento: qualidade dos dados. */
+    readonly companiesWithoutSegment: number;
+  };
+}
+
+export interface AttentionItem {
+  readonly leadId: string;
+  readonly companyName: string;
+  readonly status: LeadStatus;
+  /** Prazo da tarefa, entrada na etapa, último toque ou última atualização, conforme a seção. */
+  readonly at: string;
+  readonly detail?: string;
+  readonly overdue: boolean;
+}
+
+export interface AttentionSection {
+  readonly total: number;
+  readonly items: readonly AttentionItem[];
+}
+
+export interface DashboardAttention {
+  readonly tasks: AttentionSection;
+  readonly staleLeads: AttentionSection;
+  readonly quietProposals: AttentionSection;
+  readonly withoutTask: AttentionSection;
+}
+
+export interface FunnelStage {
+  readonly status: LeadStatus;
+  /** Leads da coorte que chegaram a esta etapa ou além. */
+  readonly reached: number;
+  /** Quantos já saíram da etapa: base da média de dias. */
+  readonly exits: number;
+  readonly avgDays?: number;
+  readonly sufficientSample: boolean;
+}
+
+export interface DashboardFunnel {
+  readonly from: string;
+  readonly to: string;
+  readonly funnel: {
+    readonly minimumSample: number;
+    readonly cohort: number;
+    readonly stages: readonly FunnelStage[];
   };
 }
 

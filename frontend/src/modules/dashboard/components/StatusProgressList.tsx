@@ -28,10 +28,13 @@ const STAGE_COLOR: Readonly<Record<LeadStatus, string>> = {
 export function StatusProgressList({
   itens,
   filtrado,
+  leadsHref,
 }: {
   readonly itens: readonly StatusLead[];
   /** Com segmento, cidade ou origem escolhidos, "vazio" não quer dizer "sem leads". */
   readonly filtrado: boolean;
+  /** Drill-down: a etapa abre a lista de leads nela; ausente na pré-visualização. */
+  readonly leadsHref?: (status: string) => string;
 }): React.JSX.Element {
   const total = itens.reduce((soma, item) => soma + item.quantidade, 0);
   const comLead = itens.filter((item) => item.quantidade > 0);
@@ -78,7 +81,13 @@ export function StatusProgressList({
               >
                 <dt className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-700">
                   <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${STAGE_COLOR[item.status]}`} />
-                  <span className="truncate">{item.nome}</span>
+                  {leadsHref === undefined ? (
+                    <span className="truncate">{item.nome}</span>
+                  ) : (
+                    <Link to={leadsHref(item.status)} className="truncate hover:text-brand-700 hover:underline">
+                      {item.nome}
+                    </Link>
+                  )}
                 </dt>
                 <dd className="shrink-0 text-xs font-bold text-slate-900 tabular-nums">
                   {item.quantidade}

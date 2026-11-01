@@ -1,5 +1,6 @@
 import { TriangleAlert, type LucideIcon } from 'lucide-react';
 
+import { Link } from '../../../app/router';
 import { card } from '../../../components/styles';
 
 export type Tom = 'brand' | 'sky' | 'indigo' | 'violet' | 'emerald' | 'slate';
@@ -19,6 +20,8 @@ export interface MetricCardProps {
   readonly estado: EstadoMetrica;
   readonly icone: LucideIcon;
   readonly tom: Tom;
+  /** Drill-down: o cartão inteiro leva à lista por trás do número. */
+  readonly href?: string;
 }
 
 const ICON_TONE: Readonly<Record<Tom | 'amber', string>> = {
@@ -57,11 +60,32 @@ export function MetricGrid({
 }
 
 /** Um indicador: título e ícone, valor e subtítulo. Vive dentro de um `<dl>` (`MetricGrid`). */
-export function MetricCard({ titulo, valor, subtitulo, estado, icone: Icon, tom }: MetricCardProps): React.JSX.Element {
+export function MetricCard({
+  titulo,
+  valor,
+  subtitulo,
+  estado,
+  icone: Icon,
+  tom,
+  href,
+}: MetricCardProps): React.JSX.Element {
   const alerta = estado === 'alerta';
   return (
-    <div className={`${card} relative flex flex-col p-4 ${alerta ? 'border-amber-300 ring-1 ring-amber-200' : ''}`}>
-      <dt className="pr-9 text-xs font-medium text-slate-500">{titulo}</dt>
+    <div
+      className={`${card} relative flex flex-col p-4 ${alerta ? 'border-amber-300 ring-1 ring-amber-200' : ''} ${
+        href === undefined ? '' : 'transition-shadow focus-within:ring-2 focus-within:ring-brand-500 hover:shadow-md'
+      }`}
+    >
+      <dt className="pr-9 text-xs font-medium text-slate-500">
+        {href === undefined ? (
+          titulo
+        ) : (
+          // Link "esticado": o pseudo-elemento cobre o cartão, e o nome acessível é o título.
+          <Link to={href} className="outline-none after:absolute after:inset-0 after:content-['']">
+            {titulo}
+          </Link>
+        )}
+      </dt>
       {/* Número isolado em figuras proporcionais; tabular só em colunas. */}
       <dd
         className={`mt-2 text-2xl font-bold tracking-tight ${estado === 'vazio' ? 'text-slate-300' : 'text-slate-900'}`}

@@ -2,7 +2,9 @@ import type { SourceType } from '../types/company';
 import type {
   Activity,
   BoardColumn,
+  DashboardAttention,
   DashboardConversion,
+  DashboardFunnel,
   DashboardSummary,
   DashboardTimeline,
   Granularity,
@@ -87,14 +89,16 @@ export interface DashboardFilters {
   readonly segment: string;
   readonly city: string;
   readonly source: SourceType | '';
+  /** Id do responsável; vazio é todos. */
+  readonly assignee: string;
 }
 
 function dashboardQuery(
   filters: DashboardFilters,
   extra: Readonly<Record<string, string | number | undefined>> = {},
 ): string {
-  const { from, to, segment, city, source } = filters;
-  return toQuery({ from, to, segment: segment.trim(), city: city.trim(), source, ...extra });
+  const { from, to, segment, city, source, assignee } = filters;
+  return toQuery({ from, to, segment: segment.trim(), city: city.trim(), source, assignee, ...extra });
 }
 
 export function getDashboardSummary(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardSummary> {
@@ -111,6 +115,18 @@ export function getDashboardTimeline(
     `/dashboard/timeline${dashboardQuery(filters, { granularity })}`,
     signal ? { signal } : {},
   );
+}
+
+/** O que pede ação agora; os 5 mais urgentes de cada seção. */
+export function getDashboardAttention(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardAttention> {
+  return request<DashboardAttention>(
+    `/dashboard/attention${dashboardQuery(filters, { limit: 5 })}`,
+    signal ? { signal } : {},
+  );
+}
+
+export function getDashboardFunnel(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardFunnel> {
+  return request<DashboardFunnel>(`/dashboard/funnel${dashboardQuery(filters)}`, signal ? { signal } : {});
 }
 
 export function getDashboardConversion(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardConversion> {
