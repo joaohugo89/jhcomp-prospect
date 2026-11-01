@@ -73,6 +73,9 @@ public class MembershipUserDetailsService implements UserDetailsService {
                 membership.getUser().getEmail(),
                 membership.getUser().getDisplayName(),
                 membership.getRole(),
+                membership.getUser().isPasswordChangeRequired(),
+                // Preenchido pelo login, ao gravar o principal na sessao.
+                null,
                 membership.getUser().getPasswordHash());
     }
 

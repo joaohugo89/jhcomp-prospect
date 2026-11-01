@@ -97,4 +97,30 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
               and m.user.status = com.jhcomp.prospect.identity.domain.UserStatus.ACTIVE
             """)
     boolean existsActiveMember(@Param("organizationId") UUID organizationId, @Param("userId") UUID userId);
+
+    /** Membros da organizacao em qualquer estado, para a tela de administracao. */
+    @Query("""
+            select m from OrganizationMemberEntity m
+            join fetch m.user u
+            where m.organization.id = :organizationId
+            order by m.createdAt asc
+            """)
+    Page<OrganizationMemberEntity> findAllByOrganization(@Param("organizationId") UUID organizationId, Pageable pageable);
+
+    /** Administradores ativos da organizacao, com conta ativa. */
+    @Query("""
+            select count(m) from OrganizationMemberEntity m
+            where m.organization.id = :organizationId
+              and m.role = com.jhcomp.prospect.identity.domain.OrganizationRole.ADMIN
+              and m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE
+              and m.user.status = com.jhcomp.prospect.identity.domain.UserStatus.ACTIVE
+            """)
+    long countActiveAdmins(@Param("organizationId") UUID organizationId);
+
+    /** Associacoes do usuario em organizacoes diferentes da informada, em qualquer estado. */
+    @Query("""
+            select count(m) > 0 from OrganizationMemberEntity m
+            where m.user.id = :userId and m.organization.id <> :organizationId
+            """)
+    boolean existsInOtherOrganization(@Param("userId") UUID userId, @Param("organizationId") UUID organizationId);
 }

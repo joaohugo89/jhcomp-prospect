@@ -36,6 +36,12 @@ public class MemberQueryService {
                 organizationContext.requireOrganizationId(), MemberStatus.ACTIVE, pageable);
     }
 
+    /** Ativos e revogados, para o administrador poder reativar acesso. */
+    @Transactional(readOnly = true)
+    public Page<OrganizationMemberEntity> listAllMembers(Pageable pageable) {
+        return memberRepository.findAllByOrganization(organizationContext.requireOrganizationId(), pageable);
+    }
+
     /**
      * Membro por id, restrito a organizacao ativa.
      *

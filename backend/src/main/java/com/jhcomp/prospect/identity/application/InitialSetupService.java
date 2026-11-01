@@ -1,5 +1,7 @@
 package com.jhcomp.prospect.identity.application;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,16 +32,19 @@ class InitialSetupService {
     private final UserRepository userRepository;
     private final OrganizationMemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Clock clock;
 
     InitialSetupService(
             OrganizationRepository organizationRepository,
             UserRepository userRepository,
             OrganizationMemberRepository memberRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            Clock clock) {
         this.organizationRepository = organizationRepository;
         this.userRepository = userRepository;
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
+        this.clock = clock;
     }
 
     boolean hasOrganization() {
@@ -53,11 +58,13 @@ class InitialSetupService {
     /** Organizacao, administrador e associacao na mesma transacao: ou os tres, ou nenhum. */
     @Transactional
     void create(String organizationName, String slug, String normalizedEmail, String rawPassword) {
+        Instant now = clock.instant();
         OrganizationEntity organization = organizationRepository.save(
                 new OrganizationEntity(UUID.randomUUID(), organizationName, slug, OrganizationStatus.ACTIVE));
         UserEntity admin = userRepository.save(new UserEntity(
-                UUID.randomUUID(), normalizedEmail, passwordEncoder.encode(rawPassword), "Administrador", UserStatus.ACTIVE));
+                UUID.randomUUID(), normalizedEmail, passwordEncoder.encode(rawPassword), "Administrador", UserStatus.ACTIVE,
+                false, now));
         memberRepository.save(new OrganizationMemberEntity(
-                UUID.randomUUID(), organization, admin, OrganizationRole.ADMIN, MemberStatus.ACTIVE));
+                UUID.randomUUID(), organization, admin, OrganizationRole.ADMIN, MemberStatus.ACTIVE, now));
     }
 }

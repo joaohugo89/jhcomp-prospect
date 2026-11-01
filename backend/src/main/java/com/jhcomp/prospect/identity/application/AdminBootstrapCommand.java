@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import com.jhcomp.prospect.identity.domain.PasswordPolicy;
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 
 /**
@@ -27,8 +28,6 @@ import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 @Profile("bootstrap")
 @Order(0)
 class AdminBootstrapCommand implements ApplicationRunner {
-
-    static final int MIN_PASSWORD_LENGTH = 12;
 
     private static final Logger log = LoggerFactory.getLogger(AdminBootstrapCommand.class);
 
@@ -56,10 +55,10 @@ class AdminBootstrapCommand implements ApplicationRunner {
         if (email.isBlank() || !email.contains("@")) {
             throw new IllegalStateException("BOOTSTRAP_ADMIN_EMAIL must be a valid e-mail");
         }
-        if (adminPassword.length() < MIN_PASSWORD_LENGTH) {
-            throw new IllegalStateException(
-                    "BOOTSTRAP_ADMIN_PASSWORD must have at least " + MIN_PASSWORD_LENGTH + " characters");
-        }
+        // Mesma politica da troca de senha na aplicacao (D28).
+        PasswordPolicy.violation(adminPassword).ifPresent(violation -> {
+            throw new IllegalStateException("BOOTSTRAP_ADMIN_PASSWORD: " + violation);
+        });
         if (setup.hasOrganization()) {
             throw new IllegalStateException("Database already has an organization: bootstrap runs only once");
         }

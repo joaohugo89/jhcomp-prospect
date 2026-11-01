@@ -17,10 +17,13 @@ public record AuthenticatedUserResponse(
         String email,
         String displayName,
         UUID organizationId,
-        OrganizationRole role) {
+        OrganizationRole role,
+        /** Senha temporaria: a interface leva direto a troca de senha (D28). */
+        boolean passwordChangeRequired) {
 
     public static AuthenticatedUserResponse from(AuthenticatedUser user) {
         return new AuthenticatedUserResponse(
-                user.userId(), user.email(), user.displayName(), user.organizationId(), user.role());
+                user.userId(), user.email(), user.displayName(), user.organizationId(), user.role(),
+                user.passwordChangeRequired());
     }
 }

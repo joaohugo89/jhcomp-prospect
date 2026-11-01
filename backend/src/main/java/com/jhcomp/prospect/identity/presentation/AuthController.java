@@ -1,5 +1,8 @@
 package com.jhcomp.prospect.identity.presentation;
 
+import java.time.Clock;
+import java.time.Instant;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jhcomp.prospect.identity.application.MembershipUserDetailsService;
+import com.jhcomp.prospect.identity.application.PasswordService;
 import com.jhcomp.prospect.shared.audit.AuditAction;
 import com.jhcomp.prospect.shared.audit.AuditOutcome;
 import com.jhcomp.prospect.shared.audit.AuditService;
@@ -45,18 +49,24 @@ public class AuthController {
     private final LoginAttemptLimiter loginAttemptLimiter;
     private final OrganizationContext organizationContext;
     private final AuditService auditService;
+    private final PasswordService passwordService;
+    private final Clock clock;
 
     AuthController(
             AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
             LoginAttemptLimiter loginAttemptLimiter,
             OrganizationContext organizationContext,
-            AuditService auditService) {
+            AuditService auditService,
+            PasswordService passwordService,
+            Clock clock) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.loginAttemptLimiter = loginAttemptLimiter;
         this.organizationContext = organizationContext;
         this.auditService = auditService;
+        this.passwordService = passwordService;
+        this.clock = clock;
     }
 
     @PostMapping("/login")
@@ -102,19 +112,51 @@ public class AuthController {
         httpRequest.getSession(true);
 
         // O hash de senha nao e guardado na sessao.
-        Authentication storedAuthentication = new UsernamePasswordAuthenticationToken(
-                user.withoutCredentials(), null, authentication.getAuthorities());
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(storedAuthentication);
-        SecurityContextHolder.setContext(context);
-        securityContextRepository.saveContext(context, httpRequest, httpResponse);
+        storeInSession(user.forSession(clock.instant()), httpRequest, httpResponse);
 
         loginAttemptLimiter.recordSuccess(email, clientIp);
         auditService.record(
                 AuditService.AuditEntry.loginSuccess(user.organizationId(), user.userId(), clientIp));
 
         return ResponseEntity.ok(AuthenticatedUserResponse.from(user));
+    }
+
+    /**
+     * Troca da propria senha (D28). Unica rota, alem de {@code /auth/me} e
+     * logout, aberta a quem tem senha temporaria.
+     *
+     * <p>Usa o mesmo limitador do login: a senha atual e conferida aqui, e sem
+     * limite esta rota viraria um oraculo de senha para quem rouba a sessao.
+     */
+    @PostMapping("/password")
+    public AuthenticatedUserResponse changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
+        AuthenticatedUser user = organizationContext.requireCurrentUser();
+        String clientIp = ClientIpResolver.resolve(httpRequest);
+        if (!loginAttemptLimiter.tryAcquire(user.email(), clientIp)) {
+            throw new TooManyAttemptsException();
+        }
+
+        Instant changedAt = passwordService.changeOwnPassword(
+                user, request.currentPassword(), request.newPassword(), clientIp);
+        loginAttemptLimiter.recordSuccess(user.email(), clientIp);
+
+        // Novo id de sessao, como no login, e o principal com o instante da
+        // troca: as outras sessoes deste usuario caem, esta continua.
+        httpRequest.changeSessionId();
+        AuthenticatedUser updated = user.afterPasswordChange(changedAt);
+        storeInSession(updated, httpRequest, httpResponse);
+        return AuthenticatedUserResponse.from(updated);
+    }
+
+    private void storeInSession(AuthenticatedUser user, HttpServletRequest request, HttpServletResponse response) {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
     }
 
     /** Usuario e organizacao ativa da sessao corrente. */

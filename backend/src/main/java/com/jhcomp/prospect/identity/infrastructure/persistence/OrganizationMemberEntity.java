@@ -42,7 +42,7 @@ public class OrganizationMemberEntity extends AssignedIdEntity {
     @Column(nullable = false)
     private MemberStatus status;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     protected OrganizationMemberEntity() {
@@ -54,12 +54,24 @@ public class OrganizationMemberEntity extends AssignedIdEntity {
             OrganizationEntity organization,
             UserEntity user,
             OrganizationRole role,
-            MemberStatus status) {
+            MemberStatus status,
+            Instant now) {
         super(id);
         this.organization = organization;
         this.user = user;
         this.role = role;
         this.status = status;
+        this.createdAt = now;
+    }
+
+    /** Vale na requisicao seguinte do membro, pela revalidacao da sessao (D21). */
+    public void changeRole(OrganizationRole newRole) {
+        this.role = newRole;
+    }
+
+    /** Revogar encerra a sessao do membro na requisicao seguinte (D21). */
+    public void changeStatus(MemberStatus newStatus) {
+        this.status = newStatus;
     }
 
     public OrganizationEntity getOrganization() {
