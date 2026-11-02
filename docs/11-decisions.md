@@ -786,7 +786,7 @@ das regras, para que mudanca recusada nao apareca como feita.
 administrador ("esqueci a senha"), MFA, desabilitar a conta do usuario
 (`app_user.status`, que valeria para todas as organizacoes) e excluir membro.
 
-## D29 — Filtros e conversao do dashboard · Proposta (2026-11-06)
+## D29 — Filtros e conversao do dashboard · Aprovada (2026-11-06)
 
 O doc 08 §4 pede filtro por origem e o RF-071 pede taxas por origem e
 segmento "quando houver amostra suficiente", sem definir origem, coorte nem
@@ -822,7 +822,7 @@ colunas ficam finas demais; os valores tambem ficam numa tabela.
 **Fora do escopo:** taxa entre etapas (funil passo a passo) e comparacao com
 o periodo anterior.
 
-## D30 — Atencao, funil, responsavel e equipe no dashboard · Proposta (2026-11-06)
+## D30 — Atencao, funil, responsavel e equipe no dashboard · Aprovada (2026-11-06)
 
 O doc 08 §4 pede atividades recentes e tarefas pendentes; o RF-071, taxas
 claras. O dashboard so mostrava fotos e totais: nao dizia o que fazer nem
@@ -866,7 +866,7 @@ quem esta na etapa agora.
 e probabilidade por etapa, decisao propria); filtro por responsavel na lista
 de leads.
 
-## D31 — Lista de leads como fila de trabalho · Proposta (2026-11-06)
+## D31 — Lista de leads como fila de trabalho · Aprovada (2026-11-06)
 
 A lista de leads mostrava status e score; o detalhe espalhava o estado do lead
 em uns dez cartoes. Nenhum dos dois dizia o que fazer com o lead.
@@ -885,17 +885,24 @@ existindo para outros usos.
 grafia, e o filtro exigia a grafia exata. Agora o filtro e uma lista dos
 segmentos em uso, com contagem e a opcao "sem segmento"; a comparacao ignora
 caixa e espacos nas pontas em leads, empresas e dashboard; o cadastro sugere
-os segmentos existentes. O valor gravado continua como foi digitado.
+os segmentos existentes. Ao gravar (cadastro, edicao e importacao), o
+segmento perde espaco nas pontas e repetido, e adota a grafia que ja existe
+na organizacao ("barbearia " vira "Barbearia" se esta e usada); segmento novo
+fica como foi digitado. A V13 unificou uma vez as grafias ja gravadas pela
+mais usada (empate: ordem alfabetica), por organizacao.
 
 **Acoes em lote** (`/leads/bulk`). So responsavel e prioridade, ate 100
 leads, numa transacao: um id de outra organizacao responde 404 e nada muda.
 Mudar status fica fora: `CONTACTED` exige confirmar o contato lead a lead
 (regra 6) e os estados finais pedem confirmacao individual.
 
-**Visoes salvas** (`lead_view`, V12). Nome e query string da lista, por
-pessoa: nem o administrador ve as dos outros. Ate 20 por pessoa, nome unico
-sem distinguir caixa, consulta so com caracteres de URL (ate 500). A tela so
-aplica os filtros que conhece; valor desconhecido e ignorado.
+**Visoes salvas** (`lead_view`, V12). Nome e query string da lista. Privada:
+so o dono ve e apaga; nem o administrador ve as dos outros (ate 20 por
+pessoa). Compartilhada (V13): o administrador publica para a equipe, todos
+veem, so administrador apaga (ate 20 por organizacao); operador que tenta
+publicar ou apagar recebe 403. Nome unico sem distinguir caixa entre as
+privadas de cada pessoa e entre as compartilhadas da organizacao. Consulta so
+com caracteres de URL (ate 500); a tela so aplica os filtros que conhece.
 
 **Resumo e detalhe.** Clicar num lead abre um resumo ao lado (`/leads/{id}/summary`,
 contato da empresa e ultimas atividades), sem sair da lista. O detalhe ganha
@@ -906,5 +913,5 @@ abas. Anterior/proximo seguem a pagina da lista trabalhada (guardada na aba do
 navegador) e atalhos `n`, `t`, `j`, `k` valem fora de campo de texto.
 
 **Fora do escopo:** exportar a lista (dado pessoal: so com decisao propria,
-para administrador e com auditoria), visoes compartilhadas com a equipe e
-renomear segmento em massa.
+para administrador e com auditoria) e renomear um segmento para outro nome
+(a unificacao so junta grafias do mesmo nome).

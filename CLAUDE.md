@@ -55,6 +55,13 @@ já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
   com ela a sessão só acessa `/auth/me`, `/auth/logout` e `/auth/password`.
   Troca/redefinição de senha encerra as outras sessões (`credentials_changed_at`
   na revalidação D21). Ninguém altera a própria associação.
+- **D29** Dashboard: origem da empresa é a primeira proveniência; taxa só
+  com amostra mínima de 10. **D30** Atenção: parado 7 dias, proposta sem
+  contato 7, sem interação 14 (iguais no Kanban, lista e dashboard); lead em
+  `DO_NOT_CONTACT` nunca entra; `/team` só id e nome. **D31** Lista de leads é
+  fila de trabalho (`/leads/worklist`, módulo CRM); lote só responsável e
+  prioridade; visões privadas e compartilhadas (só admin publica/apaga);
+  segmento gravado na grafia já existente e comparado sem caixa.
 - **D16** 8 módulos, não 12: `enrichment` dentro de `company`, `organization`
   dentro de `identity`. As 4 camadas completas só em `company`, `lead`,
   `analysis` e `outreach`; `discovery` e `dashboard` são planos.

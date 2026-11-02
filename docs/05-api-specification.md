@@ -170,9 +170,9 @@ Contrato implementado na Etapa 4:
 | GET | `/leads/worklist` | Fila de trabalho: lista com responsável, valor, próxima tarefa e tempo na etapa (D31) |
 | GET | `/leads/{leadId}/summary` | Os mesmos campos de uma linha da fila, para um lead |
 | POST | `/leads/bulk` | Responsável ou prioridade de até 100 leads, tudo ou nada (D31) |
-| GET | `/leads/views` | Visões salvas de quem está usando |
-| POST | `/leads/views` | Salvar visão (`name`, `query`) |
-| DELETE | `/leads/views/{viewId}` | Apagar visão própria |
+| GET | `/leads/views` | Visões próprias e as compartilhadas com a equipe (`shared`, `canDelete`) |
+| POST | `/leads/views` | Salvar visão (`name`, `query`, `shared`; compartilhar só administrador) |
+| DELETE | `/leads/views/{viewId}` | Apagar visão própria; compartilhada só administrador |
 | GET | `/companies/segments` | Segmentos em uso, com quantas empresas, e quantas estão sem segmento |
 | GET | `/leads/{leadId}` | Detalhar |
 | PATCH | `/leads/{leadId}` | Atualizar dados permitidos |
