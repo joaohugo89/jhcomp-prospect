@@ -18,6 +18,8 @@ test('gera e aprova mensagem; pedido de nao contato bloqueia nova abordagem', as
   const leadId = leadUrl.split('/').pop() ?? '';
 
   // Rascunho sem analise: nasce em revisao e aprovar exige confirmar a revisao.
+  // Mensagens ficam numa aba do detalhe.
+  await page.getByRole('tab', { name: 'Mensagens' }).click();
   const messages = page.getByRole('region', { name: 'Mensagens' });
   await messages.getByRole('button', { name: 'Gerar rascunho' }).click();
   await expect(messages.getByText('Precisa de revisão')).toBeVisible();
@@ -38,6 +40,7 @@ test('gera e aprova mensagem; pedido de nao contato bloqueia nova abordagem', as
 
   // Na tela: canal bloqueado, nada a gerar e o registro de envio some.
   await page.goto(leadUrl);
+  await page.getByRole('tab', { name: 'Mensagens' }).click();
   await expect(messages.getByText(/Há pedido de não contato/)).toBeVisible();
   await expect(messages.getByRole('button', { name: 'Gerar novo rascunho' })).toBeDisabled();
   await expect(messages.getByRole('form', { name: 'Registrar envio' })).toHaveCount(0);

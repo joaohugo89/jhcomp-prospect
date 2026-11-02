@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
-import { fakeApi, json, lead, page, session } from './test/fakeApi';
+import { fakeApi, json, lead, page, session, leadListRoutes, worklistItem } from './test/fakeApi';
 
 const unauthenticated = (): Response => json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401);
 
@@ -32,12 +32,12 @@ describe('App', () => {
   it('autenticado, abre a lista de leads dentro da estrutura da aplicacao', async () => {
     fakeApi({
       'GET /auth/me': () => json(session),
-      'GET /leads': () => json(page([lead])),
+      ...leadListRoutes([worklistItem]),
     });
 
     render(<App />);
 
-    expect(await screen.findByRole('link', { name: 'Barbearia Ficticia' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Barbearia Ficticia' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Leads' })).toBeInTheDocument();
     const nav = screen.getByRole('navigation', { name: 'Principal' });
     expect(nav).toHaveTextContent('Empresas');
@@ -80,7 +80,7 @@ describe('App', () => {
   it('so o pipeline ocupa a tela inteira; as outras telas mantem a largura de leitura', async () => {
     fakeApi({
       'GET /auth/me': () => json(session),
-      'GET /leads': () => json(page([lead])),
+      ...leadListRoutes([worklistItem]),
       'GET /pipeline/board': () => json([]),
     });
 
@@ -98,7 +98,7 @@ describe('App', () => {
   it('operador nao ve o item de membros', async () => {
     fakeApi({
       'GET /auth/me': () => json({ ...session, role: 'OPERATOR' }),
-      'GET /leads': () => json(page([])),
+      ...leadListRoutes([]),
     });
 
     render(<App />);
@@ -115,7 +115,7 @@ describe('App', () => {
         authenticated = true;
         return json(session);
       },
-      'GET /leads': () => json(page([])),
+      ...leadListRoutes([]),
     });
 
     render(<App />);
@@ -201,7 +201,7 @@ describe('App', () => {
   it('navega pelo menu sem recarregar a pagina', async () => {
     fakeApi({
       'GET /auth/me': () => json(session),
-      'GET /leads': () => json(page([])),
+      ...leadListRoutes([]),
       'GET /companies': () => json(page([])),
     });
 

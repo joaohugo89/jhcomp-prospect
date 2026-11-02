@@ -5,12 +5,19 @@ import { formatDateTime, toInstant } from '../../app/format';
 import { useLoad } from '../../app/useLoad';
 import { FormField } from '../../components/FormField';
 import { LoadStateView } from '../../components/States';
-import { buttonSecondary, input } from '../../components/styles';
+import { buttonSecondary, card, input } from '../../components/styles';
 import { createTask, listTasks, updateTask } from '../../services/crmService';
 import type { Task } from '../../types/crm';
 
 /** Tarefas do lead (RF-042): abertas primeiro, como o servidor ordena. */
-export function TasksSection({ leadId }: { readonly leadId: string }): React.JSX.Element {
+export function TasksSection({
+  leadId,
+  onChanged,
+}: {
+  readonly leadId: string;
+  /** Tarefa criada ou concluída: quem mostra a próxima tarefa (resumo do lead) relê. */
+  readonly onChanged?: () => void;
+}): React.JSX.Element {
   const [state, reload] = useLoad(leadId, (signal) => listTasks(leadId, signal));
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -23,6 +30,7 @@ export function TasksSection({ leadId }: { readonly leadId: string }): React.JSX
     try {
       await updateTask(task, task.status === 'OPEN' ? 'DONE' : 'OPEN');
       reload();
+      onChanged?.();
     } catch (cause: unknown) {
       setError(actionErrorMessage(cause));
     } finally {
@@ -31,11 +39,17 @@ export function TasksSection({ leadId }: { readonly leadId: string }): React.JSX
   }
 
   return (
-    <section aria-labelledby="tarefas" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="tarefas" className="text-base font-semibold">
+    <section aria-labelledby="tarefas" className={`${card} @container p-5`}>
+      <h2 id="tarefas" className="text-sm font-semibold text-slate-900">
         Tarefas
       </h2>
-      <NewTaskForm leadId={leadId} onCreated={reload} />
+      <NewTaskForm
+        leadId={leadId}
+        onCreated={() => {
+          reload();
+          onChanged?.();
+        }}
+      />
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : state.data.content.length === 0 ? (
@@ -123,7 +137,8 @@ function NewTaskForm({
 
   return (
     <form
-      className="mt-3 grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end"
+      // Responde à largura do cartão (lateral estreita do lead), não à da tela.
+      className="mt-3 grid gap-3 @md:grid-cols-[2fr_1fr_auto] @md:items-end"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();

@@ -517,4 +517,21 @@ describe('Dashboard', () => {
       expect(calls.filter((call) => call.path === '/dashboard/attention').length).toBeGreaterThan(before);
     });
   });
+
+  it('tocar fora do painel de filtros fecha sem acionar o que esta embaixo', async () => {
+    routes();
+    render(<DashboardPage session={session} />);
+    await screen.findByRole('region', { name: 'Valor ganho' });
+
+    await userEvent.click(screen.getByRole('button', { name: /Filtros/ }));
+    expect(screen.getByRole('form', { name: 'Filtros' })).toBeInTheDocument();
+    const metrica = screen.getByRole('button', { name: 'Empresas adicionadas' });
+    const pressedBefore = metrica.getAttribute('aria-pressed');
+
+    // O fundo cobre a tela: o toque fecha o painel e não chega ao botão embaixo dele.
+    await userEvent.click(screen.getByTestId('fundo-filtros'));
+    expect(screen.queryByRole('form', { name: 'Filtros' })).not.toBeInTheDocument();
+    expect(metrica).toHaveAttribute('aria-pressed', pressedBefore ?? 'false');
+    expect(screen.queryByTestId('fundo-filtros')).not.toBeInTheDocument();
+  });
 });

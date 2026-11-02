@@ -5,7 +5,7 @@ import { formatCurrency, formatDateTime } from '../../app/format';
 import { useLoad } from '../../app/useLoad';
 import { FormField } from '../../components/FormField';
 import { LoadStateView } from '../../components/States';
-import { buttonPrimary, input } from '../../components/styles';
+import { buttonPrimary, card, input } from '../../components/styles';
 import { getDeal, updateDeal } from '../../services/crmService';
 import type { Deal } from '../../types/crm';
 import type { Lead } from '../../types/lead';
@@ -23,13 +23,20 @@ const OUTCOME_LABEL: Readonly<Record<Deal['outcome'], string>> = {
  * 404, que aqui é estado normal, não erro. Ganho ou perdido é o status do lead
  * (D2), por isso não há campo de resultado.
  */
-export function DealSection({ lead }: { readonly lead: Lead }): React.JSX.Element {
+export function DealSection({
+  lead,
+  onChanged,
+}: {
+  readonly lead: Lead;
+  /** Negócio salvo: quem mostra o valor (resumo do lead) relê. */
+  readonly onChanged?: () => void;
+}): React.JSX.Element {
   // O status entra na chave: chegar à proposta cria o negócio no servidor.
   const [state, reload] = useLoad(`${lead.id}:${lead.status}`, (signal) => getDeal(lead.id, signal));
 
   return (
-    <section aria-labelledby="negocio" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="negocio" className="text-base font-semibold">
+    <section aria-labelledby="negocio" className={`${card} p-5`}>
+      <h2 id="negocio" className="text-sm font-semibold text-slate-900">
         Negócio
       </h2>
       {state.kind === 'notFound' ? (
@@ -37,13 +44,23 @@ export function DealSection({ lead }: { readonly lead: Lead }): React.JSX.Elemen
       ) : state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : (
-        <DealForm key={state.data.updatedAt} deal={state.data} />
+        <DealForm
+          key={state.data.updatedAt}
+          deal={state.data}
+          {...(onChanged === undefined ? {} : { onSaved: onChanged })}
+        />
       )}
     </section>
   );
 }
 
-function DealForm({ deal: initial }: { readonly deal: Deal }): React.JSX.Element {
+function DealForm({
+  deal: initial,
+  onSaved,
+}: {
+  readonly deal: Deal;
+  readonly onSaved?: () => void;
+}): React.JSX.Element {
   const valueId = useId();
   const [deal, setDeal] = useState(initial);
   const [service, setService] = useState(initial.service ?? '');
@@ -71,6 +88,7 @@ function DealForm({ deal: initial }: { readonly deal: Deal }): React.JSX.Element
         }),
       );
       setMessage('Negócio salvo.');
+      onSaved?.();
     } catch (cause: unknown) {
       setFieldErrors(fieldErrorsOf(cause));
       setMessage(actionErrorMessage(cause));

@@ -122,6 +122,19 @@ export function HeaderFilters({
       </div>
 
       {open && (
+        // Fundo do painel: tocar fora fecha, e o toque não atravessa para o que está
+        // embaixo (no celular, acionaria um card ou link sem querer). Teclado fecha com Esc.
+        // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div
+          aria-hidden="true"
+          data-testid="fundo-filtros"
+          className="fixed inset-0 z-20 bg-slate-900/20 sm:bg-transparent"
+          onClick={() => {
+            setOpen(false);
+          }}
+        />
+      )}
+      {open && (
         <form
           id="painel-filtros"
           aria-label="Filtros"

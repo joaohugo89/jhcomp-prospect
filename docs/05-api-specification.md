@@ -156,10 +156,24 @@ Contrato implementado na Etapa 4:
 
 ## 5. Leads
 
+`/leads/worklist` aceita `search`, `status`, `priority`, `city`, `segment`
+(sem distinguir caixa), `noSegment`, `source` (origem da empresa, D29),
+`assignee`, `unassigned`, `scoreMin`, `scoreMax`, `focus` (`OVERDUE`,
+`STALE`, `WITHOUT_TASK`), `sort` (`COMPANY`, `SCORE`, `CREATED`, `UPDATED`,
+`STAGE`, `VALUE`, `NEXT_TASK`), `direction` (`asc`, `desc`), `page` e `size`
+(até 100). Nulos sempre por último na ordenação.
+
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/leads` | Criar lead |
 | GET | `/leads` | Listar e filtrar |
+| GET | `/leads/worklist` | Fila de trabalho: lista com responsável, valor, próxima tarefa e tempo na etapa (D31) |
+| GET | `/leads/{leadId}/summary` | Os mesmos campos de uma linha da fila, para um lead |
+| POST | `/leads/bulk` | Responsável ou prioridade de até 100 leads, tudo ou nada (D31) |
+| GET | `/leads/views` | Visões salvas de quem está usando |
+| POST | `/leads/views` | Salvar visão (`name`, `query`) |
+| DELETE | `/leads/views/{viewId}` | Apagar visão própria |
+| GET | `/companies/segments` | Segmentos em uso, com quantas empresas, e quantas estão sem segmento |
 | GET | `/leads/{leadId}` | Detalhar |
 | PATCH | `/leads/{leadId}` | Atualizar dados permitidos |
 | PATCH | `/leads/{leadId}/status` | Alterar status |

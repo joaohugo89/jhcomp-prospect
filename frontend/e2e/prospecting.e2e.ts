@@ -15,8 +15,8 @@ test('importa empresa por CSV, qualifica o lead e move no pipeline', async ({ pa
   await login(page);
   await importCompanyWithLead(page, company);
 
-  // Qualificar pelo detalhe do lead.
-  const status = page.getByRole('region', { name: 'Status' });
+  // Qualificar pelo detalhe do lead (cartao de propriedades, na lateral).
+  const status = page.getByRole('region', { name: 'Propriedades' });
   await status.getByLabel('Novo status').selectOption('QUALIFIED');
   await status.getByRole('button', { name: 'Alterar status' }).click();
   await expect(status.getByLabel('Novo status').locator('option[value="CONTACT_APPROVED"]')).toHaveCount(1);

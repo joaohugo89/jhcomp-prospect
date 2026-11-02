@@ -40,10 +40,12 @@ describe('Empresas', () => {
       await userEvent.click(screen.getByLabelText('Incluir arquivadas'));
       await userEvent.click(screen.getByRole('button', { name: 'Filtrar' }));
 
+      // Só as buscas da lista: os segmentos do filtro são outra chamada.
+      const listCalls = (): typeof calls => calls.filter((call) => call.path === '/companies');
       await waitFor(() => {
-        expect(calls).toHaveLength(2);
+        expect(listCalls()).toHaveLength(2);
       });
-      const query = calls[1]?.query;
+      const query = listCalls()[1]?.query;
       expect(query?.get('search')).toBe('salão');
       expect(query?.get('includeArchived')).toBe('true');
       expect(query?.get('page')).toBe('0');
@@ -122,8 +124,9 @@ describe('Empresas', () => {
       await waitFor(() => {
         expect(window.location.pathname).toBe(`/companies/${COMPANY_ID}`);
       });
-      expect(calls[0]?.body).toMatchObject({ name: 'Loja Ficticia', state: 'MG' });
-      expect(calls[0]?.body).not.toHaveProperty('source');
+      const created = calls.find((call) => call.method === 'POST');
+      expect(created?.body).toMatchObject({ name: 'Loja Ficticia', state: 'MG' });
+      expect(created?.body).not.toHaveProperty('source');
     });
   });
 

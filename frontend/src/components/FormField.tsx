@@ -13,6 +13,8 @@ interface FormFieldProps {
   readonly multiline?: boolean;
   readonly maxLength?: number;
   readonly autoComplete?: string;
+  /** Valores já usados, sugeridos ao digitar (ex.: segmentos existentes); não restringe. */
+  readonly suggestions?: readonly string[];
 }
 
 /**
@@ -32,6 +34,7 @@ export function FormField({
   multiline = false,
   maxLength,
   autoComplete,
+  suggestions,
 }: FormFieldProps): React.JSX.Element {
   const id = useId();
   const hintId = `${id}-hint`;
@@ -74,10 +77,20 @@ export function FormField({
           {...common}
           type={type}
           {...(autoComplete === undefined ? {} : { autoComplete })}
+          {...(suggestions === undefined || suggestions.length === 0 ? {} : { list: `${id}-list` })}
           onChange={(event) => {
             onChange(event.target.value);
           }}
         />
+      )}
+      {suggestions !== undefined && suggestions.length > 0 && (
+        <datalist id={`${id}-list`}>
+          {suggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion}>
+              {suggestion}
+            </option>
+          ))}
+        </datalist>
       )}
       {hint !== undefined && (
         <p id={hintId} className="mt-1 text-xs text-slate-500">

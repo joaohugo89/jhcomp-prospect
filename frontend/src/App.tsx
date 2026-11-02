@@ -145,7 +145,7 @@ function Screen({
       return <PipelinePage />;
     case 'leads':
       // key: outro filtro na URL (drill-down do dashboard) é outra lista.
-      return <LeadsPage key={window.location.search} />;
+      return <LeadsPage key={window.location.search} session={session} />;
     case 'lead':
       // key: trocar de lead recria a tela, sem herdar estado do anterior.
       return <LeadDetailPage key={route.id} id={route.id} />;

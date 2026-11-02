@@ -865,3 +865,46 @@ quem esta na etapa agora.
 **Fora do escopo:** metas e previsao ponderada (precisam de onde guardar meta
 e probabilidade por etapa, decisao propria); filtro por responsavel na lista
 de leads.
+
+## D31 — Lista de leads como fila de trabalho · Proposta (2026-11-06)
+
+A lista de leads mostrava status e score; o detalhe espalhava o estado do lead
+em uns dez cartoes. Nenhum dos dois dizia o que fazer com o lead.
+
+**Fila de trabalho** (`/leads/worklist`). Leitura em SQL no modulo de CRM:
+responsavel, valor do negocio, proxima tarefa aberta (prazo mais proximo, sem
+prazo por ultimo) e entrada na etapa (ultima mudanca pela ordem de gravacao),
+com ordenacao por qualquer um deles e nulos por ultimo. Nao fica na listagem
+do modulo de lead porque esses campos sao do CRM, e o modulo de lead nao
+depende dele. Recortes de um clique com as regras do Kanban e do painel de
+atencao (D30). A origem e a primeira proveniencia (D29), como no dashboard: a
+lista aberta pelo drill-down bate com o numero que a abriu. `/leads` continua
+existindo para outros usos.
+
+**Segmento.** Texto livre nos dois lados fazia cada cadastro inventar sua
+grafia, e o filtro exigia a grafia exata. Agora o filtro e uma lista dos
+segmentos em uso, com contagem e a opcao "sem segmento"; a comparacao ignora
+caixa e espacos nas pontas em leads, empresas e dashboard; o cadastro sugere
+os segmentos existentes. O valor gravado continua como foi digitado.
+
+**Acoes em lote** (`/leads/bulk`). So responsavel e prioridade, ate 100
+leads, numa transacao: um id de outra organizacao responde 404 e nada muda.
+Mudar status fica fora: `CONTACTED` exige confirmar o contato lead a lead
+(regra 6) e os estados finais pedem confirmacao individual.
+
+**Visoes salvas** (`lead_view`, V12). Nome e query string da lista, por
+pessoa: nem o administrador ve as dos outros. Ate 20 por pessoa, nome unico
+sem distinguir caixa, consulta so com caracteres de URL (ate 500). A tela so
+aplica os filtros que conhece; valor desconhecido e ignorado.
+
+**Resumo e detalhe.** Clicar num lead abre um resumo ao lado (`/leads/{id}/summary`,
+contato da empresa e ultimas atividades), sem sair da lista. O detalhe ganha
+no topo o essencial (status, valor, responsavel, proxima tarefa, tempo na
+etapa, score) e as quatro acoes do dia a dia; lateral fixa com propriedades,
+negocio e tarefas; historico e registro no mesmo lugar, analise e mensagens em
+abas. Anterior/proximo seguem a pagina da lista trabalhada (guardada na aba do
+navegador) e atalhos `n`, `t`, `j`, `k` valem fora de campo de texto.
+
+**Fora do escopo:** exportar a lista (dado pessoal: so com decisao propria,
+para administrador e com auditoria), visoes compartilhadas com a equipe e
+renomear segmento em massa.

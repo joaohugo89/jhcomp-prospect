@@ -5,9 +5,11 @@ import { useLoad } from '../../app/useLoad';
 import { DataTable, type Column } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { Pagination } from '../../components/Pagination';
+import { SegmentSelect } from '../../components/SegmentSelect';
 import { EmptyState, LoadStateView } from '../../components/States';
 import { buttonPrimary, buttonSecondary, input, link } from '../../components/styles';
 import { listCompanies } from '../../services/companyService';
+import { getSegments } from '../../services/worklistService';
 import type { Company, CompanyFilters } from '../../types/company';
 
 const NO_FILTERS: CompanyFilters = { search: '', segment: '', city: '', includeArchived: false };
@@ -35,6 +37,7 @@ const COLUMNS: readonly Column<Company>[] = [
 export function CompaniesPage(): React.JSX.Element {
   const { draft, setDraft, applied, page, setPage, apply, isFiltered, queryKey } = useFilters(NO_FILTERS);
   const [state, reload] = useLoad(queryKey, (signal) => listCompanies(applied, page, signal));
+  const [segments] = useLoad('segments', (signal) => getSegments(signal));
 
   return (
     <>
@@ -68,16 +71,14 @@ export function CompaniesPage(): React.JSX.Element {
             }}
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
-          Segmento
-          <input
-            className={input}
-            value={draft.segment}
-            onChange={(event) => {
-              setDraft({ ...draft, segment: event.target.value });
-            }}
-          />
-        </label>
+        <SegmentSelect
+          value={{ segment: draft.segment, noSegment: false }}
+          onChange={(choice) => {
+            setDraft({ ...draft, segment: choice.segment });
+          }}
+          segments={segments.kind === 'ready' ? segments.data : null}
+          allowNone={false}
+        />
         <label className="text-sm font-medium text-slate-700">
           Cidade
           <input

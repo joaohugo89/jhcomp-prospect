@@ -117,3 +117,31 @@ export const outreachContext = {
   confirmedFindings: [],
   channels: [],
 };
+
+/** Linha da fila de trabalho (`/leads/worklist`) para o mesmo lead fictício. */
+export const worklistItem = {
+  leadId: LEAD_ID,
+  companyId: COMPANY_ID,
+  companyName: 'Barbearia Ficticia',
+  segment: 'BARBERSHOP',
+  city: 'Cidade Exemplo',
+  state: 'MG',
+  status: 'CONTACT_APPROVED' as const,
+  priority: 'MEDIUM' as const,
+  createdAt: '2026-11-01T12:00:00Z',
+  updatedAt: '2026-11-02T12:00:00Z',
+};
+
+/**
+ * Rotas que a lista de leads chama além da fila: visões, segmentos e equipe.
+ * Declaradas juntas porque a API simulada casa por prefixo, e `GET /leads`
+ * sozinho responderia a todas com o mesmo JSON.
+ */
+export function leadListRoutes(items: readonly unknown[]): Readonly<Record<string, Handler>> {
+  return {
+    'GET /leads/worklist': () => json(page(items)),
+    'GET /leads/views': () => json([]),
+    'GET /companies/segments': () => json({ segments: [], withoutSegment: 0 }),
+    'GET /team': () => json(page([])),
+  };
+}

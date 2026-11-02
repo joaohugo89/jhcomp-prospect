@@ -20,7 +20,8 @@ interface DataTableProps<T> {
  */
 export function DataTable<T>({ caption, columns, rows, rowKey }: DataTableProps<T>): React.JSX.Element {
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    // relative: a legenda sr-only (posição absoluta) fica presa aqui e não alarga a página.
+    <div className="relative overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="bg-slate-50">

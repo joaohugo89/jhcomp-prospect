@@ -1,8 +1,10 @@
 import { useState } from 'react';
 
 import { actionErrorMessage, fieldErrorsOf } from '../../app/errors';
+import { useLoad } from '../../app/useLoad';
 import { FormField } from '../../components/FormField';
 import { buttonPrimary, buttonSecondary } from '../../components/styles';
+import { getSegments } from '../../services/worklistService';
 import type { Company, CompanyInput, SourceInput } from '../../types/company';
 
 export const EMPTY_COMPANY: CompanyInput = {
@@ -54,13 +56,19 @@ export function CompanyForm({
   onSubmit,
   onCancel,
 }: CompanyFormProps): React.JSX.Element {
+  // Segmentos já usados viram sugestões: evita "Barbearia" e "Barbearias" como dois segmentos.
+  const [segments] = useLoad('segments', (signal) => getSegments(signal));
   const [values, setValues] = useState<CompanyInput>(initial);
   const [source, setSource] = useState<SourceInput>(EMPTY_SOURCE);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [errors, setErrors] = useState<ReadonlyMap<string, string>>(new Map());
 
-  function field(name: keyof CompanyInput): { value: string; onChange: (value: string) => void; error: string | undefined } {
+  function field(name: keyof CompanyInput): {
+    value: string;
+    onChange: (value: string) => void;
+    error: string | undefined;
+  } {
     return {
       value: values[name],
       onChange: (value) => {
@@ -113,7 +121,8 @@ export function CompanyForm({
         <FormField
           label="Segmento"
           maxLength={80}
-          hint="Use sempre o mesmo termo, para que o filtro encontre todas."
+          hint="Escolha um segmento já usado quando servir: grafias diferentes viram segmentos diferentes no filtro."
+          suggestions={segments.kind === 'ready' ? segments.data.segments.map((item) => item.name) : []}
           {...field('segment')}
         />
         <div className="grid grid-cols-[1fr_6rem] gap-3">

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '../../App';
-import { fakeApi, json, lead, page, session } from '../../test/fakeApi';
+import { fakeApi, json, page, session, leadListRoutes, worklistItem } from '../../test/fakeApi';
 import { ChangePasswordForm } from '../auth/ChangePasswordForm';
 import { MembersPage } from './MembersPage';
 
@@ -49,7 +49,7 @@ describe('Troca de senha', () => {
     const calls = fakeApi({
       'GET /auth/me': () => json({ ...session, passwordChangeRequired: true }),
       'POST /auth/password': () => json({ ...session, passwordChangeRequired: false }),
-      'GET /leads': () => json(page([lead])),
+      ...leadListRoutes([worklistItem]),
     });
     render(<App />);
 
@@ -60,7 +60,7 @@ describe('Troca de senha', () => {
     await fillPasswordForm('temporaria-ficticia', NEW_PASSWORD);
     await userEvent.click(screen.getByRole('button', { name: 'Trocar senha' }));
 
-    expect(await screen.findByRole('link', { name: 'Barbearia Ficticia' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Barbearia Ficticia' })).toBeInTheDocument();
     expect(calls.find((call) => call.path === '/auth/password')?.body).toEqual({
       currentPassword: 'temporaria-ficticia',
       newPassword: NEW_PASSWORD,
