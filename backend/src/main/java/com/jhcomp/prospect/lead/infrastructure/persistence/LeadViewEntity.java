@@ -26,6 +26,10 @@ public class LeadViewEntity extends AssignedIdEntity {
     @Column(name = "query", nullable = false, length = 500)
     private String query;
 
+    /** Publicada pelo administrador para a equipe; privada, so o dono ve. */
+    @Column(name = "shared", nullable = false)
+    private boolean shared;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -33,12 +37,14 @@ public class LeadViewEntity extends AssignedIdEntity {
         // Exigido pelo JPA.
     }
 
-    public LeadViewEntity(UUID id, UUID organizationId, UUID userId, String name, String query, Instant now) {
+    public LeadViewEntity(
+            UUID id, UUID organizationId, UUID userId, String name, String query, boolean shared, Instant now) {
         super(id);
         this.organizationId = organizationId;
         this.userId = userId;
         this.name = name;
         this.query = query;
+        this.shared = shared;
         this.createdAt = now;
     }
 
@@ -56,6 +62,10 @@ public class LeadViewEntity extends AssignedIdEntity {
 
     public String getQuery() {
         return query;
+    }
+
+    public boolean isShared() {
+        return shared;
     }
 
     public Instant getCreatedAt() {

@@ -7,9 +7,11 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
@@ -31,6 +33,7 @@ import com.jhcomp.prospect.shared.error.ConflictException;
 import com.jhcomp.prospect.shared.error.ResourceNotFoundException;
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
+import com.jhcomp.prospect.shared.text.Texts;
 
 /**
  * Casos de uso de empresa (RF-010, RF-014, RF-020, RF-022).
@@ -40,6 +43,9 @@ import com.jhcomp.prospect.shared.security.OrganizationContext;
  */
 @Service
 public class CompanyService {
+
+    /** Espaco repetido no meio do segmento vira um so: "Barbearia  Centro" e "Barbearia Centro". */
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     /** Mais recentes primeiro; desempate por id para a paginacao ser estavel. */
     public static final Sort DEFAULT_SORT =
@@ -75,8 +81,8 @@ public class CompanyService {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
         Instant now = clock.instant();
 
-        CompanyEntity company = companyRepository.save(
-                new CompanyEntity(UUID.randomUUID(), user.organizationId(), data, now));
+        CompanyEntity company = companyRepository.save(new CompanyEntity(
+                UUID.randomUUID(), user.organizationId(), withCanonicalSegment(user.organizationId(), data), now));
         saveSource(company, null, source, user, now);
         return company;
     }
@@ -98,7 +104,7 @@ public class CompanyService {
     @Transactional
     public CompanyEntity update(UUID companyId, CompanyPatch patch) {
         CompanyEntity company = requireActive(companyId);
-        company.update(patch.applyTo(company), clock.instant());
+        company.update(withCanonicalSegment(company.getOrganizationId(), patch.applyTo(company)), clock.instant());
         return company;
     }
 
@@ -208,9 +214,40 @@ public class CompanyService {
             return Optional.empty();
         }
         Instant now = clock.instant();
-        List<String> filled = company.fillBlanks(data, now);
+        List<String> filled = company.fillBlanks(withCanonicalSegment(company.getOrganizationId(), data), now);
         saveSource(company, null, source, user, now);
         return Optional.of(filled);
+    }
+
+    /**
+     * Segmento com a grafia que ja existe na organizacao (D31): "barbearia "
+     * vira "Barbearia" se esta ja e usada. Sem espaco nas pontas nem repetido;
+     * em branco e o mesmo que sem segmento. Um segmento novo fica como foi
+     * digitado.
+     */
+    private CompanyData withCanonicalSegment(UUID organizationId, CompanyData data) {
+        String cleaned = Texts.blankToNull(data.segment());
+        if (cleaned != null) {
+            cleaned = WHITESPACE.matcher(cleaned.strip()).replaceAll(" ");
+        }
+        String segment = cleaned == null
+                ? null
+                : companyRepository.findExistingSegment(organizationId, cleaned).orElse(cleaned);
+        if (Objects.equals(segment, data.segment())) {
+            return data;
+        }
+        return new CompanyData(
+                data.name(),
+                data.tradeName(),
+                segment,
+                data.city(),
+                data.state(),
+                data.websiteUrl(),
+                data.instagramUrl(),
+                data.phone(),
+                data.businessEmail(),
+                data.address(),
+                data.notes());
     }
 
     /** Registra uma origem ligada a uma oportunidade (RF-011: lead tem origem). */

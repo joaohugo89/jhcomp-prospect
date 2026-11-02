@@ -240,6 +240,41 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("visoes compartilhadas: so administrador publica e apaga, a equipe toda ve")
+    void sharedViews() throws Exception {
+        String shared = JsonPath.read(send(session, post("/leads/views"),
+                "{\"name\": \"Propostas da semana\", \"query\": \"status=PROPOSAL_SENT\", \"shared\": true}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.shared").value(true))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+
+        IdentityTestData.Member operator = testData.addMember(admin.organizationId(), OrganizationRole.OPERATOR);
+        MockHttpSession operatorSession = TestSessions.login(mockMvc, operator);
+        send(operatorSession, post("/leads/views"), "{\"name\": \"Minha\", \"query\": \"\"}")
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/leads/views").session(operatorSession))
+                // Compartilhadas primeiro; o operador ve, mas nao apaga.
+                .andExpect(jsonPath("$[*].name", contains("Propostas da semana", "Minha")))
+                .andExpect(jsonPath("$[0].canDelete").value(false))
+                .andExpect(jsonPath("$[1].canDelete").value(true));
+        send(operatorSession, post("/leads/views"), "{\"name\": \"Da equipe\", \"query\": \"\", \"shared\": true}")
+                .andExpect(status().isForbidden());
+        send(operatorSession, delete("/leads/views/" + shared), "").andExpect(status().isForbidden());
+        send(session, post("/leads/views"),
+                "{\"name\": \"propostas DA SEMANA\", \"query\": \"\", \"shared\": true}")
+                .andExpect(status().isConflict());
+
+        IdentityTestData.Member other = testData.createActiveAdmin("workspace-shared-b");
+        MockHttpSession otherSession = TestSessions.login(mockMvc, other);
+        mockMvc.perform(get("/leads/views").session(otherSession)).andExpect(jsonPath("$").isEmpty());
+        send(otherSession, delete("/leads/views/" + shared), "").andExpect(status().isNotFound());
+
+        send(session, delete("/leads/views/" + shared), "").andExpect(status().isNoContent());
+        mockMvc.perform(get("/leads/views").session(operatorSession))
+                .andExpect(jsonPath("$[*].name", contains("Minha")));
+    }
+
+    @Test
     @DisplayName("fila, segmentos, lote e visoes de A nao alcancam B")
     void isolation() throws Exception {
         IdentityTestData.Member other = testData.createActiveAdmin("workspace-b");

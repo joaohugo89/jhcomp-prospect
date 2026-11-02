@@ -7,6 +7,8 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Empresas.
@@ -21,6 +23,20 @@ public interface CompanyRepository
         extends JpaRepository<CompanyEntity, UUID>, JpaSpecificationExecutor<CompanyEntity> {
 
     Optional<CompanyEntity> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
+    /**
+     * Grafia ja usada na organizacao para o mesmo segmento, sem distinguir
+     * caixa: a mais usada (D31). Vazio quando o segmento e novo.
+     */
+    @Query(value = """
+            select segment from company
+             where organization_id = :organizationId and lower(segment) = lower(:segment)
+             group by segment
+             order by count(*) desc, segment
+             limit 1
+            """, nativeQuery = true)
+    Optional<String> findExistingSegment(
+            @Param("organizationId") UUID organizationId, @Param("segment") String segment);
 
     // Candidatos a duplicata (doc 06 §4). Um metodo por sinal, para que cada
     // consulta use o indice correspondente da V3.

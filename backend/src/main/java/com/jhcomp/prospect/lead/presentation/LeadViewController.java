@@ -25,9 +25,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Visoes salvas da lista de leads (D31). No maximo
- * {@value LeadViewService#MAX_VIEWS_PER_USER} por pessoa; lista sem paginacao
- * por isso.
+ * Visoes salvas da lista de leads (D31): as proprias e as compartilhadas com
+ * a equipe. No maximo {@value LeadViewService#MAX_VIEWS_PER_USER} privadas por
+ * pessoa e {@value LeadViewService#MAX_SHARED_VIEWS} compartilhadas por
+ * organizacao; lista sem paginacao por isso. So administrador compartilha.
  */
 @RestController
 @RequestMapping("/leads/views")
@@ -46,23 +47,29 @@ public class LeadViewController {
     public record CreateViewRequest(
             @NotBlank @Size(max = 60) @Pattern(regexp = InputPatterns.NOT_BLANK_WHEN_PRESENT) String name,
             @NotNull @Size(max = 500) @Pattern(regexp = "^[A-Za-z0-9_.~%=&+-]*$", message = "must be a query string")
-                    String query) {}
+                    String query,
+            Boolean shared) {}
 
-    public record ViewResponse(UUID id, String name, String query, Instant createdAt) {
-        static ViewResponse from(LeadViewEntity view) {
-            return new ViewResponse(view.getId(), view.getName(), view.getQuery(), view.getCreatedAt());
+    /** {@code canDelete}: a tela so oferece apagar quando o servidor aceitaria. */
+    public record ViewResponse(
+            UUID id, String name, String query, boolean shared, boolean canDelete, Instant createdAt) {
+        static ViewResponse from(LeadViewService.VisibleView visible) {
+            LeadViewEntity view = visible.view();
+            return new ViewResponse(view.getId(), view.getName(), view.getQuery(), view.isShared(),
+                    visible.canDelete(), view.getCreatedAt());
         }
     }
 
     @GetMapping
     public List<ViewResponse> mine() {
-        return service.mine().stream().map(ViewResponse::from).toList();
+        return service.visible().stream().map(ViewResponse::from).toList();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ViewResponse create(@Valid @RequestBody CreateViewRequest request) {
-        return ViewResponse.from(service.create(request.name(), request.query()));
+        return ViewResponse.from(
+                service.create(request.name(), request.query(), Boolean.TRUE.equals(request.shared())));
     }
 
     @DeleteMapping("/{viewId}")
