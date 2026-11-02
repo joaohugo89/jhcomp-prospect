@@ -1,30 +1,73 @@
-import { useState } from 'react';
+import {
+  AlarmClock,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ListPlus,
+  MessageSquarePlus,
+  Send,
+  Shuffle,
+} from 'lucide-react';
+import { useEffect, useEffectEvent, useState } from 'react';
 
 import { actionErrorMessage } from '../../app/errors';
-import { formatDateTime } from '../../app/format';
+import { formatCurrency, formatDateTime } from '../../app/format';
 import { PRIORITY_LABEL } from '../../app/labels';
-import { Link } from '../../app/router';
+import { Link, navigate } from '../../app/router';
 import { useLoad } from '../../app/useLoad';
-import { PriorityBadge, ScoreIndicator, StatusBadge } from '../../components/Badges';
-import { PageHeader } from '../../components/PageHeader';
+import { ScoreIndicator, StatusBadge } from '../../components/Badges';
 import { LoadStateView } from '../../components/States';
-import { input, link } from '../../components/styles';
+import { card, input, link } from '../../components/styles';
 import { changeLeadPriority, getLead } from '../../services/leadService';
+import { getLeadSummary } from '../../services/worklistService';
 import { LEAD_PRIORITIES, type Lead } from '../../types/lead';
+import type { WorklistItem } from '../../types/worklist';
 import { AnalysisSection } from '../analysis/AnalysisSection';
+import { daysLabel, STALE_DAYS } from '../crm/pipelineSignals';
 import { DealSection } from '../crm/DealSection';
 import { InteractionForm } from '../crm/InteractionForm';
 import { TasksSection } from '../crm/TasksSection';
 import { OutreachSection } from '../outreach/OutreachSection';
 import { ActivityTimeline } from './ActivityTimeline';
-import { AssigneeSection } from './AssigneeSection';
+import { AssigneeField } from './AssigneeField';
+import { neighbours, readNavigation } from './leadNavigation';
 import { StatusChangeForm } from './StatusChangeForm';
 
+type Tab = 'history' | 'analysis' | 'messages';
+
+const TABS: readonly [Tab, string][] = [
+  ['history', 'Histórico'],
+  ['analysis', 'Análise'],
+  ['messages', 'Mensagens'],
+];
+
+const DAY = 86_400_000;
+
+/** Foca o primeiro campo de um bloco e o traz para a tela (ações e atalhos). */
+function focusIn(selector: string): void {
+  window.requestAnimationFrame(() => {
+    const target = document.querySelector<HTMLElement>(selector);
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    target?.focus({ preventScroll: true });
+  });
+}
+
+/** Atalho só fora de campo de texto: digitar "n" numa nota não pode trocar de aba. */
+function isTyping(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+  );
+}
+
 /**
- * Detalhe do lead (doc 08 §7).
+ * Detalhe do lead (doc 08 §7, D31).
  *
- * Visão geral, presença digital, mensagens, negócio, interações, tarefas e
- * histórico.
+ * Topo: o essencial sem rolar (status, valor, responsável, próxima tarefa,
+ * tempo na etapa, score) e as quatro ações do dia a dia. Lateral fixa: o
+ * estado do lead (propriedades, negócio, tarefas). Centro: registrar e ver o
+ * histórico no mesmo lugar; análise e mensagens em abas. Atalhos: n
+ * (interação), t (tarefa), j/k (próximo/anterior da lista).
  */
 export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [state, reload] = useLoad(id, (signal) => getLead(id, signal));
@@ -32,60 +75,135 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
   const [updated, setUpdated] = useState<Lead | null>(null);
   // Interação registrada não altera o lead, mas precisa aparecer no histórico.
   const [interactions, setInteractions] = useState(0);
+  const [summaryVersion, setSummaryVersion] = useState(0);
+  const [summary] = useLoad(`${id}|${summaryVersion}`, async (signal) => ({
+    item: await getLeadSummary(id, signal),
+    receivedAt: Date.now(),
+  }));
+  const [tab, setTab] = useState<Tab>('history');
+  const [navigation] = useState(readNavigation);
+  const around = neighbours(navigation, id);
+
+  const refreshSummary = (): void => {
+    setSummaryVersion((value) => value + 1);
+  };
+  const changed = (lead: Lead): void => {
+    setUpdated(lead);
+    refreshSummary();
+  };
+
+  const actions = {
+    interaction: (): void => {
+      setTab('history');
+      focusIn('#registrar-interacao select, #registrar-interacao input');
+    },
+    task: (): void => {
+      focusIn('#tarefas-lead form input');
+    },
+    message: (): void => {
+      setTab('messages');
+      focusIn('#aba-messages');
+    },
+    move: (): void => {
+      focusIn('#mover-etapa select');
+    },
+  };
+
+  const onKey = useEffectEvent((event: KeyboardEvent) => {
+    if (event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target)) {
+      return;
+    }
+    if (event.key === 'n') {
+      event.preventDefault();
+      actions.interaction();
+    } else if (event.key === 't') {
+      event.preventDefault();
+      actions.task();
+    } else if (event.key === 'j' && around?.next !== undefined) {
+      navigate(`/leads/${around.next}`);
+    } else if (event.key === 'k' && around?.previous !== undefined) {
+      navigate(`/leads/${around.previous}`);
+    }
+  });
+  useEffect(() => {
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
 
   if (state.kind !== 'ready') {
     return <LoadStateView state={state} onRetry={reload} notFoundMessage="Lead não encontrado." />;
   }
 
   const lead = updated !== null && updated.id === state.data.id ? updated : state.data;
+  const backTo = navigation === null || navigation.query === '' ? '/leads' : `/leads?${navigation.query}`;
 
   return (
-    <>
-      <PageHeader
-        title={lead.company.name}
-        description={
-          <span className="flex flex-wrap items-center gap-2">
-            <span>
-              {[lead.company.segment, `${lead.company.city}/${lead.company.state}`]
-                .filter((part) => part !== undefined)
-                .join(' · ')}
-            </span>
-            <StatusBadge status={lead.status} />
-            <PriorityBadge priority={lead.priority} />
-            <span className="text-slate-500">
-              Score: <ScoreIndicator score={lead.score} />
-            </span>
-          </span>
-        }
-        actions={
-          <Link to={`/companies/${lead.company.id}`} className={link}>
-            Ver empresa
-          </Link>
-        }
-      />
+    <div className="space-y-5">
+      <nav aria-label="Navegação entre leads" className="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <Link to={backTo} className="inline-flex items-center gap-1 font-medium text-slate-600 hover:text-slate-900">
+          <ArrowLeft aria-hidden="true" className="size-4" />
+          Voltar para a lista
+        </Link>
+        {around !== null && (
+          <div className="flex items-center gap-1">
+            <span className="mr-2 text-xs text-slate-500">{`${around.position} de ${around.total} na lista`}</span>
+            <NeighbourLink
+              to={around.previous}
+              label="Lead anterior"
+              shortcut="k"
+              icon={<ChevronLeft className="size-4" />}
+            />
+            <NeighbourLink
+              to={around.next}
+              label="Próximo lead"
+              shortcut="j"
+              icon={<ChevronRight className="size-4" />}
+            />
+          </div>
+        )}
+      </nav>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
-        <div className="space-y-6">
-          <section aria-labelledby="status" className="rounded-lg border border-slate-200 bg-white p-6">
-            <h2 id="status" className="mb-3 text-base font-semibold">
-              Status
+      <header className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight break-words text-slate-900">{lead.company.name}</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              {[lead.company.segment ?? 'Sem segmento', `${lead.company.city}/${lead.company.state}`].join(' · ')}
+              {' · '}
+              <Link to={`/companies/${lead.company.id}`} className={link}>
+                Ver empresa
+              </Link>
+            </p>
+          </div>
+          <ActionBar actions={actions} />
+        </div>
+        <SummaryStrip lead={lead} summary={summary.kind === 'ready' ? summary.data : null} />
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <aside aria-label="Estado do lead" className="space-y-6 lg:sticky lg:top-4 lg:self-start">
+          <section id="mover-etapa" aria-labelledby="propriedades" className={`${card} space-y-4 p-5`}>
+            <h2 id="propriedades" className="text-sm font-semibold text-slate-900">
+              Propriedades
             </h2>
-            <StatusChangeForm lead={lead} onChanged={setUpdated} />
+            <StatusChangeForm lead={lead} onChanged={changed} />
+            <PriorityField lead={lead} onChanged={changed} />
+            <AssigneeField lead={lead} onChanged={changed} />
           </section>
 
-          <PrioritySection lead={lead} onChanged={setUpdated} />
+          <DealSection lead={lead} onChanged={refreshSummary} />
 
-          <AssigneeSection lead={lead} onChanged={setUpdated} />
+          <div id="tarefas-lead">
+            <TasksSection leadId={lead.id} onChanged={refreshSummary} />
+          </div>
 
-          <DealSection lead={lead} />
-
-          <TasksSection leadId={lead.id} />
-
-          <section aria-labelledby="datas" className="rounded-lg border border-slate-200 bg-white p-6 text-sm">
-            <h2 id="datas" className="mb-2 text-base font-semibold">
+          <section aria-labelledby="datas" className={`${card} p-5 text-sm`}>
+            <h2 id="datas" className="mb-2 text-sm font-semibold text-slate-900">
               Datas
             </h2>
-            <dl className="grid grid-cols-[8rem_1fr] gap-y-1">
+            <dl className="grid grid-cols-[7rem_1fr] gap-y-1">
               <dt className="text-slate-500">Aberto em</dt>
               <dd>{formatDateTime(lead.createdAt)}</dd>
               <dt className="text-slate-500">Atualizado em</dt>
@@ -98,45 +216,250 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
               )}
             </dl>
           </section>
-        </div>
+        </aside>
 
-        <div className="space-y-6">
-          <AnalysisSection
-            lead={lead}
-            onScoreChanged={() => {
-              // O score mudou no servidor: descarta a cópia local e relê o lead.
-              setUpdated(null);
-              reload();
-            }}
-          />
-          <OutreachSection
-            lead={lead}
-            onRecorded={() => {
-              // Envio registrado vira interação e pode mudar o status: relê o lead.
-              setInteractions((count) => count + 1);
-              setUpdated(null);
-              reload();
-            }}
-          />
-          <InteractionForm
-            lead={lead}
-            onRecorded={(type) => {
-              setInteractions((count) => count + 1);
-              if (type === 'DO_NOT_CONTACT_REQUEST') {
-                // O pedido muda o status no servidor: relê o lead.
+        <div className="min-w-0">
+          <div role="tablist" aria-label="Seções do lead" className="mb-4 flex gap-1 border-b border-slate-200">
+            {TABS.map(([key, label], index) => (
+              <button
+                key={key}
+                id={`tab-${key}`}
+                type="button"
+                role="tab"
+                aria-selected={tab === key}
+                aria-controls={`aba-${key}`}
+                tabIndex={tab === key ? 0 : -1}
+                className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-brand-500 ${
+                  tab === key
+                    ? 'border-brand-600 text-brand-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+                onClick={() => {
+                  setTab(key);
+                }}
+                onKeyDown={(event) => {
+                  // Setas trocam de aba, como no padrão de abas do WAI-ARIA.
+                  const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+                  const next = TABS[(index + step + TABS.length) % TABS.length];
+                  if (step !== 0 && next !== undefined) {
+                    event.preventDefault();
+                    setTab(next[0]);
+                    document.getElementById(`tab-${next[0]}`)?.focus();
+                  }
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Abas inativas ficam montadas e escondidas: rascunho de mensagem ou de interação não se perde. */}
+          <div
+            id="aba-history"
+            role="tabpanel"
+            aria-labelledby="tab-history"
+            hidden={tab !== 'history'}
+            className="space-y-6"
+          >
+            <div id="registrar-interacao">
+              <InteractionForm
+                lead={lead}
+                onRecorded={(type) => {
+                  setInteractions((count) => count + 1);
+                  refreshSummary();
+                  if (type === 'DO_NOT_CONTACT_REQUEST') {
+                    // O pedido muda o status no servidor: relê o lead.
+                    setUpdated(null);
+                    reload();
+                  }
+                }}
+              />
+            </div>
+            <ActivityTimeline leadId={lead.id} refreshKey={`${lead.status}:${lead.updatedAt}:${interactions}`} />
+          </div>
+          <div id="aba-analysis" role="tabpanel" aria-labelledby="tab-analysis" hidden={tab !== 'analysis'}>
+            <AnalysisSection
+              lead={lead}
+              onScoreChanged={() => {
+                // O score mudou no servidor: descarta a cópia local e relê o lead.
                 setUpdated(null);
                 reload();
-              }
-            }}
-          />
-          <ActivityTimeline leadId={lead.id} refreshKey={`${lead.status}:${lead.updatedAt}:${interactions}`} />
+                refreshSummary();
+              }}
+            />
+          </div>
+          <div
+            id="aba-messages"
+            role="tabpanel"
+            aria-labelledby="tab-messages"
+            tabIndex={-1}
+            hidden={tab !== 'messages'}
+            className="focus:outline-none"
+          >
+            <OutreachSection
+              lead={lead}
+              onRecorded={() => {
+                // Envio registrado vira interação e pode mudar o status: relê o lead.
+                setInteractions((count) => count + 1);
+                setUpdated(null);
+                reload();
+                refreshSummary();
+              }}
+            />
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-function PrioritySection({
+function NeighbourLink({
+  to,
+  label,
+  shortcut,
+  icon,
+}: {
+  readonly to: string | undefined;
+  readonly label: string;
+  readonly shortcut: string;
+  readonly icon: React.ReactNode;
+}): React.JSX.Element {
+  const className = 'inline-flex items-center rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm';
+  if (to === undefined) {
+    return (
+      <span aria-hidden="true" className={`${className} text-slate-300`}>
+        {icon}
+      </span>
+    );
+  }
+  return (
+    <Link
+      to={`/leads/${to}`}
+      aria-label={`${label} (atalho ${shortcut})`}
+      className={`${className} text-slate-600 hover:bg-slate-50`}
+    >
+      <span aria-hidden="true">{icon}</span>
+    </Link>
+  );
+}
+
+/** As quatro ações do dia a dia, sempre no topo. */
+function ActionBar({
+  actions,
+}: {
+  readonly actions: Readonly<Record<'interaction' | 'task' | 'message' | 'move', () => void>>;
+}): React.JSX.Element {
+  const items: readonly [keyof typeof actions, string, React.ReactNode, string | null][] = [
+    ['interaction', 'Nova interação', <MessageSquarePlus key="i" className="size-4" />, 'n'],
+    ['task', 'Nova tarefa', <ListPlus key="t" className="size-4" />, 't'],
+    ['message', 'Gerar mensagem', <Send key="m" className="size-4" />, null],
+    ['move', 'Mover etapa', <Shuffle key="e" className="size-4" />, null],
+  ];
+  return (
+    <div role="group" aria-label="Ações do lead" className="flex flex-wrap gap-2">
+      {items.map(([key, label, icon, shortcut], index) => (
+        <button
+          key={key}
+          type="button"
+          {...(shortcut === null ? {} : { 'aria-keyshortcuts': shortcut })}
+          className={`inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
+            index === 0
+              ? 'bg-brand-600 text-white hover:bg-brand-700'
+              : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+          }`}
+          onClick={actions[key]}
+        >
+          <span aria-hidden="true">{icon}</span>
+          {label}
+          {shortcut !== null && (
+            <kbd
+              aria-hidden="true"
+              className={`rounded px-1 text-[10px] font-semibold ${index === 0 ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}
+            >
+              {shortcut}
+            </kbd>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** O essencial do lead num relance, sem rolar (D31). */
+function SummaryStrip({
+  lead,
+  summary,
+}: {
+  readonly lead: Lead;
+  readonly summary: { readonly item: WorklistItem; readonly receivedAt: number } | null;
+}): React.JSX.Element {
+  const item = summary?.item;
+  const now = summary?.receivedAt ?? 0;
+  const days =
+    item?.stageEnteredAt === undefined
+      ? undefined
+      : Math.max(0, Math.floor((now - Date.parse(item.stageEnteredAt)) / DAY));
+  const overdue = item?.nextTaskDueAt !== undefined && Date.parse(item.nextTaskDueAt) < now;
+
+  return (
+    <dl aria-label="Resumo do lead" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <Tile label="Status">
+        <StatusBadge status={lead.status} />
+      </Tile>
+      <Tile label="Valor" muted={item?.estimatedValue === undefined}>
+        {item?.estimatedValue === undefined ? 'Sem valor' : formatCurrency(item.estimatedValue)}
+      </Tile>
+      <Tile label="Responsável" muted={item?.assigneeName === undefined}>
+        {item?.assigneeName ?? 'Sem responsável'}
+      </Tile>
+      <Tile
+        label="Próxima tarefa"
+        muted={item?.nextTaskTitle === undefined}
+        tone={overdue ? 'text-red-700' : undefined}
+      >
+        {item?.nextTaskTitle === undefined ? (
+          'Nenhuma'
+        ) : (
+          <span className="flex items-center gap-1">
+            {overdue && <AlarmClock aria-hidden="true" className="size-3.5 shrink-0" />}
+            <span className="truncate">{`${overdue ? 'Atrasada: ' : ''}${item.nextTaskTitle}`}</span>
+          </span>
+        )}
+      </Tile>
+      <Tile label="Na etapa" tone={days !== undefined && days >= STALE_DAYS ? 'text-amber-800' : undefined}>
+        {days === undefined ? '—' : days === 0 ? 'desde hoje' : daysLabel(days)}
+      </Tile>
+      <Tile label="Score" muted={lead.score === undefined}>
+        {lead.score === undefined ? 'Sem análise' : <ScoreIndicator score={lead.score} />}
+      </Tile>
+    </dl>
+  );
+}
+
+function Tile({
+  label,
+  children,
+  muted = false,
+  tone,
+}: {
+  readonly label: string;
+  readonly children: React.ReactNode;
+  readonly muted?: boolean;
+  readonly tone?: string | undefined;
+}): React.JSX.Element {
+  return (
+    <div className={`${card} min-w-0 px-4 py-3`}>
+      <dt className="text-[11px] font-medium text-slate-500">{label}</dt>
+      <dd
+        className={`mt-1 truncate text-sm font-semibold ${muted ? 'font-normal text-slate-400' : (tone ?? 'text-slate-900')}`}
+      >
+        {children}
+      </dd>
+    </div>
+  );
+}
+
+function PriorityField({
   lead,
   onChanged,
 }: {
@@ -163,11 +486,8 @@ function PrioritySection({
   }
 
   return (
-    <section aria-labelledby="prioridade" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="prioridade" className="text-base font-semibold">
-        Prioridade
-      </h2>
-      <label className="mt-2 block text-sm font-medium text-slate-700">
+    <div>
+      <label className="block text-sm font-medium text-slate-700">
         Prioridade do lead
         <select
           className={input}
@@ -189,6 +509,6 @@ function PrioritySection({
           {error}
         </p>
       )}
-    </section>
+    </div>
   );
 }

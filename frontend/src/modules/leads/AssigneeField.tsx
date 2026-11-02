@@ -10,9 +10,9 @@ import type { Lead } from '../../types/lead';
 
 /**
  * Responsável pelo lead. Qualquer membro atribui ou remove; o servidor exige
- * membro ativo da mesma organização. É o que o dashboard usa em "Meus números".
+ * membro ativo da mesma organização. É o que o dashboard e a fila usam em "Meus".
  */
-export function AssigneeSection({
+export function AssigneeField({
   lead,
   onChanged,
 }: {
@@ -48,11 +48,8 @@ export function AssigneeSection({
   }
 
   return (
-    <section aria-labelledby="responsavel" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="responsavel" className="text-base font-semibold">
-        Responsável
-      </h2>
-      <label className="mt-2 block text-sm font-medium text-slate-700">
+    <div>
+      <label className="block text-sm font-medium text-slate-700">
         Responsável pelo lead
         <select
           className={input}
@@ -81,6 +78,6 @@ export function AssigneeSection({
           {error}
         </p>
       )}
-    </section>
+    </div>
   );
 }
