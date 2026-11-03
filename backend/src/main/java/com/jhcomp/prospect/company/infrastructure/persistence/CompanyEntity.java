@@ -78,8 +78,8 @@ public class CompanyEntity extends AssignedIdEntity {
     @Column(name = "created_by_user_id", updatable = false)
     private UUID createdByUserId;
 
-    /** Empresa que absorveu esta numa mesclagem (D32). */
-    @Column(name = "merged_into_company_id")
+    /** Empresa que absorveu esta numa mesclagem (D32). Gravada so pela mesclagem, com trava. */
+    @Column(name = "merged_into_company_id", insertable = false, updatable = false)
     private UUID mergedIntoCompanyId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -183,15 +183,6 @@ public class CompanyEntity extends AssignedIdEntity {
             this.archivedAt = now;
             this.updatedAt = now;
         }
-    }
-
-    /** Arquiva a origem de uma mesclagem, lembrando para onde ela foi. */
-    public void mergeInto(UUID targetId, Instant now) {
-        if (this.mergedIntoCompanyId != null) {
-            throw new IllegalStateException("Company was already merged");
-        }
-        this.mergedIntoCompanyId = targetId;
-        archive(now);
     }
 
     public UUID getCreatedByUserId() {

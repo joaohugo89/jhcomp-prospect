@@ -318,6 +318,37 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("duas mesclagens simultaneas da mesma origem: uma vale, a outra recebe 409")
+    void concurrentMergesOfSameSource() throws Exception {
+        String source = createCompany(session, "Origem Disputada", "");
+        String first = createCompany(session, "Destino Um", "");
+        String second = createCompany(session, "Destino Dois", "");
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var start = new java.util.concurrent.CountDownLatch(1);
+            java.util.List<java.util.concurrent.Future<Integer>> results = new java.util.ArrayList<>();
+            for (String target : new String[] {first, second}) {
+                results.add(pool.submit(() -> {
+                    start.await();
+                    return send(session, post("/companies/" + target + "/merge"),
+                            "{\"sourceCompanyId\": \"%s\"}".formatted(source)).andReturn().getResponse().getStatus();
+                }));
+            }
+            start.countDown();
+            java.util.List<Integer> statuses = new java.util.ArrayList<>();
+            for (var result : results) {
+                statuses.add(result.get(30, java.util.concurrent.TimeUnit.SECONDS));
+            }
+            assertThat(statuses).containsExactlyInAnyOrder(200, 409);
+        } finally {
+            pool.shutdownNow();
+        }
+        UUID mergedInto = jdbc.queryForObject("select merged_into_company_id from company where id = ?", UUID.class,
+                UUID.fromString(source));
+        assertThat(mergedInto.toString()).isIn(first, second);
+    }
+
+    @Test
     @DisplayName("mesclar recusa dois ciclos abertos, a propria empresa e destino arquivado")
     void mergeRefusals() throws Exception {
         String target = createCompany(session, "Loja A", "");

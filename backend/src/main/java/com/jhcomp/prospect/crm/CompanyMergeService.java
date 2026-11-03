@@ -1,5 +1,6 @@
 package com.jhcomp.prospect.crm;
 
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -61,16 +62,24 @@ public class CompanyMergeService {
         if (targetId.equals(sourceId)) {
             throw new InvalidRequestException("A company cannot be merged into itself");
         }
-        // As duas da organizacao da sessao: outra organizacao e 404 pelo find.
-        CompanyEntity target = companyService.requireActive(targetId);
-        CompanyEntity source = companyService.find(sourceId);
-        // Mesclada uma vez, fica: trocar o destino apagaria a marca que protege o primeiro destino.
-        if (source.getMergedIntoCompanyId() != null) {
-            throw new ConflictException("Source company was already merged");
-        }
         MapSqlParameterSource params = new MapSqlParameterSource("organizationId", user.organizationId())
                 .addValue("target", targetId)
                 .addValue("source", sourceId);
+        // Trava as duas linhas, sempre na mesma ordem, antes de ler o estado: duas mesclagens
+        // simultaneas (a mesma origem em dois destinos, ou A em B enquanto B vai para C) esperam
+        // uma pela outra em vez de decidir sobre um estado que a outra esta mudando.
+        jdbc.query("""
+                select id from company
+                 where organization_id = :organizationId and id in (:target, :source)
+                 order by id for update
+                """, params, (row, rowNumber) -> row.getObject("id", UUID.class));
+        // Lidas depois da trava. As duas da organizacao da sessao: outra organizacao e 404.
+        CompanyEntity target = companyService.requireActive(targetId);
+        CompanyEntity source = companyService.find(sourceId);
+        // Mesclada uma vez, fica: trocar o destino apagaria a marca que protege o primeiro destino.
+        if (source.getMergedIntoCompanyId() != null || target.getMergedIntoCompanyId() != null) {
+            throw new ConflictException("Company was already merged");
+        }
 
         Integer withOpenLead = jdbc.queryForObject("""
                 select count(distinct company_id) from lead
@@ -113,7 +122,15 @@ public class CompanyMergeService {
                 source.getBusinessEmail(),
                 source.getAddress(),
                 source.getNotes()), now);
-        source.mergeInto(target.getId(), now);
+        // So marca se ninguem marcou antes: a trava ja garante, a condicao deixa isso explicito.
+        int marked = jdbc.update("""
+                update company
+                   set merged_into_company_id = :target, archived_at = coalesce(archived_at, :now), updated_at = :now
+                 where organization_id = :organizationId and id = :source and merged_into_company_id is null
+                """, params.addValue("now", Timestamp.from(now)));
+        if (marked != 1) {
+            throw new ConflictException("Company was already merged");
+        }
 
         auditService.record(new AuditEntry(user.organizationId(), user.userId(), AuditAction.COMPANY_MERGE,
                 AuditOutcome.SUCCESS, "company", targetId.toString(), null, "source=" + sourceId));
