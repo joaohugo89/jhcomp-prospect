@@ -6,6 +6,7 @@ import { FormField } from '../../components/FormField';
 import { buttonPrimary, buttonSecondary } from '../../components/styles';
 import { getSegments } from '../../services/worklistService';
 import type { Company, CompanyInput, SourceInput } from '../../types/company';
+import { DuplicateWarning } from './DuplicateWarning';
 
 export const EMPTY_COMPANY: CompanyInput = {
   name: '',
@@ -46,6 +47,8 @@ interface CompanyFormProps {
   readonly submitLabel: string;
   readonly onSubmit: (input: CompanyInput, source: SourceInput) => Promise<void>;
   readonly onCancel: () => void;
+  /** Na edição, a própria empresa não conta como duplicata. */
+  readonly companyId?: string;
 }
 
 /** Formulário de empresa (RF-010), usado no cadastro e na edição. */
@@ -55,6 +58,7 @@ export function CompanyForm({
   submitLabel,
   onSubmit,
   onCancel,
+  companyId,
 }: CompanyFormProps): React.JSX.Element {
   // Segmentos já usados viram sugestões: evita "Barbearia" e "Barbearias" como dois segmentos.
   const [segments] = useLoad('segments', (signal) => getSegments(signal));
@@ -148,6 +152,10 @@ export function CompanyForm({
           <FormField label="URL da fonte" type="url" maxLength={1000} {...sourceField('url')} />
         </fieldset>
       )}
+
+      <div aria-live="polite">
+        <DuplicateWarning values={values} {...(companyId === undefined ? {} : { excludeCompanyId: companyId })} />
+      </div>
 
       <div aria-live="polite">
         {formError !== null && (

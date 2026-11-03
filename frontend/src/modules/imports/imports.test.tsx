@@ -272,5 +272,30 @@ describe('Importações', () => {
       expect(screen.queryByRole('button', { name: /^Confirmar/ })).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Importar mesmo assim/)).not.toBeInTheDocument();
     });
+
+    it('desfazer importacao mostra a previa do que sai e do que fica antes de confirmar', async () => {
+      const completed = { ...batch, status: 'COMPLETED', importedRows: 3, completedAt: '2026-11-05T12:00:00Z' };
+      let undone = false;
+      const calls = routes({
+        'GET /imports/': () => json(undone ? { ...completed, undoneAt: '2026-11-06T12:00:00Z' } : completed),
+        [`GET /imports/${IMPORT_ID}/undo`]: () => json({ removed: 2, keptWithActivity: 1, mergedUntouched: 0 }),
+        [`POST /imports/${IMPORT_ID}/undo`]: () => {
+          undone = true;
+          return json({ removed: 2, keptWithActivity: 1, mergedUntouched: 0, undoneAt: '2026-11-06T12:00:00Z' });
+        },
+      });
+
+      render(<ImportDetailPage id={IMPORT_ID} />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Desfazer importação' }));
+
+      const dialog = await screen.findByRole('alertdialog', { name: 'Desfazer esta importação?' });
+      expect(dialog).toHaveTextContent('2 empresas criadas por ela, sem atividade, serão excluídas');
+      expect(dialog).toHaveTextContent('1 empresa já tem atividade e fica');
+      expect(calls.some((call) => call.method === 'POST')).toBe(false);
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Desfazer importação' }));
+
+      expect(await screen.findByText(/Importação desfeita em/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Desfazer importação' })).not.toBeInTheDocument();
+    });
   });
 });

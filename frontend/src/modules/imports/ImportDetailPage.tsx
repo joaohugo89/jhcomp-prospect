@@ -11,6 +11,7 @@ import { getImport } from '../../services/importService';
 import { IMPORT_FIELDS, type DuplicateChoice, type ImportBatch } from '../../types/import';
 import { ImportReport } from './ImportReport';
 import { ImportReview } from './ImportReview';
+import { UndoImport } from './UndoImport';
 
 /** Revisão e resultado de uma importação (RF-015, D23). */
 export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Element {
@@ -43,6 +44,7 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
       )}
 
       <Summary batch={batch} />
+      <UndoImport batch={batch} onUndone={reload} />
       <MappingSummary batch={batch} />
 
       {reviewing && (
@@ -64,7 +66,7 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
       {batch.status !== 'DISCARDED' && (
         <ImportReport
           importId={batch.id}
-          version={`${batch.status}:${batch.importedRows}:${batch.mergedRows}`}
+          version={`${batch.status}:${batch.importedRows}:${batch.mergedRows}:${batch.undoneAt ?? ''}`}
           reviewing={reviewing}
           choices={choices}
           onChoose={(rowNumber, choice) => {

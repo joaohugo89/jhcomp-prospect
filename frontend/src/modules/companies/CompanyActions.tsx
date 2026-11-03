@@ -4,7 +4,7 @@ import { actionErrorMessage } from '../../app/errors';
 import { PRIORITY_LABEL } from '../../app/labels';
 import { Link, navigate } from '../../app/router';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { buttonPrimary, buttonSecondary, input, link } from '../../components/styles';
+import { buttonPrimary, buttonSecondary, card, input, link } from '../../components/styles';
 import { archiveCompany } from '../../services/companyService';
 import { createLead } from '../../services/leadService';
 import type { Company } from '../../types/company';
@@ -90,8 +90,8 @@ export function OpenLeadSection({ companyId }: { readonly companyId: string }): 
   }
 
   return (
-    <section aria-labelledby="oportunidade" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="oportunidade" className="text-base font-semibold">
+    <section aria-labelledby="oportunidade" className={`${card} p-5`}>
+      <h2 id="oportunidade" className="text-sm font-semibold text-slate-900">
         Oportunidade
       </h2>
       <p className="mt-1 text-sm text-slate-600">Abre um lead para acompanhar a intenção comercial.</p>

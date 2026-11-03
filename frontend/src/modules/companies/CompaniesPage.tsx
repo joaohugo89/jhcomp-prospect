@@ -1,43 +1,61 @@
-import { formatDateTime } from '../../app/format';
+import { useState } from 'react';
+
+import { SOURCE_TYPE_LABEL } from '../../app/labels';
 import { Link } from '../../app/router';
-import { useFilters } from '../../app/useFilters';
-import { useLoad } from '../../app/useLoad';
-import { DataTable, type Column } from '../../components/DataTable';
+import { useLastReady, useLoad } from '../../app/useLoad';
 import { PageHeader } from '../../components/PageHeader';
 import { Pagination } from '../../components/Pagination';
 import { SegmentSelect } from '../../components/SegmentSelect';
 import { EmptyState, LoadStateView } from '../../components/States';
-import { buttonPrimary, buttonSecondary, input, link } from '../../components/styles';
-import { listCompanies } from '../../services/companyService';
+import { buttonPrimary, input } from '../../components/styles';
+import { listCompanyWorklist } from '../../services/companyService';
 import { getSegments } from '../../services/worklistService';
-import type { Company, CompanyFilters } from '../../types/company';
+import { SOURCE_TYPES, type CompanyWorklistFilters } from '../../types/company';
+import {
+  companyFiltersFromQuery,
+  companyFiltersToQuery,
+  EMPTY_COMPANY_FILTERS,
+  isCompanyFiltered,
+} from './companyFilters';
+import { CompanyPreview } from './CompanyPreview';
+import { CompanyTable } from './CompanyTable';
+import { CompanyBulkBar, CompanyQuickFilters } from './CompanyWorklistControls';
 
-const NO_FILTERS: CompanyFilters = { search: '', segment: '', city: '', includeArchived: false };
+/** Grava os filtros na URL sem nova navegação: voltar e recarregar mantêm o recorte. */
+function writeUrl(query: string): void {
+  window.history.replaceState(null, '', `${window.location.pathname}${query === '' ? '' : `?${query}`}`);
+}
 
-const COLUMNS: readonly Column<Company>[] = [
-  {
-    header: 'Nome',
-    render: (company) => (
-      <span className="flex flex-wrap items-center gap-2">
-        <Link to={`/companies/${company.id}`} className={link}>
-          {company.name}
-        </Link>
-        {company.archived && (
-          <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">Arquivada</span>
-        )}
-      </span>
-    ),
-  },
-  { header: 'Segmento', render: (company) => company.segment ?? '—', hideOnSmall: true },
-  { header: 'Cidade', render: (company) => `${company.city}/${company.state}` },
-  { header: 'Atualizada em', render: (company) => formatDateTime(company.updatedAt), hideOnSmall: true },
-];
-
-/** Lista de empresas (RF-012, doc 08 §6). */
+/**
+ * Empresas como ferramenta de trabalho (RF-012, D32): lead atual, contato,
+ * origem, atividade e possível duplicata em cada linha; prévia ao lado,
+ * recortes de um clique e correção de segmento ou cidade em lote.
+ */
 export function CompaniesPage(): React.JSX.Element {
-  const { draft, setDraft, applied, page, setPage, apply, isFiltered, queryKey } = useFilters(NO_FILTERS);
-  const [state, reload] = useLoad(queryKey, (signal) => listCompanies(applied, page, signal));
-  const [segments] = useLoad('segments', (signal) => getSegments(signal));
+  const [applied, setApplied] = useState<CompanyWorklistFilters>(() => companyFiltersFromQuery(window.location.search));
+  const [draft, setDraft] = useState(applied);
+  const [page, setPage] = useState(0);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
+  const query = companyFiltersToQuery(applied);
+
+  const [state, reload] = useLoad(`${query}|${page}|${version}`, (signal) =>
+    listCompanyWorklist(applied, page, signal),
+  );
+  const shown = useLastReady(state);
+  const [segments] = useLoad(`segments|${version}`, (signal) => getSegments(signal));
+
+  function apply(next: CompanyWorklistFilters): void {
+    setApplied(next);
+    setDraft(next);
+    setPage(0);
+    setSelected(new Set());
+    writeUrl(companyFiltersToQuery(next));
+  }
+
+  const filtered = isCompanyFiltered(applied);
 
   return (
     <>
@@ -51,83 +69,151 @@ export function CompaniesPage(): React.JSX.Element {
         }
       />
 
+      <div className="mb-4">
+        <CompanyQuickFilters filters={applied} onApply={apply} />
+      </div>
+
       <form
         role="search"
         aria-label="Filtrar empresas"
-        className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
+        className="mb-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
-          apply();
+          apply(draft);
         }}
       >
-        <label className="text-sm font-medium text-slate-700">
-          Buscar por nome
-          <input
-            type="search"
-            className={input}
-            value={draft.search}
-            onChange={(event) => {
-              setDraft({ ...draft, search: event.target.value });
-            }}
-          />
-        </label>
-        <SegmentSelect
-          value={{ segment: draft.segment, noSegment: false }}
-          onChange={(choice) => {
-            setDraft({ ...draft, segment: choice.segment });
-          }}
-          segments={segments.kind === 'ready' ? segments.data : null}
-          allowNone={false}
-        />
-        <label className="text-sm font-medium text-slate-700">
-          Cidade
-          <input
-            className={input}
-            value={draft.city}
-            onChange={(event) => {
-              setDraft({ ...draft, city: event.target.value });
-            }}
-          />
-        </label>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
+          <label className="text-sm font-medium text-slate-700">
+            Buscar por nome
             <input
-              type="checkbox"
-              checked={draft.includeArchived}
+              type="search"
+              className={input}
+              value={draft.search}
               onChange={(event) => {
-                setDraft({ ...draft, includeArchived: event.target.checked });
+                setDraft({ ...draft, search: event.target.value });
               }}
             />
-            Incluir arquivadas
           </label>
-          <button type="submit" className={buttonSecondary}>
-            Filtrar
-          </button>
+          <SegmentSelect
+            value={{ segment: draft.segment, noSegment: draft.noSegment }}
+            onChange={(choice) => {
+              setDraft({ ...draft, ...choice });
+            }}
+            segments={segments.kind === 'ready' ? segments.data : null}
+            allowNone
+          />
+          <label className="text-sm font-medium text-slate-700">
+            Cidade
+            <input
+              className={input}
+              value={draft.city}
+              onChange={(event) => {
+                setDraft({ ...draft, city: event.target.value });
+              }}
+            />
+          </label>
+          <label className="text-sm font-medium text-slate-700">
+            Origem
+            <select
+              className={input}
+              value={draft.source}
+              onChange={(event) => {
+                setDraft({ ...draft, source: SOURCE_TYPES.find((item) => item === event.target.value) ?? '' });
+              }}
+            >
+              <option value="">Todas</option>
+              {SOURCE_TYPES.map((source) => (
+                <option key={source} value={source}>
+                  {SOURCE_TYPE_LABEL[source]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex items-end">
+            <button type="submit" className={buttonPrimary}>
+              Filtrar
+            </button>
+          </div>
         </div>
+        {filtered && (
+          <button
+            type="button"
+            className="mt-3 text-sm font-medium text-slate-500 hover:text-slate-800"
+            onClick={() => {
+              apply({ ...EMPTY_COMPANY_FILTERS, sort: applied.sort, direction: applied.direction });
+            }}
+          >
+            Limpar filtros
+          </button>
+        )}
       </form>
 
-      {state.kind === 'ready' ? (
-        state.data.content.length === 0 ? (
-          <EmptyState
-            title={isFiltered ? 'Nenhuma empresa corresponde aos filtros.' : 'Nenhuma empresa cadastrada ainda.'}
-            {...(isFiltered
-              ? {}
-              : {
-                  action: (
-                    <Link to="/companies/new" className={buttonPrimary}>
-                      Cadastrar a primeira
-                    </Link>
-                  ),
-                })}
+      <div aria-live="polite">
+        {notice !== null && (
+          <p role="status" className="mb-3 rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+            {notice}
+          </p>
+        )}
+      </div>
+
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-30 mb-3">
+          <CompanyBulkBar
+            selected={selected}
+            segments={segments.kind === 'ready' ? segments.data.segments.map((item) => item.name) : []}
+            onDone={(message) => {
+              setNotice(message);
+              setSelected(new Set());
+              setVersion((value) => value + 1);
+            }}
+            onClear={() => {
+              setSelected(new Set());
+            }}
           />
-        ) : (
-          <>
-            <DataTable caption="Empresas" columns={COLUMNS} rows={state.data.content} rowKey={(row) => row.id} />
-            <Pagination page={state.data} onChange={setPage} />
-          </>
-        )
-      ) : (
+        </div>
+      )}
+
+      {shown === null || (state.kind !== 'ready' && state.kind !== 'loading') ? (
         <LoadStateView state={state} onRetry={reload} />
+      ) : shown.content.length === 0 ? (
+        <EmptyState
+          title={filtered ? 'Nenhuma empresa corresponde aos filtros.' : 'Nenhuma empresa cadastrada ainda.'}
+          {...(filtered
+            ? {}
+            : {
+                action: (
+                  <Link to="/companies/new" className={buttonPrimary}>
+                    Cadastrar a primeira
+                  </Link>
+                ),
+              })}
+        />
+      ) : (
+        <div className={`transition-opacity ${state.kind === 'loading' ? 'opacity-60' : ''}`}>
+          <CompanyTable
+            items={shown.content}
+            sort={applied.sort}
+            direction={applied.direction}
+            onSort={(sort, direction) => {
+              apply({ ...applied, sort, direction });
+            }}
+            selected={selected}
+            onSelect={setSelected}
+            previewId={previewId}
+            onPreview={setPreviewId}
+          />
+          <Pagination page={shown} onChange={setPage} />
+        </div>
+      )}
+
+      {previewId !== null && (
+        <CompanyPreview
+          key={previewId}
+          companyId={previewId}
+          onClose={() => {
+            setPreviewId(null);
+          }}
+        />
       )}
     </>
   );

@@ -5,7 +5,7 @@ import { SOURCE_TYPE_LABEL } from '../../app/labels';
 import { useLoad } from '../../app/useLoad';
 import { Pagination } from '../../components/Pagination';
 import { LoadStateView } from '../../components/States';
-import { link } from '../../components/styles';
+import { card, link } from '../../components/styles';
 import { listCompanySources } from '../../services/companyService';
 
 /** De onde vieram os dados da empresa e quando (RF-022). */
@@ -14,8 +14,8 @@ export function SourcesSection({ companyId }: { readonly companyId: string }): R
   const [state, reload] = useLoad(`${companyId}:${page}`, (signal) => listCompanySources(companyId, page, signal));
 
   return (
-    <section aria-labelledby="origem" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="origem" className="text-base font-semibold">
+    <section aria-labelledby="origem" className={`${card} p-5`}>
+      <h2 id="origem" className="text-sm font-semibold text-slate-900">
         Origem dos dados
       </h2>
       {state.kind !== 'ready' ? (
@@ -28,8 +28,7 @@ export function SourcesSection({ companyId }: { readonly companyId: string }): R
               return (
                 <li key={source.id} className="py-2 text-sm">
                   <p className="font-medium text-slate-900">
-                    {source.name}{' '}
-                    <span className="font-normal text-slate-500">· {SOURCE_TYPE_LABEL[source.type]}</span>
+                    {source.name} <span className="font-normal text-slate-500">· {SOURCE_TYPE_LABEL[source.type]}</span>
                   </p>
                   <p className="text-slate-600">
                     Coletado em {formatDateTime(source.collectedAt)}

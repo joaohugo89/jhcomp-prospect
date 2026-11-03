@@ -24,6 +24,7 @@ const FILTERS: readonly [ImportRowStatus | '', string][] = [
   ['IMPORTED', 'Importadas'],
   ['MERGED', 'Completaram empresa'],
   ['SKIPPED', 'Não importadas'],
+  ['REMOVED', 'Excluídas depois'],
 ];
 
 export function ImportReport({
@@ -46,7 +47,9 @@ export function ImportReport({
   );
 
   const filters = FILTERS.filter(([status]) =>
-    reviewing ? status !== 'IMPORTED' && status !== 'MERGED' && status !== 'SKIPPED' : status !== 'VALID',
+    reviewing
+      ? status !== 'IMPORTED' && status !== 'MERGED' && status !== 'SKIPPED' && status !== 'REMOVED'
+      : status !== 'VALID',
   );
 
   return (
@@ -117,6 +120,7 @@ const ROW_TONE: Readonly<Record<ImportRowStatus, string>> = {
   REJECTED: 'border-red-200',
   DUPLICATE: 'border-amber-300',
   SKIPPED: 'border-slate-200',
+  REMOVED: 'border-slate-200',
 };
 
 function RowCard({
