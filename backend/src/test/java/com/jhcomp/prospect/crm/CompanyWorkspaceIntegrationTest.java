@@ -307,6 +307,14 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
         // Destino de mesclagem nunca e "limpo", nem para o administrador.
         deleteCompany(session, target, "Destino Do Admin").andExpect(status().isConflict());
         assertThat(count("company", "id", target)).isOne();
+        // A origem mesclada tambem nao sai, e nao pode ser mesclada de novo em outro destino:
+        // qualquer dos dois apagaria a marca que protege o destino.
+        deleteCompany(session, source, "Origem Do Operador").andExpect(status().isConflict());
+        String other = createCompany(session, "Outro Destino", "");
+        send(session, post("/companies/" + other + "/merge"), "{\"sourceCompanyId\": \"%s\"}".formatted(source))
+                .andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("select merged_into_company_id from company where id = ?", UUID.class,
+                UUID.fromString(source))).isEqualTo(UUID.fromString(target));
     }
 
     @Test

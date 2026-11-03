@@ -187,6 +187,9 @@ public class CompanyEntity extends AssignedIdEntity {
 
     /** Arquiva a origem de uma mesclagem, lembrando para onde ela foi. */
     public void mergeInto(UUID targetId, Instant now) {
+        if (this.mergedIntoCompanyId != null) {
+            throw new IllegalStateException("Company was already merged");
+        }
         this.mergedIntoCompanyId = targetId;
         archive(now);
     }

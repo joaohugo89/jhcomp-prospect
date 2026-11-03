@@ -66,7 +66,8 @@ public class CompanyRemovalService {
      */
     private static final String HAS_ACTIVITY = """
             ((select count(*) from lead l where l.organization_id = c.organization_id and l.company_id = c.id) > 1
-             -- Destino de mesclagem guarda o que veio de outra empresa: nunca e "limpo".
+             -- Origem e destino de mesclagem nunca sao "limpos": a marca na origem protege o destino.
+             or c.merged_into_company_id is not null
              or exists (select 1 from company m
                          where m.organization_id = c.organization_id and m.merged_into_company_id = c.id)
              or exists (

@@ -64,6 +64,10 @@ public class CompanyMergeService {
         // As duas da organizacao da sessao: outra organizacao e 404 pelo find.
         CompanyEntity target = companyService.requireActive(targetId);
         CompanyEntity source = companyService.find(sourceId);
+        // Mesclada uma vez, fica: trocar o destino apagaria a marca que protege o primeiro destino.
+        if (source.getMergedIntoCompanyId() != null) {
+            throw new ConflictException("Source company was already merged");
+        }
         MapSqlParameterSource params = new MapSqlParameterSource("organizationId", user.organizationId())
                 .addValue("target", targetId)
                 .addValue("source", sourceId);
