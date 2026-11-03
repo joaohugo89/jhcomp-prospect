@@ -82,6 +82,10 @@ public class ImportBatchEntity extends AssignedIdEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    /** Gravado so pelo desfazer importacao (modulo de CRM, D32); a entidade apenas le. */
+    @Column(name = "undone_at", insertable = false, updatable = false)
+    private Instant undoneAt;
+
     protected ImportBatchEntity() {
         // Exigido pelo JPA.
     }
@@ -204,5 +208,9 @@ public class ImportBatchEntity extends AssignedIdEntity {
 
     public Instant getCompletedAt() {
         return completedAt;
+    }
+
+    public Instant getUndoneAt() {
+        return undoneAt;
     }
 }

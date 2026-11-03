@@ -28,7 +28,9 @@ public class ImportRowEntity extends AssignedIdEntity {
         /** Completou os campos vazios da empresa existente de que era duplicata. */
         MERGED,
         /** Nao importada na confirmacao: duplicata nao escolhida. */
-        SKIPPED
+        SKIPPED,
+        /** Importada, mas a empresa foi excluida depois (D32): por engano ou ao desfazer a importacao. */
+        REMOVED
     }
 
     @Column(name = "organization_id", nullable = false, updatable = false)

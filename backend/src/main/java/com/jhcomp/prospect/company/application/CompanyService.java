@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,8 +31,10 @@ import com.jhcomp.prospect.company.infrastructure.persistence.LeadSourceEntity;
 import com.jhcomp.prospect.company.infrastructure.persistence.LeadSourceEntity.SourceData;
 import com.jhcomp.prospect.company.infrastructure.persistence.LeadSourceRepository;
 import com.jhcomp.prospect.shared.error.ConflictException;
+import com.jhcomp.prospect.shared.error.InvalidRequestException;
 import com.jhcomp.prospect.shared.error.ResourceNotFoundException;
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
+import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 import com.jhcomp.prospect.shared.text.Texts;
 
@@ -50,6 +53,12 @@ public class CompanyService {
     /** Mais recentes primeiro; desempate por id para a paginacao ser estavel. */
     public static final Sort DEFAULT_SORT =
             Sort.by(Sort.Direction.DESC, CompanyEntity::getCreatedAt).and(Sort.by(CompanyEntity::getId));
+
+    /** Teto de um lote, o mesmo da fila de leads. */
+    public static final int MAX_BULK = 100;
+
+    /** Id que nenhuma empresa tem: o "excluir a propria" quando ainda nao ha propria. */
+    private static final UUID NO_COMPANY = new UUID(0L, 0L);
 
     /** Origem atribuida quando o operador cadastra sem informar uma. */
     static final String DEFAULT_SOURCE_NAME = "Cadastro manual";
@@ -133,29 +142,94 @@ public class CompanyService {
     @Transactional(readOnly = true)
     public List<DuplicateCandidate> duplicates(UUID companyId) {
         CompanyEntity company = find(companyId);
-        UUID organizationId = company.getOrganizationId();
+        return findDuplicates(company.getOrganizationId(), company.getNormalizedDomain(), company.getNormalizedPhone(),
+                company.getNormalizedName(), company.getCity(), company.getState(), company.getId());
+    }
+
+    /**
+     * Possiveis duplicatas de uma empresa ainda sendo digitada, com os mesmos
+     * sinais de {@link #duplicates}. {@code excludedId} e a propria empresa, na
+     * edicao. Sem nome, cidade e estado so os sinais de contato valem.
+     */
+    @Transactional(readOnly = true)
+    public List<DuplicateCandidate> probeDuplicates(DuplicateProbe probe) {
+        UUID organizationId = organizationContext.requireOrganizationId();
+        String city = Texts.blankToNull(probe.city());
+        String state = Texts.blankToNull(probe.state());
+        return findDuplicates(
+                organizationId,
+                ContactNormalizer.domain(probe.websiteUrl()).orElse(null),
+                ContactNormalizer.phone(probe.phone()).orElse(null),
+                city == null || state == null ? null : ContactNormalizer.name(probe.name()).orElse(null),
+                city == null ? null : city.strip(),
+                state == null ? null : state.strip().toUpperCase(Locale.ROOT),
+                probe.excludedId() == null ? NO_COMPANY : probe.excludedId());
+    }
+
+    /** O que o formulario ja tem para comparar. Nulos nao contam como sinal. */
+    public record DuplicateProbe(
+            String name, String city, String state, String websiteUrl, String phone, UUID excludedId) {}
+
+    private List<DuplicateCandidate> findDuplicates(
+            UUID organizationId,
+            String normalizedDomain,
+            String normalizedPhone,
+            String normalizedName,
+            String city,
+            String state,
+            UUID excludedId) {
         Map<UUID, DuplicateCandidate> candidates = new LinkedHashMap<>();
-
-        if (company.getNormalizedDomain() != null) {
+        if (normalizedDomain != null) {
             collect(candidates, DuplicateSignal.DOMAIN, companyRepository
-                    .findTop10ByOrganizationIdAndNormalizedDomainAndIdNot(
-                            organizationId, company.getNormalizedDomain(), company.getId()));
+                    .findTop10ByOrganizationIdAndNormalizedDomainAndIdNot(organizationId, normalizedDomain, excludedId));
         }
-        if (company.getNormalizedPhone() != null) {
+        if (normalizedPhone != null) {
             collect(candidates, DuplicateSignal.PHONE, companyRepository
-                    .findTop10ByOrganizationIdAndNormalizedPhoneAndIdNot(
-                            organizationId, company.getNormalizedPhone(), company.getId()));
+                    .findTop10ByOrganizationIdAndNormalizedPhoneAndIdNot(organizationId, normalizedPhone, excludedId));
         }
-        collect(candidates, DuplicateSignal.NAME_CITY_STATE, companyRepository
-                .findTop10ByOrganizationIdAndNormalizedNameAndCityIgnoreCaseAndStateAndIdNot(
-                        organizationId,
-                        company.getNormalizedName(),
-                        company.getCity(),
-                        company.getState(),
-                        company.getId()));
-
+        if (normalizedName != null && city != null && state != null) {
+            collect(candidates, DuplicateSignal.NAME_CITY_STATE, companyRepository
+                    .findTop10ByOrganizationIdAndNormalizedNameAndCityIgnoreCaseAndStateAndIdNot(
+                            organizationId, normalizedName, city, state, excludedId));
+        }
         return List.copyOf(candidates.values());
     }
+
+    /**
+     * Mesmo segmento, ou mesma cidade e estado, em varias empresas de uma vez
+     * (qualidade de dado em lote). Tudo numa transacao; empresa arquivada nao
+     * muda e e contada a parte. Id de outra organizacao responde 404 para o
+     * lote inteiro, como se nao existisse.
+     *
+     * @return quantas mudaram e quantas foram puladas por estarem arquivadas
+     */
+    @Transactional
+    public BulkResult bulkUpdate(List<UUID> companyIds, String segment, String city, String state) {
+        List<UUID> distinct = companyIds.stream().distinct().toList();
+        if (distinct.isEmpty() || distinct.size() > MAX_BULK) {
+            throw new InvalidRequestException("companyIds must have between 1 and " + MAX_BULK + " items");
+        }
+        if (segment == null && city == null) {
+            throw new InvalidRequestException("segment or city is required");
+        }
+        if ((city == null) != (state == null)) {
+            throw new InvalidRequestException("city and state go together");
+        }
+        List<CompanyEntity> companies = distinct.stream().map(this::find).toList();
+        int updated = 0;
+        for (CompanyEntity company : companies) {
+            if (company.isArchived()) {
+                continue;
+            }
+            CompanyPatch patch = new CompanyPatch(
+                    null, null, segment, city, state, null, null, null, null, null, null);
+            update(company.getId(), patch);
+            updated++;
+        }
+        return new BulkResult(updated, companies.size() - updated);
+    }
+
+    public record BulkResult(int updated, int skippedArchived) {}
 
     /**
      * Empresa da organizacao ativa que aceita alteracao.

@@ -87,6 +87,21 @@ public class CompanyController {
         return segmentsQuery.segments(organizationContext.requireOrganizationId());
     }
 
+    /** Possiveis duplicatas enquanto o cadastro e digitado (RF-014). So sugere. */
+    @PostMapping("/duplicate-check")
+    public List<DuplicateCandidateResponse> duplicateCheck(
+            @Valid @RequestBody CompanyToolRequests.DuplicateCheckRequest request) {
+        return companyService.probeDuplicates(request.toProbe()).stream()
+                .map(DuplicateCandidateResponse::from)
+                .toList();
+    }
+
+    /** Segmento ou cidade em varias empresas de uma vez. */
+    @PostMapping("/bulk")
+    public CompanyService.BulkResult bulk(@Valid @RequestBody CompanyToolRequests.BulkUpdateRequest request) {
+        return companyService.bulkUpdate(request.companyIds(), request.segment(), request.city(), request.state());
+    }
+
     @GetMapping("/{companyId}")
     public CompanyResponse get(@PathVariable UUID companyId) {
         return CompanyResponse.from(companyService.find(companyId));

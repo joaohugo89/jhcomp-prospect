@@ -180,6 +180,7 @@ public class ImportController {
             int leadsCreated,
             Instant createdAt,
             Instant completedAt,
+            Instant undoneAt,
             List<String> ignoredColumns,
             UUID previousImportId) {
 
@@ -201,6 +202,7 @@ public class ImportController {
                     batch.getLeadsCreated(),
                     batch.getCreatedAt(),
                     batch.getCompletedAt(),
+                    batch.getUndoneAt(),
                     ignoredColumns,
                     previousImportId);
         }
