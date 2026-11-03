@@ -110,6 +110,14 @@ responsável. E-mail e papel ficam em `/organizations/members`, do administrador
 | POST | `/companies/{companyId}/archive` | Arquivar |
 | GET | `/companies/{companyId}/sources` | Histórico de origem (RF-022), paginado |
 | GET | `/companies/{companyId}/duplicates` | Possíveis duplicatas (RF-014) |
+| GET | `/companies/worklist` | Lista como ferramenta: lead atual, contato, origem, atividade, duplicata (D32) |
+| GET | `/companies/{companyId}/summary` | Uma linha da lista, para prévia e cabeçalho do detalhe |
+| GET | `/companies/{companyId}/leads` | Ciclos comerciais da empresa, paginado |
+| POST | `/companies/duplicate-check` | Possíveis duplicatas enquanto o cadastro é digitado |
+| POST | `/companies/bulk` | Segmento ou cidade/UF em até 100 empresas |
+| POST | `/companies/{companyId}/merge` | Mesclar duplicata nesta empresa (D32) |
+| GET | `/companies/{companyId}/removal` | Se a exclusão seria aceita agora (D32) |
+| DELETE | `/companies/{companyId}` | Excluir empresa sem atividade (D32) |
 
 Exemplo de criação:
 
@@ -153,6 +161,40 @@ Contrato implementado na Etapa 4:
   normalizado idêntico na mesma cidade e estado), no máximo dez por sinal,
   sempre da mesma organização. É sugestão para revisão: nada é mesclado.
 - A resposta nunca expõe `organizationId` nem as colunas normalizadas.
+
+Contrato das ferramentas de empresa (D32):
+
+- **Lista** (`/companies/worklist`). Filtros `search`, `segment` ou
+  `noSegment=true`, `city`, `source` (`MANUAL`, `CSV_IMPORT`, `INTEGRATION`:
+  a primeira proveniência, D29) e `focus`: `WITHOUT_LEAD` (sem lead aberto),
+  `WITHOUT_CONTACT` (sem telefone, e-mail, site nem Instagram), `DUPLICATE`
+  (outra empresa **ativa** com o mesmo domínio, telefone, ou nome na mesma
+  cidade e UF) e `ARCHIVED`; sem `ARCHIVED`, só ativas. `sort` `NAME`, `CITY`,
+  `CREATED` (padrão) ou `LAST_ACTIVITY`, `direction` `asc|desc`, nulos por
+  último. Cada item traz `currentLead` (o aberto; sem ele, o mais recente,
+  com `open: false`), `hasPhone`/`hasEmail`/`hasWebsite`/`hasInstagram`,
+  `origin`, `leadCount`, `lastActivityAt` (última interação ou mudança de
+  etapa em qualquer ciclo) e `possibleDuplicate`.
+- **Duplicata ao digitar** (`POST`, para telefone e site não irem à URL):
+  `{name, city, state, websiteUrl, phone, excludeCompanyId}`, todos opcionais.
+  Nome só conta com cidade e UF. Mesmos sinais e limites de `/duplicates`.
+- **Lote:** `{"companyIds": [...], "segment": "..."}` ou com `"city"` e
+  `"state"` juntos. Segmento na grafia já existente (D31). Arquivadas não
+  mudam e voltam em `skippedArchived`; um id de outra organização responde
+  `404` e nada muda.
+- **Mesclar:** `{"sourceCompanyId": "..."}`. Leads, proveniência e linhas de
+  importação passam para a empresa da rota; campos vazios dela são
+  completados com os da origem, sem sobrescrever; a origem é arquivada.
+  Resposta `{company, filledFields, movedLeads}`. Mesma empresa: `400`.
+  Destino arquivado ou as duas com lead aberto: `409`. Auditado
+  (`COMPANY_MERGE`).
+- **Excluir:** corpo `{"confirmationName": "..."}`, o nome da empresa (sem
+  caixa nem espaço nas pontas), senão `400`. Com atividade comercial: `409`.
+  Sem permissão (não cadastrou, ou passou o prazo, e não é administrador):
+  `403`. Sucesso: `204`; a empresa, o lead aberto com ela e a proveniência
+  são apagados, e a auditoria (`COMPANY_DELETE`) guarda só o id.
+  `/removal` responde `{allowed, blocker: HAS_ACTIVITY|NOT_ALLOWED,
+  allowedUntil}`.
 
 ## 5. Leads
 
@@ -213,6 +255,8 @@ Contrato implementado na Etapa 4:
 | GET | `/imports/{importId}/report` | Resultado por linha, paginado, filtro `status` |
 | POST | `/imports/{importId}/confirm` | Importar as linhas aceitas |
 | POST | `/imports/{importId}/discard` | Desistir sem importar |
+| GET | `/imports/{importId}/undo` | Prévia de desfazer: o que sai e o que fica |
+| POST | `/imports/{importId}/undo` | Desfazer importação concluída (D32) |
 
 Para arquivos grandes, usar processamento assíncrono. Validar tamanho, encoding, colunas e conteúdo. Não executar fórmulas de planilha; proteger exportações contra CSV injection.
 
@@ -228,7 +272,8 @@ Contrato implementado na Etapa 5 (D14, D23):
   (`totalRows = validRows + rejectedRows + duplicateRows`), `columnMapping`,
   `ignoredColumns` e `previousImportId` quando o mesmo arquivo já foi enviado.
 - **Linha do relatório:** `rowNumber` (cabeçalho é a linha 1), `status`
-  (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`), `values`,
+  (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`, e
+  `REMOVED` quando a empresa foi excluída depois, D32), `values`,
   `errors` no mesmo formato de erro de campo da API, e para duplicatas
   `duplicateOfCompanyId` ou `duplicateOfRowNumber` com `duplicateSignals`.
 - **Confirmação:** `{"includeDuplicateRows": [7], "mergeDuplicateRows": [6],
@@ -241,6 +286,12 @@ Contrato implementado na Etapa 5 (D14, D23):
 - `mergedRows` conta as linhas que completaram empresa; a linha fica `MERGED`
   com `companyId` da empresa existente e `mergedFields` com os campos
   preenchidos.
+- **Desfazer** (D32): só `COMPLETED` e uma vez (`409` caso contrário). Exclui
+  as empresas que a importação criou e que continuam sem atividade; as com
+  atividade ficam (`keptWithActivity`), as que ela só completou não mudam
+  (`mergedUntouched`). Quem importou, até 7 dias depois da conclusão, ou o
+  administrador; senão `403`. A importação passa a ter `undoneAt`. Auditado
+  (`IMPORT_UNDO`).
 - Importação de outra organização responde `404` em todas as rotas.
 
 ## 7. Discovery

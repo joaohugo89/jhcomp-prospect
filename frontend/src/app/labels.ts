@@ -66,6 +66,7 @@ export const IMPORT_ROW_STATUS_LABEL: Readonly<Record<ImportRowStatus, string>> 
   IMPORTED: 'Importada',
   MERGED: 'Completou empresa existente',
   SKIPPED: 'Não importada',
+  REMOVED: 'Empresa excluída depois',
 };
 
 /** Critérios como afirmações: pontuam quando confirmadas (D24). */

@@ -1,4 +1,4 @@
-import type { ImportBatch, ImportRow, ImportRowStatus, UploadInput } from '../types/import';
+import type { ImportBatch, ImportRow, ImportRowStatus, UndoResult, UploadInput } from '../types/import';
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
@@ -58,6 +58,16 @@ export function confirmImport(
     // Confirmar cria uma empresa por linha numa única transação.
     timeoutMs: ANALYSIS_TIMEOUT_MS,
   });
+}
+
+/** Prévia: quantas empresas sairiam, quantas ficam por já terem atividade. Nada muda. */
+export function previewUndoImport(id: string, signal?: AbortSignal): Promise<UndoResult> {
+  return request<UndoResult>(`/imports/${encodeURIComponent(id)}/undo`, signal ? { signal } : {});
+}
+
+/** Exclui as empresas que a importação criou e que continuam sem atividade (D32). */
+export function undoImport(id: string): Promise<UndoResult> {
+  return request<UndoResult>(`/imports/${encodeURIComponent(id)}/undo`, { method: 'POST' });
 }
 
 export function discardImport(id: string): Promise<ImportBatch> {

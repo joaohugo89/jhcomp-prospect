@@ -5,11 +5,18 @@ import { buttonDanger, buttonPrimary, buttonSecondary } from './styles';
 interface ConfirmDialogProps {
   readonly title: string;
   readonly description: string;
-  readonly confirmLabel: string;
+  /** Sem rótulo, o diálogo só informa: fica apenas o botão de fechar. */
+  readonly confirmLabel?: string;
   readonly destructive?: boolean;
   readonly busy?: boolean;
-  readonly onConfirm: () => void;
+  /** Confirmar fica bloqueado: por exemplo, até digitar o nome do que será excluído. */
+  readonly confirmDisabled?: boolean;
+  /** Conteúdo entre a descrição e os botões, como o campo de confirmação. */
+  readonly children?: React.ReactNode;
+  readonly onConfirm?: () => void;
   readonly onCancel: () => void;
+  /** Texto do botão seguro; "Cancelar" por padrão. */
+  readonly cancelLabel?: string;
 }
 
 /**
@@ -24,8 +31,11 @@ export function ConfirmDialog({
   confirmLabel,
   destructive = false,
   busy = false,
+  confirmDisabled = false,
+  children,
   onConfirm,
   onCancel,
+  cancelLabel = 'Cancelar',
 }: ConfirmDialogProps): React.JSX.Element {
   const titleId = useId();
   const descriptionId = useId();
@@ -52,7 +62,7 @@ export function ConfirmDialog({
     if (event.key !== 'Tab' || dialogRef.current === null) {
       return;
     }
-    const focusable = dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled])');
+    const focusable = dialogRef.current.querySelectorAll<HTMLElement>('input:not([disabled]), button:not([disabled])');
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (first === undefined || last === undefined) {
@@ -86,18 +96,21 @@ export function ConfirmDialog({
         <p id={descriptionId} className="mt-2 text-sm text-slate-700">
           {description}
         </p>
+        {children}
         <div className="mt-6 flex justify-end gap-2">
           <button ref={cancelRef} type="button" className={buttonSecondary} onClick={onCancel} disabled={busy}>
-            Cancelar
+            {cancelLabel}
           </button>
-          <button
-            type="button"
-            className={destructive ? buttonDanger : buttonPrimary}
-            onClick={onConfirm}
-            disabled={busy}
-          >
-            {busy ? 'Aguarde…' : confirmLabel}
-          </button>
+          {confirmLabel !== undefined && (
+            <button
+              type="button"
+              className={destructive ? buttonDanger : buttonPrimary}
+              onClick={onConfirm}
+              disabled={busy || confirmDisabled}
+            >
+              {busy ? 'Aguarde…' : confirmLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

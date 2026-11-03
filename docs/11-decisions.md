@@ -915,3 +915,49 @@ navegador) e atalhos `n`, `t`, `j`, `k` valem fora de campo de texto.
 **Fora do escopo:** exportar a lista (dado pessoal: so com decisao propria,
 para administrador e com auditoria) e renomear um segmento para outro nome
 (a unificacao so junta grafias do mesmo nome).
+
+## D32 — Excluir empresa cadastrada por engano, mesclar e lista como ferramenta · Proposta (2026-11-06)
+
+Empresa so podia ser arquivada (RF-010). Arquivar preserva historico, mas
+deixa na base o que entrou por engano: um cadastro duplicado ao digitar, uma
+planilha errada importada inteira.
+
+**Excluir de verdade, so empresa "limpa".** Limpa e empresa sem atividade
+comercial: no maximo o lead aberto junto com ela, ainda em `NEW` e so com a
+mudanca de status de abertura, sem interacao, tarefa, negocio, mensagem nem
+analise. Com qualquer historico, o caminho continua sendo arquivar (`409`).
+Quem pode: quem cadastrou (autor da primeira proveniencia), ate 7 dias depois
+do cadastro, ou o administrador, a qualquer tempo. A tela pede o nome digitado
+e so oferece o botao quando o servidor aceitaria. Apaga a empresa, o lead
+aberto, o historico de status dele e a proveniencia; a linha de importacao que
+citava a empresa fica no lote como `REMOVED`, sem o vinculo (V14). Bloqueios
+de contato nao sao tocados (regra 4: ficam no identificador, nao na empresa).
+A auditoria guarda so o id. A IA continua sem caminho de exclusao (regra 1).
+
+**Desfazer importacao.** Mesma regra, aplicada as empresas que o lote criou:
+saem as limpas, ficam as que ja tem atividade, e as que o lote so completou
+(`MERGED`) nao mudam, porque existiam antes dele. Quem importou, ate 7 dias
+depois da conclusao, ou o administrador; uma vez so (`import_batch.undone_at`,
+V14). A tela mostra a previa antes de confirmar.
+
+**Mesclar duplicata.** Leads, proveniencia e linhas de importacao da empresa
+de origem passam para a de destino; campos vazios do destino sao completados
+com os da origem, sem sobrescrever (RF-023); a origem e arquivada, nunca
+apagada. Duas empresas com lead aberto nao se mesclam (uma oportunidade aberta
+por empresa, doc 06 §3): o operador encerra um ciclo antes. Qualquer membro
+pode mesclar, como arquivar.
+
+**Lista como ferramenta** (`/companies/worklist`, modulo de CRM pela mesma
+razao da D31): lead atual, contato, origem (D29), ultima atividade e
+"possivel duplicata" (outra empresa ativa com o mesmo sinal do RF-014;
+arquivada nao conta, senao a origem de uma mesclagem marcaria o destino para
+sempre). Recortes Sem lead, Sem contato, Sem segmento, Possivel duplicata e
+Arquivadas; filtros na URL; previa ao lado; segmento ou cidade em lote (ate
+100, segmento na grafia existente da D31). O cadastro avisa de possivel
+duplicata enquanto se digita, sem impedir salvar (mesmo telefone pode ser
+filial). O detalhe segue o padrao do detalhe do lead e mostra todos os ciclos
+comerciais.
+
+**Fora do escopo:** excluir empresa com historico (exige decisao propria, com
+retencao e LGPD) e desfazer uma mesclagem (a origem fica arquivada para
+consulta, mas os leads nao voltam sozinhos).

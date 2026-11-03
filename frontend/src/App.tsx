@@ -150,7 +150,7 @@ function Screen({
       // key: trocar de lead recria a tela, sem herdar estado do anterior.
       return <LeadDetailPage key={route.id} id={route.id} />;
     case 'companies':
-      return <CompaniesPage />;
+      return <CompaniesPage key={window.location.search} />;
     case 'companyNew':
       return <CompanyNewPage />;
     case 'company':

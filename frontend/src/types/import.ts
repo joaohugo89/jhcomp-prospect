@@ -21,7 +21,15 @@ export const REQUIRED_IMPORT_FIELDS: ReadonlySet<ImportField> = new Set(['name',
 
 export type ImportStatus = 'ANALYZED' | 'IMPORTING' | 'COMPLETED' | 'DISCARDED';
 
-export type ImportRowStatus = 'VALID' | 'REJECTED' | 'DUPLICATE' | 'IMPORTED' | 'MERGED' | 'SKIPPED';
+export type ImportRowStatus =
+  | 'VALID'
+  | 'REJECTED'
+  | 'DUPLICATE'
+  | 'IMPORTED'
+  | 'MERGED'
+  | 'SKIPPED'
+  /** A empresa foi excluída depois: por engano ou ao desfazer a importação (D32). */
+  | 'REMOVED';
 
 /** Escolha do operador para uma possível duplicata. Sem escolha, a linha não é importada. */
 export type DuplicateChoice = 'new' | 'merge';
@@ -43,6 +51,8 @@ export interface ImportBatch {
   readonly leadsCreated: number;
   readonly createdAt: string;
   readonly completedAt?: string;
+  /** Importação desfeita: as empresas criadas sem atividade foram excluídas (D32). */
+  readonly undoneAt?: string;
   readonly ignoredColumns?: readonly string[];
   readonly previousImportId?: string;
 }
@@ -72,4 +82,12 @@ export interface UploadInput {
   readonly datasetNote: string;
   /** Vazio: o backend reconhece os cabeçalhos sozinho. */
   readonly mapping: Readonly<Partial<Record<ImportField, string>>>;
+}
+
+/** O que desfazer a importação faz (prévia) ou fez (D32). */
+export interface UndoResult {
+  readonly removed: number;
+  readonly keptWithActivity: number;
+  readonly mergedUntouched: number;
+  readonly undoneAt?: string;
 }
