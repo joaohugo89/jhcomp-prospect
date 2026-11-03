@@ -66,6 +66,9 @@ public class CompanyRemovalService {
      */
     private static final String HAS_ACTIVITY = """
             ((select count(*) from lead l where l.organization_id = c.organization_id and l.company_id = c.id) > 1
+             -- Destino de mesclagem guarda o que veio de outra empresa: nunca e "limpo".
+             or exists (select 1 from company m
+                         where m.organization_id = c.organization_id and m.merged_into_company_id = c.id)
              or exists (
                 select 1 from lead l
                  where l.organization_id = c.organization_id and l.company_id = c.id
@@ -185,14 +188,10 @@ public class CompanyRemovalService {
 
     private record CompanyRow(String name, Instant createdAt, UUID createdBy, boolean hasActivity) {}
 
-    /** Quem cadastrou: o autor da primeira proveniencia gravada. Empresa de outra organizacao e 404. */
+    /** Quem cadastrou fica na empresa e nao muda com mesclagem (V15). Outra organizacao e 404. */
     private CompanyRow load(UUID organizationId, UUID companyId) {
         return jdbc.query("""
-                select c.name, c.created_at,
-                       (select s.collected_by_user_id from lead_source s
-                         where s.organization_id = c.organization_id and s.company_id = c.id
-                         order by s.recorded_seq limit 1) as created_by,
-                       %s as has_activity
+                select c.name, c.created_at, c.created_by_user_id as created_by, %s as has_activity
                   from company c
                  where c.organization_id = :organizationId and c.id = :companyId
                 """.formatted(HAS_ACTIVITY),
@@ -235,8 +234,11 @@ public class CompanyRemovalService {
         // distinct por garantia.
         List<CreatedCompany> created = jdbc.query("""
                 select distinct c.id, %s as has_activity from import_row r
+                  join import_batch b on b.organization_id = r.organization_id and b.id = r.import_id
                   join company c on c.organization_id = r.organization_id and c.id = r.company_id
                  where r.organization_id = :organizationId and r.import_id = :importId and r.status = 'IMPORTED'
+                   -- Criada por este lote: pelo autor da importacao, depois que ela comecou.
+                   and c.created_by_user_id = b.created_by_user_id and c.created_at >= b.created_at
                 """.formatted(HAS_ACTIVITY), params, (row, rowNumber) -> new CreatedCompany(
                         row.getObject("id", UUID.class), row.getBoolean("has_activity")));
         List<UUID> removable = created.stream().filter(company -> !company.hasActivity()).map(CreatedCompany::id)

@@ -958,6 +958,15 @@ duplicata enquanto se digita, sem impedir salvar (mesmo telefone pode ser
 filial). O detalhe segue o padrao do detalhe do lead e mostra todos os ciclos
 comerciais.
 
+**Autoria e mesclagem (V15).** Quem cadastrou fica gravado na propria empresa
+(`created_by_user_id`), e nao e mais deduzido da primeira proveniencia: mesclar
+move proveniencia, e o autor da origem passaria a "ter cadastrado" o destino.
+A origem guarda `merged_into_company_id`; destino de mesclagem conta como
+atividade e nunca e excluido. A linha de importacao que criou a origem vira
+`MERGED` ao mudar para o destino, e desfazer importacao so exclui empresa
+criada pelo autor do lote depois do inicio dele: desfazer a importacao da
+origem nunca apaga o destino, que existia antes.
+
 **Fora do escopo:** excluir empresa com historico (exige decisao propria, com
 retencao e LGPD) e desfazer uma mesclagem (a origem fica arquivada para
 consulta, mas os leads nao voltam sozinhos).

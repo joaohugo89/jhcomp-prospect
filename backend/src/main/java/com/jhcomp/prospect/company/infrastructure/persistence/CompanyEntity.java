@@ -74,6 +74,14 @@ public class CompanyEntity extends AssignedIdEntity {
     @Column(name = "archived_at")
     private Instant archivedAt;
 
+    /** Quem cadastrou ou importou. Nao muda com mesclagem (D32). */
+    @Column(name = "created_by_user_id", updatable = false)
+    private UUID createdByUserId;
+
+    /** Empresa que absorveu esta numa mesclagem (D32). */
+    @Column(name = "merged_into_company_id")
+    private UUID mergedIntoCompanyId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -84,9 +92,10 @@ public class CompanyEntity extends AssignedIdEntity {
         // Exigido pelo JPA.
     }
 
-    public CompanyEntity(UUID id, UUID organizationId, CompanyData data, Instant now) {
+    public CompanyEntity(UUID id, UUID organizationId, UUID createdByUserId, CompanyData data, Instant now) {
         super(id);
         this.organizationId = organizationId;
+        this.createdByUserId = createdByUserId;
         this.createdAt = now;
         this.updatedAt = now;
         apply(data);
@@ -174,6 +183,20 @@ public class CompanyEntity extends AssignedIdEntity {
             this.archivedAt = now;
             this.updatedAt = now;
         }
+    }
+
+    /** Arquiva a origem de uma mesclagem, lembrando para onde ela foi. */
+    public void mergeInto(UUID targetId, Instant now) {
+        this.mergedIntoCompanyId = targetId;
+        archive(now);
+    }
+
+    public UUID getCreatedByUserId() {
+        return createdByUserId;
+    }
+
+    public UUID getMergedIntoCompanyId() {
+        return mergedIntoCompanyId;
     }
 
     public boolean isArchived() {

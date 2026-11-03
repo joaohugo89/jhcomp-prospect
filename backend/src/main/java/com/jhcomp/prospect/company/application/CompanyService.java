@@ -91,7 +91,7 @@ public class CompanyService {
         Instant now = clock.instant();
 
         CompanyEntity company = companyRepository.save(new CompanyEntity(
-                UUID.randomUUID(), user.organizationId(), withCanonicalSegment(user.organizationId(), data), now));
+                UUID.randomUUID(), user.organizationId(), user.userId(), withCanonicalSegment(user.organizationId(), data), now));
         saveSource(company, null, source, user, now);
         return company;
     }

@@ -84,8 +84,11 @@ public class CompanyMergeService {
                 update lead_source set company_id = :target
                  where organization_id = :organizationId and company_id = :source
                 """, params);
+        // A linha que criou a origem passa a apontar para uma empresa que ela nao criou: vira MERGED.
+        // Sem isso, desfazer aquela importacao apagaria o destino, que existia antes dela.
         jdbc.update("""
-                update import_row set company_id = :target
+                update import_row
+                   set company_id = :target, status = case when status = 'IMPORTED' then 'MERGED' else status end
                  where organization_id = :organizationId and company_id = :source
                 """, params);
         jdbc.update("""
@@ -106,7 +109,7 @@ public class CompanyMergeService {
                 source.getBusinessEmail(),
                 source.getAddress(),
                 source.getNotes()), now);
-        source.archive(now);
+        source.mergeInto(target.getId(), now);
 
         auditService.record(new AuditEntry(user.organizationId(), user.userId(), AuditAction.COMPANY_MERGE,
                 AuditOutcome.SUCCESS, "company", targetId.toString(), null, "source=" + sourceId));

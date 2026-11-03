@@ -269,6 +269,47 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("desfazer a importacao da origem de uma mesclagem nao apaga o destino, que existia antes")
+    void undoAfterMergeKeepsTarget() throws Exception {
+        String target = createCompany(session, "Destino Anterior", "");
+        String importId = importCsv(session, "nome;cidade;uf\nOrigem Importada;Cidade Exemplo;MG\n");
+        send(session, post("/imports/" + importId + "/confirm"), "{}").andExpect(status().isOk());
+        String source = jdbc.queryForObject("select company_id::text from import_row where import_id = ?",
+                String.class, UUID.fromString(importId));
+        send(session, post("/companies/" + target + "/merge"), "{\"sourceCompanyId\": \"%s\"}".formatted(source))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/imports/" + importId + "/undo").session(session))
+                .andExpect(jsonPath("$.removed").value(0));
+        send(session, post("/imports/" + importId + "/undo"), "").andExpect(status().isOk());
+        assertThat(count("company", "id", target)).isOne();
+        // A linha que criou a origem agora aponta para uma empresa que ela nao criou.
+        mockMvc.perform(get("/imports/" + importId + "/report").param("status", "MERGED").session(session))
+                .andExpect(jsonPath("$.content[0].companyId").value(target));
+    }
+
+    @Test
+    @DisplayName("mesclar nao transfere a autoria: quem cadastrou a origem nao ganha o direito de excluir o destino")
+    void mergeDoesNotTransferAuthorship() throws Exception {
+        IdentityTestData.Member operator = testData.addMember(admin.organizationId(), OrganizationRole.OPERATOR);
+        MockHttpSession operatorSession = TestSessions.login(mockMvc, operator);
+        // A origem e gravada antes: a proveniencia dela tem sequencia menor que a do destino.
+        String source = createCompany(operatorSession, "Origem Do Operador", "");
+        String target = createCompany(session, "Destino Do Admin", "");
+        send(session, post("/companies/" + target + "/merge"), "{\"sourceCompanyId\": \"%s\"}".formatted(source))
+                .andExpect(status().isOk());
+
+        assertThat(jdbc.queryForObject("select created_by_user_id from company where id = ?", UUID.class,
+                UUID.fromString(target))).isEqualTo(admin.userId());
+        mockMvc.perform(get("/companies/" + target + "/removal").session(operatorSession))
+                .andExpect(jsonPath("$.allowed").value(false));
+        deleteCompany(operatorSession, target, "Destino Do Admin").andExpect(status().is4xxClientError());
+        // Destino de mesclagem nunca e "limpo", nem para o administrador.
+        deleteCompany(session, target, "Destino Do Admin").andExpect(status().isConflict());
+        assertThat(count("company", "id", target)).isOne();
+    }
+
+    @Test
     @DisplayName("mesclar recusa dois ciclos abertos, a propria empresa e destino arquivado")
     void mergeRefusals() throws Exception {
         String target = createCompany(session, "Loja A", "");
