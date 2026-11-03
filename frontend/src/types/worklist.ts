@@ -64,5 +64,9 @@ export interface SavedView {
   readonly name: string;
   /** Query string da lista, já codificada. */
   readonly query: string;
+  /** Publicada para a equipe pelo administrador. */
+  readonly shared: boolean;
+  /** O servidor aceitaria apagar: dono da privada, ou administrador na compartilhada. */
+  readonly canDelete: boolean;
   readonly createdAt: string;
 }

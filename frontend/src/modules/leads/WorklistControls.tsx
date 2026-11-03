@@ -1,4 +1,4 @@
-import { Bookmark, BookmarkPlus, X } from 'lucide-react';
+import { Bookmark, BookmarkPlus, Users, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { actionErrorMessage } from '../../app/errors';
@@ -205,14 +205,18 @@ export function BulkBar({
 export function SavedViews({
   views,
   currentQuery,
+  canShare,
   onChanged,
 }: {
   readonly views: readonly SavedView[];
   readonly currentQuery: string;
+  /** Administrador: pode publicar a visão para a equipe (D31). */
+  readonly canShare: boolean;
   readonly onChanged: () => void;
 }): React.JSX.Element {
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
+  const [shared, setShared] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<SavedView | null>(null);
   const alreadySaved = views.some((view) => view.query === currentQuery);
@@ -220,9 +224,10 @@ export function SavedViews({
   async function save(): Promise<void> {
     setError(null);
     try {
-      await createView(name.trim(), currentQuery);
+      await createView(name.trim(), currentQuery, canShare && shared);
       setNaming(false);
       setName('');
+      setShared(false);
       onChanged();
     } catch (cause: unknown) {
       setError(actionErrorMessage(cause, 'Já existe uma visão com esse nome, ou o limite de 20 foi atingido.'));
@@ -248,20 +253,27 @@ export function SavedViews({
           >
             <Link
               to={view.query === '' ? '/leads' : `/leads?${view.query}`}
-              className="rounded-l-full py-1 pr-1 pl-3 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
+              {...(view.shared ? { 'aria-label': `${view.name} (da equipe)` } : {})}
+              className={`inline-flex items-center gap-1 rounded-l-full py-1 pl-3 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500 ${
+                view.canDelete ? 'pr-1' : 'rounded-r-full pr-3'
+              }`}
             >
+              {view.shared && <Users aria-hidden="true" className="size-3 text-slate-500" />}
               {view.name}
             </Link>
-            <button
-              type="button"
-              aria-label={`Apagar a visão ${view.name}`}
-              className="rounded-r-full py-1 pr-2 pl-1 text-slate-400 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-brand-500"
-              onClick={() => {
-                setRemoving(view);
-              }}
-            >
-              <X aria-hidden="true" className="size-3" />
-            </button>
+            {/* Apagar só aparece quando o servidor aceitaria: compartilhada é do administrador. */}
+            {view.canDelete && (
+              <button
+                type="button"
+                aria-label={`Apagar a visão ${view.name}`}
+                className="rounded-r-full py-1 pr-2 pl-1 text-slate-400 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-brand-500"
+                onClick={() => {
+                  setRemoving(view);
+                }}
+              >
+                <X aria-hidden="true" className="size-3" />
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -291,6 +303,18 @@ export function SavedViews({
               }}
             />
           </label>
+          {canShare && (
+            <label className="flex items-center gap-1.5 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={shared}
+                onChange={(event) => {
+                  setShared(event.target.checked);
+                }}
+              />
+              Compartilhar com a equipe
+            </label>
+          )}
           <button type="submit" className={`${buttonPrimary} h-8 py-0 text-xs`} disabled={name.trim() === ''}>
             Salvar
           </button>
@@ -327,7 +351,11 @@ export function SavedViews({
       {removing !== null && (
         <ConfirmDialog
           title={`Apagar a visão "${removing.name}"?`}
-          description="Os leads não mudam; só o atalho deixa de existir."
+          description={
+            removing.shared
+              ? 'A visão some para a equipe toda. Os leads não mudam; só o atalho deixa de existir.'
+              : 'Os leads não mudam; só o atalho deixa de existir.'
+          }
           confirmLabel="Apagar"
           destructive
           onConfirm={() => {

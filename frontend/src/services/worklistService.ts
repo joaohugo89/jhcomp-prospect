@@ -52,8 +52,9 @@ export function listViews(signal?: AbortSignal): Promise<readonly SavedView[]> {
   return request<readonly SavedView[]>('/leads/views', signal ? { signal } : {});
 }
 
-export function createView(name: string, query: string): Promise<SavedView> {
-  return request<SavedView>('/leads/views', { method: 'POST', body: { name, query } });
+/** `shared` publica para a equipe; o servidor só aceita de administrador. */
+export function createView(name: string, query: string, shared: boolean): Promise<SavedView> {
+  return request<SavedView>('/leads/views', { method: 'POST', body: { name, query, shared } });
 }
 
 export function deleteView(id: string): Promise<void> {

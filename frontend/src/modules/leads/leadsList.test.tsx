@@ -224,7 +224,14 @@ describe('Lista de leads', () => {
 
   it('visoes salvas: salvar a busca atual, abrir e apagar com confirmacao', async () => {
     const views = [
-      { id: 'v-1', name: 'Minhas propostas', query: 'status=PROPOSAL_SENT', createdAt: '2026-11-01T12:00:00Z' },
+      {
+        id: 'v-1',
+        name: 'Minhas propostas',
+        query: 'status=PROPOSAL_SENT',
+        shared: false,
+        canDelete: true,
+        createdAt: '2026-11-01T12:00:00Z',
+      },
     ];
     const calls = listRoutes({
       'GET /leads/views': () => json(views),
@@ -246,6 +253,7 @@ describe('Lista de leads', () => {
       expect(calls.find((call) => call.method === 'POST' && call.path === '/leads/views')?.body).toEqual({
         name: 'Importadas',
         query: 'status=PROPOSAL_SENT&source=CSV_IMPORT',
+        shared: false,
       });
     });
 
@@ -253,6 +261,41 @@ describe('Lista de leads', () => {
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Apagar' }));
     await waitFor(() => {
       expect(calls.some((call) => call.method === 'DELETE' && call.path === '/leads/views/v-1')).toBe(true);
+    });
+  });
+
+  it('visao da equipe aparece sem apagar para operador; administrador pode compartilhar', async () => {
+    const teamView = {
+      id: 'v-9',
+      name: 'Propostas da semana',
+      query: 'status=PROPOSAL_SENT',
+      shared: true,
+      canDelete: false,
+      createdAt: '2026-11-01T12:00:00Z',
+    };
+    const calls = listRoutes({
+      'GET /leads/views': () => json([teamView]),
+      'POST /leads/views': () => json({ ...teamView, id: 'v-10', name: 'Da equipe', canDelete: true }, 201),
+    });
+    const { unmount } = render(<LeadsPage session={{ ...session, role: 'OPERATOR' }} />);
+
+    const salvas = await screen.findByRole('list', { name: 'Visões salvas' });
+    expect(within(salvas).getByRole('link', { name: 'Propostas da semana (da equipe)' })).toBeInTheDocument();
+    expect(within(salvas).queryByRole('button', { name: /Apagar a visão/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar esta visão' }));
+    expect(screen.queryByLabelText('Compartilhar com a equipe')).not.toBeInTheDocument();
+    unmount();
+
+    render(<LeadsPage session={session} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Salvar esta visão' }));
+    await userEvent.type(screen.getByLabelText('Nome da visão'), 'Da equipe');
+    await userEvent.click(screen.getByLabelText('Compartilhar com a equipe'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => {
+      expect(calls.find((call) => call.method === 'POST' && call.path === '/leads/views')?.body).toMatchObject({
+        name: 'Da equipe',
+        shared: true,
+      });
     });
   });
 

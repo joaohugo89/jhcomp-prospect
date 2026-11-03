@@ -246,7 +246,7 @@ function Row({
             className={stale ? 'rounded-md bg-amber-50 px-1.5 py-0.5 font-medium text-amber-800' : 'text-slate-600'}
           >
             {days === 0 ? 'hoje' : daysLabel(days)}
-            {stale && <span className="sr-only"> (parado)</span>}
+            {stale && <span className="sr-only">{' (parado)'}</span>}
           </span>
         )}
       </td>

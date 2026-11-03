@@ -95,6 +95,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
         <SavedViews
           views={views.kind === 'ready' ? views.data : []}
           currentQuery={query}
+          canShare={session.role === 'ADMIN'}
           onChanged={() => {
             setViewsVersion((value) => value + 1);
           }}
@@ -186,7 +187,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
               {advancedCount > 0 && (
                 <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white">
                   {advancedCount}
-                  <span className="sr-only"> ativos</span>
+                  <span className="sr-only">{' ativos'}</span>
                 </span>
               )}
             </button>

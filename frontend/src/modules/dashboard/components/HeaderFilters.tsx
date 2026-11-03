@@ -84,7 +84,7 @@ export function HeaderFilters({
         {extra > 0 && (
           <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white">
             {extra}
-            <span className="sr-only"> ativos</span>
+            <span className="sr-only">{' ativos'}</span>
           </span>
         )}
       </button>
