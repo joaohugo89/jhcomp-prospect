@@ -1,16 +1,17 @@
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
 import { formatDateTime } from '../../app/format';
-import { IMPORT_FIELD_LABEL, IMPORT_STATUS_LABEL } from '../../app/labels';
+import { IMPORT_FIELD_LABEL } from '../../app/labels';
 import { Link } from '../../app/router';
 import { useLoad } from '../../app/useLoad';
-import { PageHeader } from '../../components/PageHeader';
 import { LoadStateView } from '../../components/States';
-import { link } from '../../components/styles';
+import { card, link } from '../../components/styles';
 import { getImport } from '../../services/importService';
 import { IMPORT_FIELDS, type DuplicateChoice, type ImportBatch } from '../../types/import';
 import { ImportReport } from './ImportReport';
 import { ImportReview } from './ImportReview';
+import { ImportStatusBadge, ImportSteps } from './ImportVisuals';
 import { UndoImport } from './UndoImport';
 
 /** Revisão e resultado de uma importação (RF-015, D23). */
@@ -28,10 +29,27 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
 
   return (
     <>
-      <PageHeader
-        title={batch.fileName}
-        description={`${IMPORT_STATUS_LABEL[batch.status]} · origem: ${batch.sourceName} · enviada em ${formatDateTime(batch.createdAt)}`}
-      />
+      <Link
+        to="/imports"
+        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900"
+      >
+        <ArrowLeft aria-hidden="true" className="size-4" />
+        Voltar para importações
+      </Link>
+      <header className="mb-5 space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight break-all text-slate-900">{batch.fileName}</h1>
+          <ImportStatusBadge batch={batch} />
+        </div>
+        <p className="text-sm text-slate-500">
+          {`Origem: ${batch.sourceName} · enviada em ${formatDateTime(batch.createdAt)}${
+            batch.completedAt === undefined ? '' : ` · concluída em ${formatDateTime(batch.completedAt)}`
+          }`}
+        </p>
+        {batch.status !== 'DISCARDED' && (
+          <ImportSteps current={reviewing ? 1 : 2} done={batch.status === 'COMPLETED'} />
+        )}
+      </header>
 
       {batch.previousImportId !== undefined && (
         <p role="status" className="mb-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -102,11 +120,11 @@ function Summary({ batch }: { readonly batch: ImportBatch }): React.JSX.Element 
   }
 
   return (
-    <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+    <dl className="mb-6 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-7">
       {items.map(([label, value]) => (
-        <div key={label} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-          <dt className="text-xs text-slate-500">{label}</dt>
-          <dd className="text-xl font-semibold tabular-nums text-slate-900">{value}</dd>
+        <div key={label} className={`${card} min-w-0 px-3 py-2.5 sm:px-4 sm:py-3`}>
+          <dt className="truncate text-[11px] font-medium text-slate-500 sm:text-xs">{label}</dt>
+          <dd className="mt-0.5 text-lg font-bold tabular-nums text-slate-900 sm:mt-1 sm:text-2xl">{value}</dd>
         </div>
       ))}
     </dl>
@@ -118,8 +136,8 @@ function MappingSummary({ batch }: { readonly batch: ImportBatch }): React.JSX.E
   const ignored = batch.ignoredColumns ?? [];
 
   return (
-    <section aria-labelledby="colunas" className="mb-6 rounded-lg border border-slate-200 bg-white p-6 text-sm">
-      <h2 id="colunas" className="text-base font-semibold">
+    <section aria-labelledby="colunas" className={`${card} mb-6 p-5 text-sm`}>
+      <h2 id="colunas" className="text-sm font-semibold text-slate-900">
         Colunas usadas
       </h2>
       <ul className="mt-2 flex flex-wrap gap-2">

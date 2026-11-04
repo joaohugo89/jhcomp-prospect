@@ -91,3 +91,13 @@ export interface UndoResult {
   readonly mergedUntouched: number;
   readonly undoneAt?: string;
 }
+
+/** Visão geral do histórico de importações. */
+export interface ImportSummary {
+  readonly pendingReview: number;
+  readonly completed: number;
+  readonly undone: number;
+  readonly discarded: number;
+  /** Empresas trazidas por importações que valem (não desfeitas). */
+  readonly companiesImported: number;
+}

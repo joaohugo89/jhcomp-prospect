@@ -27,7 +27,13 @@ const batch = {
 };
 
 const rows = [
-  { rowNumber: 2, status: 'VALID', values: { name: 'Barbearia Um', city: 'Cidade Exemplo', state: 'MG' }, errors: [], duplicateSignals: [] },
+  {
+    rowNumber: 2,
+    status: 'VALID',
+    values: { name: 'Barbearia Um', city: 'Cidade Exemplo', state: 'MG' },
+    errors: [],
+    duplicateSignals: [],
+  },
   {
     rowNumber: 4,
     status: 'REJECTED',
@@ -57,15 +63,16 @@ function csvFile(content: string, name = 'empresas.csv'): File {
   return new File([content], name, { type: 'text/csv' });
 }
 
-  function routes(overrides: Record<string, () => Response> = {}) {
-    return fakeApi({
-      'GET /imports/': () => json(batch),
-      [`GET /imports/${IMPORT_ID}/report`]: () => json(page(rows)),
-      [`POST /imports/${IMPORT_ID}/confirm`]: () => json({ ...batch, status: 'COMPLETED', importedRows: 3, leadsCreated: 3 }),
-      [`POST /imports/${IMPORT_ID}/discard`]: () => json({ ...batch, status: 'DISCARDED' }),
-      ...overrides,
-    });
-  }
+function routes(overrides: Record<string, () => Response> = {}) {
+  return fakeApi({
+    'GET /imports/': () => json(batch),
+    [`GET /imports/${IMPORT_ID}/report`]: () => json(page(rows)),
+    [`POST /imports/${IMPORT_ID}/confirm`]: () =>
+      json({ ...batch, status: 'COMPLETED', importedRows: 3, leadsCreated: 3 }),
+    [`POST /imports/${IMPORT_ID}/discard`]: () => json({ ...batch, status: 'DISCARDED' }),
+    ...overrides,
+  });
+}
 
 describe('parseHeaderLine', () => {
   it('le ponto e virgula, BOM e aspas como o backend', () => {
@@ -92,7 +99,14 @@ describe('Importações', () => {
         'POST /imports/csv': () => {
           attempt += 1;
           return attempt === 1
-            ? json({ type: 'VALIDATION_ERROR', status: 400, detail: 'Required fields without a column: name, city, state' }, 400)
+            ? json(
+                {
+                  type: 'VALIDATION_ERROR',
+                  status: 400,
+                  detail: 'Required fields without a column: name, city, state',
+                },
+                400,
+              )
             : json(batch, 201);
         },
       });
@@ -122,7 +136,8 @@ describe('Importações', () => {
     it('explica como corrigir arquivo fora de UTF-8', async () => {
       fakeApi({
         'GET /imports': () => json(page([])),
-        'POST /imports/csv': () => json({ type: 'VALIDATION_ERROR', status: 400, detail: 'File must be UTF-8 encoded' }, 400),
+        'POST /imports/csv': () =>
+          json({ type: 'VALIDATION_ERROR', status: 400, detail: 'File must be UTF-8 encoded' }, 400),
       });
 
       render(<ImportsPage />);
@@ -153,8 +168,69 @@ describe('Importações', () => {
     });
   });
 
-  describe('revisao', () => {
+  describe('historico', () => {
+    it('mostra a visao geral, destaca o que aguarda revisao e filtra pela situacao', async () => {
+      const calls = fakeApi({
+        'GET /imports/summary': () =>
+          json({ pendingReview: 1, completed: 3, undone: 1, discarded: 0, companiesImported: 12 }),
+        'GET /imports': () =>
+          json(
+            page([
+              batch,
+              {
+                ...batch,
+                id: 'b-2',
+                fileName: 'antiga.csv',
+                status: 'COMPLETED',
+                importedRows: 2,
+                undoneAt: '2026-11-05T12:00:00Z',
+              },
+            ]),
+          ),
+      });
 
+      render(<ImportsPage />);
+
+      expect(await screen.findByText('12')).toBeInTheDocument();
+      const table = await screen.findByRole('table', { name: 'Importações' });
+      expect(within(table).getByText('Aguardando revisão')).toBeInTheDocument();
+      expect(within(table).getByText('Desfeita')).toBeInTheDocument();
+      expect(within(table).getByRole('link', { name: 'Revisar' })).toHaveAttribute('href', `/imports/${IMPORT_ID}`);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Ver: Aguardando revisão' }));
+      await waitFor(() => {
+        expect(
+          calls
+            .filter((call) => call.path === '/imports')
+            .at(-1)
+            ?.query.get('status'),
+        ).toBe('ANALYZED');
+      });
+      expect(screen.getByRole('button', { name: 'Aguardando revisão', pressed: true })).toBeInTheDocument();
+    });
+
+    it('oferece o modelo CSV so com cabecalhos', async () => {
+      fakeApi({ 'GET /imports': () => json(page([])) });
+      const created: Blob[] = [];
+      vi.stubGlobal('URL', {
+        ...URL,
+        createObjectURL: (blob: Blob) => {
+          created.push(blob);
+          return 'blob:modelo';
+        },
+        revokeObjectURL: () => undefined,
+      });
+
+      render(<ImportsPage />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Baixar modelo CSV' }));
+
+      const text = await created[0]?.text();
+      expect(text?.trim().split('\n')).toHaveLength(1);
+      expect(text).toContain('nome;nome fantasia;segmento;cidade;uf');
+    });
+  });
+
+  describe('revisao', () => {
     it('mostra totais, colunas ignoradas e o erro de cada linha em portugues', async () => {
       routes();
 
@@ -163,8 +239,9 @@ describe('Importações', () => {
       expect(await screen.findByText('Faturamento')).toBeInTheDocument();
       const rejected = await screen.findByRole('article', { name: 'Linha 4' });
       expect(rejected).toHaveTextContent('Cidade: Campo obrigatório.');
-      expect(within(screen.getByRole('article', { name: 'Linha 6' })).getByRole('link', { name: 'empresa já cadastrada' }))
-        .toHaveAttribute('href', `/companies/${COMPANY_ID}`);
+      expect(
+        within(screen.getByRole('article', { name: 'Linha 6' })).getByRole('link', { name: 'empresa já cadastrada' }),
+      ).toHaveAttribute('href', `/companies/${COMPANY_ID}`);
     });
 
     it('duplicata de empresa cadastrada pode completar a existente; a do arquivo, so virar nova', async () => {

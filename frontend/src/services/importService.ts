@@ -1,4 +1,12 @@
-import type { ImportBatch, ImportRow, ImportRowStatus, UndoResult, UploadInput } from '../types/import';
+import type {
+  ImportBatch,
+  ImportRow,
+  ImportRowStatus,
+  ImportStatus,
+  ImportSummary,
+  UndoResult,
+  UploadInput,
+} from '../types/import';
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
@@ -22,8 +30,12 @@ export function analyzeCsv(input: UploadInput): Promise<ImportBatch> {
   return request<ImportBatch>('/imports/csv', { method: 'POST', body: form, timeoutMs: ANALYSIS_TIMEOUT_MS });
 }
 
-export function listImports(page: number, signal?: AbortSignal): Promise<Page<ImportBatch>> {
-  return request<Page<ImportBatch>>(`/imports${toQuery({ page })}`, signal ? { signal } : {});
+export function listImports(status: ImportStatus | '', page: number, signal?: AbortSignal): Promise<Page<ImportBatch>> {
+  return request<Page<ImportBatch>>(`/imports${toQuery({ status, page })}`, signal ? { signal } : {});
+}
+
+export function getImportSummary(signal?: AbortSignal): Promise<ImportSummary> {
+  return request<ImportSummary>('/imports/summary', signal ? { signal } : {});
 }
 
 export function getImport(id: string, signal?: AbortSignal): Promise<ImportBatch> {

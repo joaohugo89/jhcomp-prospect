@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { FileSpreadsheet, UploadCloud, X } from 'lucide-react';
+import { useId, useState } from 'react';
 
 import { IMPORT_FIELD_LABEL } from '../../app/labels';
 import { navigate } from '../../app/router';
@@ -7,9 +8,23 @@ import { buttonPrimary, buttonSecondary, input, link } from '../../components/st
 import { analyzeCsv } from '../../services/importService';
 import { IMPORT_FIELDS, REQUIRED_IMPORT_FIELDS, type ImportField } from '../../types/import';
 import { readHeaders } from './csvHeaders';
+import { ImportSteps } from './ImportVisuals';
 import { missingRequiredFields, uploadErrorMessage } from './importMessages';
 
+/** Tamanho legível: "18 KB", "1,2 MB". */
+function fileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
+}
+
+/** Primeira etapa: escolher o arquivo (clicando ou arrastando) e dizer de onde ele veio. */
 export function UploadForm(): React.JSX.Element {
+  const inputId = useId();
+  const [dragging, setDragging] = useState(false);
+  // Trocar a chave recria o campo de arquivo: limpar a escolha sem mexer no DOM.
+  const [inputKey, setInputKey] = useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [sourceName, setSourceName] = useState('');
   const [datasetNote, setDatasetNote] = useState('');
@@ -52,30 +67,74 @@ export function UploadForm(): React.JSX.Element {
   return (
     <form
       noValidate
-      className="space-y-4 rounded-lg border border-slate-200 bg-white p-6"
+      className="space-y-5 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm sm:p-6"
       onSubmit={(event) => {
         void submit(event);
       }}
     >
-      <div>
-        <label htmlFor="csv-file" className="block text-sm font-medium text-slate-700">
-          Arquivo CSV
-        </label>
-        <input
-          id="csv-file"
-          type="file"
-          accept=".csv,text/csv"
-          aria-describedby="csv-file-hint"
-          className="mt-1 block w-full text-sm"
-          onChange={(event) => {
-            void chooseFile(event.target.files?.item(0) ?? null);
+      <ImportSteps current={0} />
+
+      {file === null ? (
+        // Soltar arquivo não tem equivalente de teclado; o mesmo campo abre pelo clique ou pelo Enter.
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+        <label
+          htmlFor={inputId}
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors focus-within:outline-2 focus-within:outline-brand-500 ${
+            dragging ? 'border-brand-500 bg-brand-50' : 'border-slate-300 bg-slate-50/60 hover:bg-slate-50'
+          }`}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
           }}
-        />
-        <p id="csv-file-hint" className="mt-1 text-xs text-slate-500">
-          UTF-8, até 2 MB e 2.000 linhas. Colunas obrigatórias: nome, cidade e UF. No Excel, use “Salvar como” e
-          escolha “CSV UTF-8”.
-        </p>
-      </div>
+          onDragLeave={() => {
+            setDragging(false);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            void chooseFile(event.dataTransfer.files.item(0));
+          }}
+        >
+          <UploadCloud aria-hidden="true" className="size-8 text-brand-600" />
+          <span className="text-sm font-semibold text-slate-900">Arraste o CSV aqui ou clique para escolher</span>
+          <span id="csv-file-hint" className="text-xs text-slate-500">
+            UTF-8, até 2 MB e 2.000 linhas. Obrigatórias: nome, cidade e UF. No Excel: “Salvar como” → “CSV UTF-8”.
+          </span>
+          <input
+            key={inputKey}
+            id={inputId}
+            type="file"
+            accept=".csv,text/csv"
+            aria-label="Arquivo CSV"
+            aria-describedby="csv-file-hint"
+            className="sr-only"
+            onChange={(event) => {
+              void chooseFile(event.target.files?.item(0) ?? null);
+            }}
+          />
+        </label>
+      ) : (
+        <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+          <FileSpreadsheet aria-hidden="true" className="size-8 shrink-0 text-emerald-600" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-slate-900">{file.name}</p>
+            <p className="text-xs text-slate-500">
+              {`${fileSize(file.size)}${headers.length > 0 ? ` · ${headers.length} colunas: ${headers.slice(0, 4).join(', ')}${headers.length > 4 ? '…' : ''}` : ''}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Trocar arquivo"
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-brand-500"
+            onClick={() => {
+              void chooseFile(null);
+              setInputKey((value) => value + 1);
+            }}
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <FormField

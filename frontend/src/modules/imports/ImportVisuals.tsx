@@ -1,0 +1,132 @@
+import { Check, CheckCircle2, Clock, Loader2, Undo2, XCircle } from 'lucide-react';
+
+import type { ImportBatch } from '../../types/import';
+
+/**
+ * Peças visuais da importação: situação com ícone e texto (nunca só cor),
+ * barra do resultado por linha e as três etapas do fluxo (D23).
+ */
+
+const STATUS_STYLE = {
+  ANALYZED: { label: 'Aguardando revisão', icon: Clock, tone: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  IMPORTING: { label: 'Importando', icon: Loader2, tone: 'bg-sky-50 text-sky-800 ring-sky-200' },
+  COMPLETED: { label: 'Importada', icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  DISCARDED: { label: 'Descartada', icon: XCircle, tone: 'bg-slate-100 text-slate-600 ring-slate-200' },
+  UNDONE: { label: 'Desfeita', icon: Undo2, tone: 'bg-slate-100 text-slate-700 ring-slate-300' },
+} as const;
+
+export function ImportStatusBadge({ batch }: { readonly batch: ImportBatch }): React.JSX.Element {
+  const style = STATUS_STYLE[batch.undoneAt === undefined ? batch.status : 'UNDONE'];
+  const Icon = style.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ${style.tone}`}
+    >
+      <Icon aria-hidden="true" className="size-3.5" />
+      {style.label}
+    </span>
+  );
+}
+
+interface Segment {
+  /** Singular e plural: "1 importada", "2 importadas". */
+  readonly label: readonly [string, string];
+  readonly value: number;
+  readonly tone: string;
+}
+
+/** Segmentos do resultado: na revisão, o que o arquivo trouxe; depois, o que virou empresa. */
+function segmentsOf(batch: ImportBatch): readonly Segment[] {
+  if (batch.status === 'ANALYZED' || batch.status === 'IMPORTING') {
+    return [
+      { label: ['válida', 'válidas'], value: batch.validRows, tone: 'bg-emerald-500' },
+      { label: ['possível duplicata', 'possíveis duplicatas'], value: batch.duplicateRows, tone: 'bg-amber-400' },
+      { label: ['rejeitada', 'rejeitadas'], value: batch.rejectedRows, tone: 'bg-red-400' },
+    ];
+  }
+  const used = batch.importedRows + batch.mergedRows;
+  return [
+    { label: ['importada', 'importadas'], value: batch.importedRows, tone: 'bg-emerald-500' },
+    { label: ['completou empresa', 'completaram empresa'], value: batch.mergedRows, tone: 'bg-sky-500' },
+    { label: ['rejeitada', 'rejeitadas'], value: batch.rejectedRows, tone: 'bg-red-400' },
+    {
+      label: ['não importada', 'não importadas'],
+      value: Math.max(0, batch.totalRows - used - batch.rejectedRows),
+      tone: 'bg-slate-300',
+    },
+  ];
+}
+
+/** Barra de proporção com o texto ao lado: a cor só reforça o que está escrito. */
+export function ImportResultBar({ batch }: { readonly batch: ImportBatch }): React.JSX.Element {
+  if (batch.status === 'DISCARDED') {
+    return <span className="text-xs text-slate-500">{`${batch.totalRows} lidas, nada gravado`}</span>;
+  }
+  const segments = segmentsOf(batch).filter((segment) => segment.value > 0);
+  const total = Math.max(1, batch.totalRows);
+  return (
+    <div className="min-w-[10rem]">
+      <div aria-hidden="true" className="flex h-1.5 overflow-hidden rounded-full bg-slate-100">
+        {segments.map((segment) => (
+          <span
+            key={segment.label[1]}
+            className={`${segment.tone} border-r-2 border-white last:border-r-0`}
+            style={{ width: `${(segment.value / total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-slate-600">
+        {segments.length === 0 ? 'Nenhuma linha' : segments.map((s) => `${s.value} ${s.value === 1 ? s.label[0] : s.label[1]}`).join(' · ')}
+      </p>
+    </div>
+  );
+}
+
+const STEPS = ['Enviar arquivo', 'Revisar linhas', 'Importar'] as const;
+
+/**
+ * As três etapas da importação. `current` é a etapa em andamento (0 a 2);
+ * `done` marca a última como concluída.
+ */
+export function ImportSteps({
+  current,
+  done = false,
+}: {
+  readonly current: number;
+  readonly done?: boolean;
+}): React.JSX.Element {
+  return (
+    <ol aria-label="Etapas da importação" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+      {STEPS.map((label, index) => {
+        const complete = index < current || (done && index === current);
+        const active = index === current && !done;
+        return (
+          <li key={label} className="flex items-center gap-2">
+            <span
+              {...(active ? { 'aria-current': 'step' as const } : {})}
+              className={`inline-flex items-center gap-1.5 font-semibold ${
+                active ? 'text-brand-700' : complete ? 'text-slate-700' : 'text-slate-400'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-flex size-5 items-center justify-center rounded-full text-[11px] ${
+                  complete
+                    ? 'bg-emerald-600 text-white'
+                    : active
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
+                }`}
+              >
+                {complete ? <Check className="size-3" /> : index + 1}
+              </span>
+              {label}
+              {complete && <span className="sr-only">{' (concluída)'}</span>}
+            </span>
+            {index < STEPS.length - 1 && <span aria-hidden="true" className="h-px w-6 bg-slate-200" />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}

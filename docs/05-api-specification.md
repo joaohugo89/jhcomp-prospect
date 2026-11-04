@@ -250,7 +250,8 @@ Contrato implementado na Etapa 4:
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/imports/csv` | Enviar CSV e analisar (não cria empresa) |
-| GET | `/imports` | Listar importações, paginado |
+| GET | `/imports` | Listar importações, paginado; filtro `status` (`ANALYZED`, `COMPLETED`, `DISCARDED`) |
+| GET | `/imports/summary` | Visão geral: `pendingReview`, `completed`, `undone`, `discarded`, `companiesImported` |
 | GET | `/imports/{importId}` | Consultar status e totais |
 | GET | `/imports/{importId}/report` | Resultado por linha, paginado, filtro `status` |
 | POST | `/imports/{importId}/confirm` | Importar as linhas aceitas |
