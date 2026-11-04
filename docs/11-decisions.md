@@ -916,7 +916,7 @@ navegador) e atalhos `n`, `t`, `j`, `k` valem fora de campo de texto.
 para administrador e com auditoria) e renomear um segmento para outro nome
 (a unificacao so junta grafias do mesmo nome).
 
-## D32 — Excluir empresa cadastrada por engano, mesclar e lista como ferramenta · Proposta (2026-11-06)
+## D32 — Excluir empresa cadastrada por engano, mesclar e lista como ferramenta · Aprovada (2026-11-06)
 
 Empresa so podia ser arquivada (RF-010). Arquivar preserva historico, mas
 deixa na base o que entrou por engano: um cadastro duplicado ao digitar, uma

@@ -62,7 +62,7 @@ já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
   fila de trabalho (`/leads/worklist`, módulo CRM); lote só responsável e
   prioridade; visões privadas e compartilhadas (só admin publica/apaga);
   segmento gravado na grafia já existente e comparado sem caixa.
-- **D32** (Proposta) Empresa só é excluída sem atividade comercial (no máximo o
+- **D32** Empresa só é excluída sem atividade comercial (no máximo o
   lead `NEW` aberto com ela): quem cadastrou por 7 dias ou o admin; senão
   arquivar. Desfazer importação usa a mesma regra; `MERGED` não muda. Mesclar
   move leads/origens e arquiva a origem; dois leads abertos → 409.
