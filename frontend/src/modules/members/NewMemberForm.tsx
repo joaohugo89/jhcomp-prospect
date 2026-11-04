@@ -1,8 +1,9 @@
+import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import { actionErrorMessage, fieldErrorsOf } from '../../app/errors';
 import { FormField } from '../../components/FormField';
-import { buttonPrimary, input } from '../../components/styles';
+import { buttonPrimary, card, input } from '../../components/styles';
 import { createMember } from '../../services/memberService';
 import type { MemberWithPassword } from '../../types/member';
 import type { OrganizationRole } from '../../types/session';
@@ -41,12 +42,16 @@ export function NewMemberForm({
   }
 
   return (
-    <section aria-labelledby="novo-membro" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="novo-membro" className="text-base font-semibold">
+    <section aria-labelledby="novo-membro" className={`${card} p-5`}>
+      <h2 id="novo-membro" className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+        <UserPlus aria-hidden="true" className="size-4 text-brand-600" />
         Adicionar membro
       </h2>
+      <p className="mt-1 text-xs text-slate-500">
+        A pessoa recebe uma senha temporária, mostrada uma vez só, e troca no primeiro acesso.
+      </p>
       <form
-        className="mt-3 grid gap-3 sm:grid-cols-3"
+        className="mt-4 space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
@@ -82,11 +87,16 @@ export function NewMemberForm({
             <option value="OPERATOR">Operador</option>
             <option value="ADMIN">Administrador</option>
           </select>
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            {role === 'ADMIN'
+              ? 'Também gerencia membros, vê a lista de não contato e corrige cadastros feitos por engano.'
+              : 'Conduz o trabalho comercial: empresas, leads, pipeline e mensagens.'}
+          </span>
         </label>
-        <div className="sm:col-span-3">
+        <div>
           <button
             type="submit"
-            className={buttonPrimary}
+            className={`${buttonPrimary} w-full`}
             disabled={busy || email.trim() === '' || displayName.trim() === ''}
           >
             {busy ? 'Adicionando…' : 'Adicionar membro'}

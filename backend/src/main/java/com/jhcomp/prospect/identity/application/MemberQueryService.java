@@ -1,5 +1,8 @@
 package com.jhcomp.prospect.identity.application;
 
+import java.util.EnumSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -11,6 +14,7 @@ import com.jhcomp.prospect.identity.domain.MemberStatus;
 import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMemberEntity;
 import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMemberRepository;
 import com.jhcomp.prospect.shared.error.ResourceNotFoundException;
+import com.jhcomp.prospect.shared.persistence.LikePatterns;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
@@ -36,10 +40,28 @@ public class MemberQueryService {
                 organizationContext.requireOrganizationId(), MemberStatus.ACTIVE, pageable);
     }
 
-    /** Ativos e revogados, para o administrador poder reativar acesso. */
+    /**
+     * Tela de administracao: {@code status} nulo traz ativos e removidos;
+     * {@code search} procura no nome e no e-mail, sem distinguir caixa.
+     */
     @Transactional(readOnly = true)
-    public Page<OrganizationMemberEntity> listAllMembers(Pageable pageable) {
-        return memberRepository.findAllByOrganization(organizationContext.requireOrganizationId(), pageable);
+    public Page<OrganizationMemberEntity> search(MemberStatus status, String search, Pageable pageable) {
+        Set<MemberStatus> statuses = status == null ? EnumSet.allOf(MemberStatus.class) : EnumSet.of(status);
+        String term = search == null ? "" : search.strip().toLowerCase(Locale.ROOT);
+        return memberRepository.search(
+                organizationContext.requireOrganizationId(), statuses, LikePatterns.contains(term), pageable);
+    }
+
+    public record TeamSummary(long active, long admins, long revoked, long awaitingFirstAccess) {}
+
+    @Transactional(readOnly = true)
+    public TeamSummary summary() {
+        Object[] row = memberRepository.summarize(organizationContext.requireOrganizationId()).getFirst();
+        return new TeamSummary(number(row[0]), number(row[1]), number(row[2]), number(row[3]));
+    }
+
+    private static long number(Object value) {
+        return value instanceof Number number ? number.longValue() : 0;
     }
 
     /**

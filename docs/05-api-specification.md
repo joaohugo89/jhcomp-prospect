@@ -43,7 +43,8 @@ Gestão de membros (D28), somente `ADMIN`:
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `/organizations/members?includeRevoked=` | Listar membros |
+| GET | `/organizations/members?includeRevoked=&status=&search=` | Listar membros; `status` (`ACTIVE`, `REVOKED`) prevalece sobre `includeRevoked`; `search` no nome ou e-mail. Cada item traz `passwordChangeRequired` e `lastLoginAt` (último login, da auditoria) |
+| GET | `/organizations/members/summary` | Visão da equipe: `active`, `admins`, `revoked`, `awaitingFirstAccess` |
 | GET | `/organizations/members/{memberId}` | Detalhar membro |
 | POST | `/organizations/members` | Cadastrar; resposta traz a senha temporária, só nesta vez |
 | PATCH | `/organizations/members/{memberId}` | Mudar papel e/ou acesso (`role`, `status`) |

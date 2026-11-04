@@ -1,5 +1,7 @@
 package com.jhcomp.prospect.identity.presentation;
 
+import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -20,7 +22,9 @@ import com.jhcomp.prospect.identity.application.MemberQueryService;
 import com.jhcomp.prospect.identity.application.MemberService;
 import com.jhcomp.prospect.identity.domain.MemberStatus;
 import com.jhcomp.prospect.identity.domain.OrganizationRole;
+import com.jhcomp.prospect.identity.infrastructure.persistence.MemberActivityQuery;
 import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMemberEntity;
+import com.jhcomp.prospect.shared.error.InvalidRequestException;
 import com.jhcomp.prospect.shared.web.InputPatterns;
 import com.jhcomp.prospect.shared.web.PageResponse;
 
@@ -49,8 +53,11 @@ public class MemberController {
 
     private final MemberQueryService memberQueryService;
     private final MemberService memberService;
+    private final MemberActivityQuery activityQuery;
 
-    MemberController(MemberQueryService memberQueryService, MemberService memberService) {
+    MemberController(
+            MemberQueryService memberQueryService, MemberService memberService, MemberActivityQuery activityQuery) {
+        this.activityQuery = activityQuery;
         this.memberQueryService = memberQueryService;
         this.memberService = memberService;
     }
@@ -60,18 +67,34 @@ public class MemberController {
     public PageResponse<MemberResponse> listMembers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "false") boolean includeRevoked) {
+            @RequestParam(defaultValue = "false") boolean includeRevoked,
+            @RequestParam(required = false) MemberStatus status,
+            @RequestParam(required = false) String search) {
 
         // Teto no tamanho da pagina: um size arbitrario permitiria extrair a
         // base inteira numa requisicao e sobrecarregar o servidor (doc 05 §12).
         var pageable = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE));
 
         // A ordenacao fica na propria consulta do repositorio.
-        Page<OrganizationMemberEntity> members = includeRevoked
-                ? memberQueryService.listAllMembers(pageable)
-                : memberQueryService.listActiveMembers(pageable);
+        if (search != null && search.length() > 200) {
+            throw new InvalidRequestException("search must have at most 200 characters");
+        }
+        // Sem status explicito, vale o includeRevoked de antes: so ativos por padrao.
+        MemberStatus effective = status != null ? status : includeRevoked ? null : MemberStatus.ACTIVE;
+        Page<OrganizationMemberEntity> members = memberQueryService.search(effective, search, pageable);
+        UUID organizationId = members.isEmpty() ? null : members.getContent().getFirst().getOrganization().getId();
+        Map<UUID, Instant> lastLogins = organizationId == null
+                ? Map.of()
+                : activityQuery.lastLogins(organizationId,
+                        members.getContent().stream().map(member -> member.getUser().getId()).toList());
+        return PageResponse.from(members,
+                member -> MemberResponse.from(member, lastLogins.get(member.getUser().getId())));
+    }
 
-        return PageResponse.from(members, MemberResponse::from);
+    /** Visao geral da equipe, para o topo da tela. */
+    @GetMapping("/summary")
+    public MemberQueryService.TeamSummary summary() {
+        return memberQueryService.summary();
     }
 
     @GetMapping("/{memberId}")

@@ -16,6 +16,8 @@ const self = {
   displayName: session.displayName,
   role: 'ADMIN',
   status: 'ACTIVE',
+  passwordChangeRequired: false,
+  lastLoginAt: '2026-11-06T09:00:00Z',
   createdAt: '2026-11-01T12:00:00Z',
 };
 
@@ -26,6 +28,7 @@ const operator = {
   displayName: 'Operadora Ficticia',
   role: 'OPERATOR',
   status: 'ACTIVE',
+  passwordChangeRequired: false,
   createdAt: '2026-11-02T12:00:00Z',
 };
 
@@ -119,7 +122,7 @@ describe('Membros', () => {
   });
 
   it('cadastra membro e mostra a senha temporária uma vez', async () => {
-    let members = [self];
+    let members: readonly unknown[] = [self];
     const calls = fakeApi({
       'GET /organizations/members': () => json(page(members)),
       'POST /organizations/members': () => {
@@ -165,6 +168,37 @@ describe('Membros', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Redefinir senha' }));
     await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Redefinir senha' }));
     expect(await screen.findByText('Nova2senhaTemporaria')).toBeInTheDocument();
+  });
+
+  it('mostra a visão da equipe, quem não fez o primeiro acesso e filtra no servidor', async () => {
+    const calls = fakeApi({
+      'GET /organizations/members/summary': () => json({ active: 4, admins: 1, revoked: 2, awaitingFirstAccess: 1 }),
+      'GET /organizations/members': () =>
+        json(
+          page([
+            self,
+            { ...operator, passwordChangeRequired: true },
+            { ...operator, memberId: 'm-3', userId: 'u-3', status: 'REVOKED' },
+          ]),
+        ),
+    });
+    render(<MembersPage session={session} />);
+
+    const table = await screen.findByRole('table', { name: 'Membros' });
+    expect(within(table).getByText('Senha temporária')).toBeInTheDocument();
+    expect(within(table).getByText('Acesso removido')).toBeInTheDocument();
+    expect(within(table).getAllByText('Nunca entrou').length).toBeGreaterThan(0);
+    expect(within(table).getByRole('button', { name: 'Reativar acesso' })).toBeInTheDocument();
+    expect(await screen.findByText('Aguardando 1º acesso')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Buscar por nome ou e-mail'), ' operadora ');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Removidos' }));
+    await waitFor(() => {
+      const query = calls.filter((call) => call.path === '/organizations/members').at(-1)?.query;
+      expect(query?.get('search')).toBe('operadora');
+      expect(query?.get('status')).toBe('REVOKED');
+    });
   });
 
   it('mudar papel pede confirmação e envia só o papel', async () => {

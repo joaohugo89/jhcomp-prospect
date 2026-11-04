@@ -109,6 +109,47 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
                 member.memberId(), member.userId(), member.organizationId(), member.email(), password);
     }
 
+    // ---- Visao da equipe ----------------------------------------------------
+
+    @Test
+    @DisplayName("lista mostra ultimo acesso e senha pendente, busca por nome ou e-mail e filtra por situacao")
+    void teamOverview() throws Exception {
+        IdentityTestData.Member waiting = createMember("OPERATOR");
+        IdentityTestData.Member active = createMember("OPERATOR");
+        activeSession(active);
+        perform(patch("/organizations/members/" + waiting.memberId()), adminSession, "{\"status\": \"REVOKED\"}")
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/organizations/members").param("search", active.email().toUpperCase())
+                        .param("includeRevoked", "true").session(adminSession))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].lastLoginAt").exists())
+                .andExpect(jsonPath("$.content[0].passwordChangeRequired").value(false));
+        mockMvc.perform(get("/organizations/members").param("status", "REVOKED").session(adminSession))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].memberId").value(waiting.memberId().toString()))
+                .andExpect(jsonPath("$.content[0].passwordChangeRequired").value(true))
+                .andExpect(jsonPath("$.content[0].lastLoginAt").doesNotExist());
+        // Curinga do LIKE e literal: "%" nao traz todo mundo.
+        mockMvc.perform(get("/organizations/members").param("search", "%").param("includeRevoked", "true")
+                        .session(adminSession))
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        mockMvc.perform(get("/organizations/members/summary").session(adminSession))
+                .andExpect(jsonPath("$.active").value(2))
+                .andExpect(jsonPath("$.admins").value(1))
+                .andExpect(jsonPath("$.revoked").value(1))
+                .andExpect(jsonPath("$.awaitingFirstAccess").value(0));
+
+        // Outra organizacao nao entra na contagem, e operador nao consulta.
+        IdentityTestData.Member other = testData.createActiveAdmin("membros-resumo-b");
+        mockMvc.perform(get("/organizations/members/summary").session(TestSessions.login(mockMvc, other)))
+                .andExpect(jsonPath("$.active").value(1))
+                .andExpect(jsonPath("$.revoked").value(0));
+        mockMvc.perform(get("/organizations/members/summary").session(activeSession(createMember("OPERATOR"))))
+                .andExpect(status().isForbidden());
+    }
+
     // ---- Cadastro e primeiro acesso ----------------------------------------
 
     @Test

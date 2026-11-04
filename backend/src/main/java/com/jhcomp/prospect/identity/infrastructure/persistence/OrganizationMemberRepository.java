@@ -98,14 +98,36 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
             """)
     boolean existsActiveMember(@Param("organizationId") UUID organizationId, @Param("userId") UUID userId);
 
-    /** Membros da organizacao em qualquer estado, para a tela de administracao. */
+    /**
+     * Membros para a tela de administracao: nos estados pedidos e, com
+     * {@code search} (padrao LIKE ja em minusculas), por nome ou e-mail.
+     */
     @Query("""
             select m from OrganizationMemberEntity m
             join fetch m.user u
             where m.organization.id = :organizationId
+              and m.status in :statuses
+              and (lower(u.displayName) like :search escape '\\' or lower(u.email) like :search escape '\\')
             order by m.createdAt asc
             """)
-    Page<OrganizationMemberEntity> findAllByOrganization(@Param("organizationId") UUID organizationId, Pageable pageable);
+    Page<OrganizationMemberEntity> search(
+            @Param("organizationId") UUID organizationId,
+            @Param("statuses") java.util.Collection<MemberStatus> statuses,
+            @Param("search") String search,
+            Pageable pageable);
+
+    /** Visao geral da equipe numa consulta: ativos, administradores, removidos e senha temporaria pendente. */
+    @Query("""
+            select count(case when m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE then 1 end),
+                   count(case when m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE
+                              and m.role = com.jhcomp.prospect.identity.domain.OrganizationRole.ADMIN then 1 end),
+                   count(case when m.status = com.jhcomp.prospect.identity.domain.MemberStatus.REVOKED then 1 end),
+                   count(case when m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE
+                              and m.user.passwordChangeRequired = true then 1 end)
+              from OrganizationMemberEntity m
+             where m.organization.id = :organizationId
+            """)
+    java.util.List<Object[]> summarize(@Param("organizationId") UUID organizationId);
 
     /** Administradores ativos da organizacao, com conta ativa. */
     @Query("""
