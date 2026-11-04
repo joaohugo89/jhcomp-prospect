@@ -257,6 +257,31 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("visao geral conta por situacao e a lista filtra por status, so da propria organizacao")
+    void summaryAndStatusFilter() throws Exception {
+        String pending = analyze(SAMPLE);
+        String done = analyze("nome;cidade;uf\nLoja Resumo Um;Cidade Exemplo;MG\nLoja Resumo Dois;Cidade Exemplo;MG\n");
+        confirm(done, "{}").andExpect(status().isOk());
+
+        mockMvc.perform(get("/imports/summary").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pendingReview").value(1))
+                .andExpect(jsonPath("$.completed").value(1))
+                .andExpect(jsonPath("$.undone").value(0))
+                .andExpect(jsonPath("$.companiesImported").value(2));
+        mockMvc.perform(get("/imports").param("status", "ANALYZED").session(session))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(pending));
+        mockMvc.perform(get("/imports").param("status", "QUALQUER").session(session))
+                .andExpect(status().isBadRequest());
+
+        var other = testData.createActiveAdmin("importacao-resumo-b");
+        mockMvc.perform(get("/imports/summary").session(TestSessions.login(mockMvc, other)))
+                .andExpect(jsonPath("$.pendingReview").value(0))
+                .andExpect(jsonPath("$.companiesImported").value(0));
+    }
+
+    @Test
     @DisplayName("confirmar duas vezes nao importa em dobro")
     void confirmTwice() throws Exception {
         String importId = analyze(SAMPLE);

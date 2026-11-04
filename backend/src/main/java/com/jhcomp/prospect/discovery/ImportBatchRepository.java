@@ -1,6 +1,7 @@
 package com.jhcomp.prospect.discovery;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,6 +18,25 @@ interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, UUID> {
     Optional<ImportBatchEntity> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
     Page<ImportBatchEntity> findByOrganizationIdOrderByCreatedAtDescIdAsc(UUID organizationId, Pageable pageable);
+
+    Page<ImportBatchEntity> findByOrganizationIdAndStatusOrderByCreatedAtDescIdAsc(
+            UUID organizationId, ImportBatchEntity.Status status, Pageable pageable);
+
+    /** Visao geral do historico (doc 08 §9): uma consulta, contagens por situacao. */
+    @Query("""
+            select count(case when b.status = com.jhcomp.prospect.discovery.ImportBatchEntity.Status.ANALYZED
+                              then 1 end),
+                   count(case when b.status = com.jhcomp.prospect.discovery.ImportBatchEntity.Status.COMPLETED
+                              and b.undoneAt is null then 1 end),
+                   count(case when b.undoneAt is not null then 1 end),
+                   count(case when b.status = com.jhcomp.prospect.discovery.ImportBatchEntity.Status.DISCARDED
+                              then 1 end),
+                   coalesce(sum(case when b.status = com.jhcomp.prospect.discovery.ImportBatchEntity.Status.COMPLETED
+                                     and b.undoneAt is null then b.importedRows else 0 end), 0)
+              from ImportBatchEntity b
+             where b.organizationId = :organizationId
+            """)
+    List<Object[]> summarize(@Param("organizationId") UUID organizationId);
 
     /** Importacao anterior do mesmo arquivo, para avisar reenvio (doc 10 §4). */
     Optional<ImportBatchEntity> findFirstByOrganizationIdAndFileSha256AndIdNotAndCreatedAtBeforeAndStatusNotOrderByCreatedAtDesc(

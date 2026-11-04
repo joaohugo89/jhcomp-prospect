@@ -254,9 +254,24 @@ public class ImportService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ImportBatchEntity> list(Pageable pageable) {
-        return batchRepository.findByOrganizationIdOrderByCreatedAtDescIdAsc(
-                organizationContext.requireOrganizationId(), pageable);
+    public Page<ImportBatchEntity> list(ImportBatchEntity.Status status, Pageable pageable) {
+        UUID organizationId = organizationContext.requireOrganizationId();
+        return status == null
+                ? batchRepository.findByOrganizationIdOrderByCreatedAtDescIdAsc(organizationId, pageable)
+                : batchRepository.findByOrganizationIdAndStatusOrderByCreatedAtDescIdAsc(organizationId, status, pageable);
+    }
+
+    /** Quantas importacoes aguardam revisao, valem, foram desfeitas ou descartadas, e quantas empresas trouxeram. */
+    public record Summary(long pendingReview, long completed, long undone, long discarded, long companiesImported) {}
+
+    @Transactional(readOnly = true)
+    public Summary summary() {
+        Object[] row = batchRepository.summarize(organizationContext.requireOrganizationId()).getFirst();
+        return new Summary(number(row[0]), number(row[1]), number(row[2]), number(row[3]), number(row[4]));
+    }
+
+    private static long number(Object value) {
+        return value instanceof Number number ? number.longValue() : 0;
     }
 
     @Transactional(readOnly = true)

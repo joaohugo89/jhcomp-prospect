@@ -91,11 +91,19 @@ public class ImportController {
 
     @GetMapping
     public PageResponse<ImportResponse> list(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(required = false) ImportBatchEntity.Status status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         var pageable = PageRequests.of(page, size, null, Map.of(), Sort.unsorted());
-        return PageResponse.from(importService.list(pageable),
+        return PageResponse.from(importService.list(status, pageable),
                 batch -> ImportResponse.from(
                         batch, importService.mappingOf(batch), importService.ignoredColumnsOf(batch), null));
+    }
+
+    /** Visao geral do historico, para o topo da tela de importacoes. */
+    @GetMapping("/summary")
+    public ImportService.Summary summary() {
+        return importService.summary();
     }
 
     @GetMapping("/{importId}")
