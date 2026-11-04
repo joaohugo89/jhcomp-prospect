@@ -4,8 +4,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -91,9 +94,72 @@ public class SuppressionService implements ContactBlockCheck {
         return store(user, identifier, channel, reason.strip(), requested, now);
     }
 
+    /**
+     * Lista para o administrador. {@code type} restringe o tipo; {@code search}
+     * e um contato em qualquer formato, normalizado como no registro (D10):
+     * "(35) 9 8888-0001" acha "+5535988880001". Busca que nao normaliza em
+     * nenhum tipo nao acha nada, em vez de virar "sem filtro".
+     */
     @Transactional(readOnly = true)
-    public Page<SuppressionEntryEntity> list(Pageable pageable) {
-        return repository.findByOrganizationIdOrderByCreatedAtDescIdAsc(organizationContext.requireOrganizationId(), pageable);
+    public Page<SuppressionEntryEntity> list(IdentifierType type, String search, Pageable pageable) {
+        UUID organizationId = organizationContext.requireOrganizationId();
+        Set<IdentifierType> types = type == null ? EnumSet.allOf(IdentifierType.class) : EnumSet.of(type);
+        if (search != null && search.length() > 320) {
+            throw new InvalidRequestException("search must have at most 320 characters");
+        }
+        if (search == null || search.isBlank()) {
+            return type == null
+                    ? repository.findByOrganizationIdOrderByCreatedAtDescIdAsc(organizationId, pageable)
+                    : repository.findByOrganizationIdAndIdentifierTypeInOrderByCreatedAtDescIdAsc(
+                            organizationId, types, pageable);
+        }
+        List<String> values = types.stream()
+                .flatMap(candidate -> ContactIdentifiers.normalize(candidate, search).stream())
+                .map(ContactIdentifier::value)
+                .distinct()
+                .toList();
+        if (values.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return repository.findByOrganizationIdAndIdentifierTypeInAndIdentifierInOrderByCreatedAtDescIdAsc(
+                organizationId, types, values, pageable);
+    }
+
+    /** Totais por tipo, para o topo da tela. */
+    @Transactional(readOnly = true)
+    public Map<IdentifierType, Long> countsByType() {
+        UUID organizationId = organizationContext.requireOrganizationId();
+        Map<IdentifierType, Long> counts = new EnumMap<>(IdentifierType.class);
+        for (IdentifierType type : IdentifierType.values()) {
+            counts.put(type, repository.countByOrganizationIdAndIdentifierType(organizationId, type));
+        }
+        return counts;
+    }
+
+    /**
+     * Resultado da conferencia: so se esta bloqueado e em quais canais. Nao
+     * devolve motivo, data nem quem registrou: quem confere precisa saber se
+     * pode abordar, nao o historico do pedido.
+     */
+    public record CheckResult(boolean recognized, boolean blocked, boolean allChannels, Set<OutreachChannel> channels) {}
+
+    /** Qualquer membro confere um contato antes de abordar por fora do sistema (regra 4). */
+    @Transactional(readOnly = true)
+    public CheckResult check(IdentifierType type, String rawIdentifier) {
+        UUID organizationId = organizationContext.requireOrganizationId();
+        Optional<ContactIdentifier> identifier = ContactIdentifiers.normalize(type, rawIdentifier);
+        if (identifier.isEmpty()) {
+            return new CheckResult(false, false, false, Set.of());
+        }
+        List<SuppressionEntryEntity> entries = repository
+                .findByOrganizationIdAndIdentifierIn(organizationId, List.of(identifier.get().value()))
+                .stream()
+                .filter(entry -> entry.getIdentifierType() == type)
+                .toList();
+        boolean all = entries.stream().anyMatch(entry -> entry.getChannel() == null);
+        Set<OutreachChannel> channels = EnumSet.noneOf(OutreachChannel.class);
+        entries.stream().map(SuppressionEntryEntity::getChannel).filter(Objects::nonNull).forEach(channels::add);
+        return new CheckResult(true, !entries.isEmpty(), all, all ? Set.of() : Set.copyOf(channels));
     }
 
     /**

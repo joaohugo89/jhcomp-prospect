@@ -198,12 +198,12 @@ describe('Não contato', () => {
     });
     render(<SuppressionPage session={{ ...session, role: 'OPERATOR' }} />);
 
-    expect(screen.getByText('Somente administradores consultam a lista de bloqueios.')).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText(/^Contato/), '(35) 98888-0000');
+    expect(screen.getByText(/Somente administradores consultam a lista de bloqueios/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(/^Contato(?! a conferir)/), '(35) 98888-0000');
     await userEvent.type(screen.getByLabelText(/^Motivo/), 'Pediu por telefone');
     await userEvent.click(screen.getByRole('button', { name: 'Registrar pedido' }));
 
-    expect(await screen.findByText(/Pedido registrado/)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent('Pedido registrado');
     expect(calls.some((call) => call.method === 'GET')).toBe(false);
     expect(calls[0]?.body).toEqual({
       identifierType: 'PHONE',
@@ -213,7 +213,8 @@ describe('Não contato', () => {
   });
 
   it('administrador vê a lista com o escopo de cada bloqueio', async () => {
-    fakeApi({
+    const calls = fakeApi({
+      'GET /suppression-entries/summary': () => json({ PHONE: 3, EMAIL: 1, INSTAGRAM: 0 }),
       'GET /suppression-entries': () =>
         json(
           page([
@@ -233,6 +234,39 @@ describe('Não contato', () => {
     const table = await screen.findByRole('table', { name: 'Pedidos de não contato' });
     expect(within(table).getByText('contato@example.test')).toBeInTheDocument();
     expect(within(table).getByText('Todos')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Buscar contato'), ' contato@example.test ');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await waitFor(() => {
+      const listed = calls.filter((call) => call.path === '/suppression-entries');
+      expect(listed.at(-1)?.query.get('search')).toBe('contato@example.test');
+    });
+  });
+
+  it('qualquer membro confere um contato e ve so se esta bloqueado', async () => {
+    const calls = fakeApi({
+      'POST /suppression-entries/check': () =>
+        json({ recognized: true, blocked: true, allChannels: false, channels: ['WHATSAPP'] }),
+    });
+    render(<SuppressionPage session={{ ...session, role: 'OPERATOR' }} />);
+
+    await userEvent.type(screen.getByLabelText('Contato a conferir'), '(35) 98888-0000');
+    await userEvent.click(screen.getByRole('button', { name: 'Conferir' }));
+
+    expect(await screen.findByText('Bloqueado em: WhatsApp.')).toBeInTheDocument();
+    expect(calls[0]?.body).toEqual({ identifierType: 'PHONE', identifier: '(35) 98888-0000' });
+  });
+
+  it('motivo frequente preenche o campo e o tipo muda o exemplo', async () => {
+    fakeApi({});
+    render(<SuppressionPage session={{ ...session, role: 'OPERATOR' }} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Respondeu pedindo para parar' }));
+    expect(screen.getByLabelText(/^Motivo/)).toHaveValue('Respondeu pedindo para parar');
+    const group = screen.getByRole('group', { name: 'Tipo do contato a conferir' });
+    await userEvent.click(within(group).getByLabelText('E-mail'));
+    expect(screen.getByLabelText('Contato a conferir')).toHaveAttribute('placeholder', 'contato@empresa.com.br');
   });
 
   it('contato que o servidor não reconhece mostra mensagem específica', async () => {
@@ -241,7 +275,7 @@ describe('Não contato', () => {
     });
     render(<SuppressionPage session={{ ...session, role: 'OPERATOR' }} />);
 
-    await userEvent.type(screen.getByLabelText(/^Contato/), '98888');
+    await userEvent.type(screen.getByLabelText(/^Contato(?! a conferir)/), '98888');
     await userEvent.type(screen.getByLabelText(/^Motivo/), 'Pedido');
     await userEvent.click(screen.getByRole('button', { name: 'Registrar pedido' }));
 

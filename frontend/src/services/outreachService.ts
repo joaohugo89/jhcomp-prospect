@@ -2,9 +2,11 @@ import type { Page } from '../types/page';
 import type {
   ComposeContext,
   Message,
+  IdentifierType,
   NewSuppression,
   OutreachChannel,
   RecordSendInput,
+  SuppressionCheck,
   SuppressionEntry,
 } from '../types/outreach';
 import { request, toQuery } from './httpClient';
@@ -71,6 +73,26 @@ export function registerSuppression(input: NewSuppression): Promise<SuppressionE
 }
 
 /** Só administradores; operador recebe 403. */
-export function listSuppressions(page: number, signal?: AbortSignal): Promise<Page<SuppressionEntry>> {
-  return request<Page<SuppressionEntry>>(`/suppression-entries${toQuery({ page })}`, signal ? { signal } : {});
+/** Lista do administrador; `search` é um contato em qualquer formato, normalizado no servidor. */
+export function listSuppressions(
+  filters: { readonly identifierType: IdentifierType | ''; readonly search: string },
+  page: number,
+  signal?: AbortSignal,
+): Promise<Page<SuppressionEntry>> {
+  return request<Page<SuppressionEntry>>(
+    `/suppression-entries${toQuery({ identifierType: filters.identifierType, search: filters.search.trim(), page })}`,
+    signal ? { signal } : {},
+  );
+}
+
+export function getSuppressionSummary(signal?: AbortSignal): Promise<Readonly<Record<IdentifierType, number>>> {
+  return request<Readonly<Record<IdentifierType, number>>>('/suppression-entries/summary', signal ? { signal } : {});
+}
+
+/** Qualquer membro confere um contato. Por POST: o contato não vai para a URL. */
+export function checkSuppression(identifierType: IdentifierType, identifier: string): Promise<SuppressionCheck> {
+  return request<SuppressionCheck>('/suppression-entries/check', {
+    method: 'POST',
+    body: { identifierType, identifier },
+  });
 }

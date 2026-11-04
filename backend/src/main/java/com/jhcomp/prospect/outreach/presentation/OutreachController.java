@@ -113,11 +113,33 @@ public class OutreachController {
     @GetMapping("/suppression-entries")
     @PreAuthorize("hasRole('ADMIN')")
     public PageResponse<SuppressionResponse> suppressionEntries(
+            @RequestParam(required = false) IdentifierType identifierType,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         var pageable = PageRequests.of(page, size, null, Map.of(), Sort.unsorted());
-        return PageResponse.from(suppressionService.list(pageable), SuppressionResponse::from);
+        return PageResponse.from(suppressionService.list(identifierType, search, pageable), SuppressionResponse::from);
     }
+
+    /** Totais por tipo. Restrito como a lista: contagem por tipo ja e informacao da lista. */
+    @GetMapping("/suppression-entries/summary")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<IdentifierType, Long> suppressionSummary() {
+        return suppressionService.countsByType();
+    }
+
+    /**
+     * Qualquer membro confere se um contato esta bloqueado, antes de abordar
+     * por fora do sistema. Por POST: o contato nao vai para a URL nem para log
+     * de acesso. Responde so se esta bloqueado e em quais canais.
+     */
+    @PostMapping("/suppression-entries/check")
+    public SuppressionService.CheckResult checkSuppression(@Valid @RequestBody SuppressionCheckRequest request) {
+        return suppressionService.check(request.identifierType(), request.identifier());
+    }
+
+    public record SuppressionCheckRequest(
+            @NotNull IdentifierType identifierType, @NotBlank @Size(max = 320) String identifier) {}
 
     // ---- Contratos ----------------------------------------------------------
 

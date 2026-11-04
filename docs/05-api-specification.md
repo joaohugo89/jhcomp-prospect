@@ -393,7 +393,9 @@ Contrato implementado na Etapa 7 (D2, D25):
 | POST | `/messages/{messageId}/record-send` | Registrar envio confirmado |
 | POST | `/messages/{messageId}/cancel` | Cancelar |
 | POST | `/suppression-entries` | Registrar não contato |
-| GET | `/suppression-entries` | Consultar bloqueios autorizados |
+| GET | `/suppression-entries` | Consultar bloqueios (`ADMIN`); filtros `identifierType` e `search` |
+| GET | `/suppression-entries/summary` | Totais por tipo (`ADMIN`) |
+| POST | `/suppression-entries/check` | Conferir um contato (qualquer membro) |
 
 A ação `record-send` registra envio já realizado; não deve abrir uma integração de disparo oculto. Integrações oficiais futuras devem possuir endpoints e controles próprios.
 
@@ -403,7 +405,7 @@ Contratos da Etapa 8 (D26):
 - `PATCH /messages/{id}` recebe `{subject?, body}`; assunto só em e-mail; limite por canal (1.000, 4.000, 1.000 e 2.000 caracteres).
 - `approve` recebe `{unverifiedClaimsReviewed}`, obrigatório como `true` em `NEEDS_REVIEW`.
 - `record-send` recebe `{result: SENT|FAILED, sentAt, notes?, markLeadContacted?}`; só de `APPROVED`. `SENT` cria interação `CONTACT` na timeline; o lead só vai a `CONTACTED` com `markLeadContacted: true`.
-- `POST /suppression-entries` recebe `{identifierType: PHONE|EMAIL|INSTAGRAM, identifier, channel?, reason, requestedAt?}`; qualquer membro; idempotente por identificador e canal. `GET` só para `ADMIN`. Não há remoção.
+- `POST /suppression-entries` recebe `{identifierType: PHONE|EMAIL|INSTAGRAM, identifier, channel?, reason, requestedAt?}`; qualquer membro; idempotente por identificador e canal. `GET` só para `ADMIN`; `search` é um contato em qualquer formato, normalizado como no registro (busca que não normaliza não acha nada). `POST /suppression-entries/check` recebe `{identifierType, identifier}` de qualquer membro e responde só `{recognized, blocked, allChannels, channels}`, sem motivo, data nem autor; por POST para o contato não ir à URL. Não há remoção.
 
 ## 11. Website Studio
 

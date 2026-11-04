@@ -77,3 +77,12 @@ export interface NewSuppression {
   readonly channel: OutreachChannel | undefined;
   readonly reason: string;
 }
+
+/** Conferência de contato: só se está bloqueado e em quais canais, sem motivo nem data. */
+export interface SuppressionCheck {
+  /** O servidor conseguiu normalizar o contato informado. */
+  readonly recognized: boolean;
+  readonly blocked: boolean;
+  readonly allChannels: boolean;
+  readonly channels: readonly OutreachChannel[];
+}

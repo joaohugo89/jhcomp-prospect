@@ -120,6 +120,15 @@ class OutreachIsolationTest extends PostgresIntegrationTest {
                 .andExpect(status().isCreated());
         mockMvc.perform(get("/suppression-entries").session(sessionA))
                 .andExpect(jsonPath("$.totalElements").value(0));
+        // Busca, totais e conferencia tambem nao enxergam o bloqueio de B.
+        mockMvc.perform(get("/suppression-entries").param("search", SHARED_PHONE).session(sessionA))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        mockMvc.perform(get("/suppression-entries/summary").session(sessionA))
+                .andExpect(jsonPath("$.PHONE").value(0));
+        mockMvc.perform(post("/suppression-entries/check").session(sessionA).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"identifierType\": \"PHONE\", \"identifier\": \"%s\"}".formatted(SHARED_PHONE)))
+                .andExpect(jsonPath("$.blocked").value(false));
         mockMvc.perform(post("/leads/" + leadB + "/messages/generate").session(sessionB).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"channel\": \"WHATSAPP\"}"))
                 .andExpect(status().isConflict());

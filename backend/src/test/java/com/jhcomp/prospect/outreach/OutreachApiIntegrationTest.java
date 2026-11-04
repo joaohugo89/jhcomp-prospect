@@ -31,6 +31,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import com.jayway.jsonpath.JsonPath;
 import com.jhcomp.prospect.identity.IdentityTestData;
+import com.jhcomp.prospect.identity.domain.OrganizationRole;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
@@ -436,6 +437,56 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].identifier").value("outra@example.test"));
+    }
+
+    @Test
+    @DisplayName("lista busca o contato em qualquer formato, filtra por tipo e conta por tipo")
+    void listingSearchAndSummary() throws Exception {
+        suppress(session, "PHONE", "(35) 97777-0001", null).andExpect(status().isCreated());
+        suppress(session, "EMAIL", "busca@example.test", "EMAIL").andExpect(status().isCreated());
+
+        mockMvc.perform(get("/suppression-entries").param("search", "35 9 7777 0001").session(session))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].identifierType").value("PHONE"));
+        mockMvc.perform(get("/suppression-entries").param("search", "BUSCA@example.test").session(session))
+                .andExpect(jsonPath("$.content[0].identifier").value("busca@example.test"));
+        mockMvc.perform(get("/suppression-entries").param("identifierType", "EMAIL").session(session))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        // O que nao normaliza nao vira "sem filtro".
+        mockMvc.perform(get("/suppression-entries").param("search", "???").session(session))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        mockMvc.perform(get("/suppression-entries/summary").session(session))
+                .andExpect(jsonPath("$.PHONE").value(1))
+                .andExpect(jsonPath("$.EMAIL").value(1))
+                .andExpect(jsonPath("$.INSTAGRAM").value(0));
+
+        MockHttpSession operator = TestSessions.login(mockMvc, testData.createActiveOperator("outreach-resumo"));
+        mockMvc.perform(get("/suppression-entries/summary").session(operator)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("qualquer membro confere se o contato esta bloqueado, sem ver motivo nem data")
+    void checkIsForEveryMember() throws Exception {
+        IdentityTestData.Member admin = testData.createActiveAdmin("outreach-confere");
+        MockHttpSession adminSession = TestSessions.login(mockMvc, admin);
+        suppress(adminSession, "PHONE", "(35) 97777-0002", "WHATSAPP").andExpect(status().isCreated());
+        MockHttpSession operator = TestSessions.login(mockMvc,
+                testData.addMember(admin.organizationId(), OrganizationRole.OPERATOR));
+
+        perform(post("/suppression-entries/check"), operator,
+                "{\"identifierType\": \"PHONE\", \"identifier\": \"35977770002\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recognized").value(true))
+                .andExpect(jsonPath("$.blocked").value(true))
+                .andExpect(jsonPath("$.allChannels").value(false))
+                .andExpect(jsonPath("$.channels[0]").value("WHATSAPP"))
+                .andExpect(jsonPath("$.reason").doesNotExist());
+        perform(post("/suppression-entries/check"), operator,
+                "{\"identifierType\": \"EMAIL\", \"identifier\": \"livre@example.test\"}")
+                .andExpect(jsonPath("$.blocked").value(false));
+        perform(post("/suppression-entries/check"), operator,
+                "{\"identifierType\": \"PHONE\", \"identifier\": \"123\"}")
+                .andExpect(jsonPath("$.recognized").value(false));
     }
 
     @Test

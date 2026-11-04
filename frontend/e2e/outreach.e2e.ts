@@ -32,11 +32,18 @@ test('gera e aprova mensagem; pedido de nao contato bloqueia nova abordagem', as
 
   // Pedido de nao contato pelo telefone, em outro formato que o cadastrado.
   await page.getByRole('link', { name: 'Não contato' }).click();
-  await page.getByLabel('Tipo de contato').selectOption('PHONE');
-  await page.getByLabel(/^Contato/).fill(phone.e164);
-  await page.getByLabel(/^Motivo/).fill('Pediu para não receber contato (teste E2E)');
-  await page.getByRole('button', { name: 'Registrar pedido' }).click();
+  const register = page.getByRole('region', { name: 'Registrar pedido de não contato' });
+  await register.getByRole('group', { name: 'Tipo de contato' }).getByText('Telefone').click();
+  await register.getByLabel(/^Contato/).fill(phone.e164);
+  await register.getByLabel(/^Motivo/).fill('Pediu para não receber contato (teste E2E)');
+  await register.getByRole('button', { name: 'Registrar pedido' }).click();
   await expect(page.getByText(/Pedido registrado/)).toBeVisible();
+
+  // A conferência, que qualquer membro faz, já mostra o bloqueio, no formato cadastrado.
+  const check = page.getByRole('region', { name: 'Conferir um contato' });
+  await check.getByLabel('Contato a conferir').fill(phone.e164);
+  await check.getByRole('button', { name: 'Conferir' }).click();
+  await expect(check.getByText(/Bloqueado em todos os canais/)).toBeVisible();
 
   // Na tela: canal bloqueado, nada a gerar e o registro de envio some.
   await page.goto(leadUrl);
