@@ -1,0 +1,32 @@
+import { card } from './styles';
+
+/**
+ * Número de uma visão geral (dentro de um `<dl>`): rótulo pequeno e valor
+ * grande. Sem valor ainda (carregando), mostra um travessão.
+ */
+export function StatTile({
+  label,
+  value,
+  icon,
+  tone = 'text-slate-900',
+  children,
+}: {
+  readonly label: string;
+  readonly value: number | string | undefined;
+  readonly icon?: React.ReactNode;
+  /** Cor do número, quando ele pede atenção (ex.: pendências). */
+  readonly tone?: string;
+  /** Conteúdo extra sobre o cartão, como um botão que cobre a área para filtrar. */
+  readonly children?: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <div className={`${card} relative min-w-0 px-3 py-2.5 sm:px-4 sm:py-3`}>
+      <dt className="flex items-center gap-1.5 truncate text-[11px] font-medium text-slate-500 sm:text-xs">
+        {icon !== undefined && <span aria-hidden="true">{icon}</span>}
+        {label}
+      </dt>
+      <dd className={`mt-0.5 text-lg font-bold tabular-nums sm:mt-1 sm:text-2xl ${tone}`}>{value ?? '—'}</dd>
+      {children}
+    </div>
+  );
+}

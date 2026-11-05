@@ -1,4 +1,4 @@
-import { AlarmClock, X } from 'lucide-react';
+import { AlarmClock } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import { formatCurrency, formatDateTime } from '../../app/format';
@@ -6,6 +6,7 @@ import { CHANNEL_LABEL, INTERACTION_TYPE_LABEL, SOURCE_TYPE_LABEL, STATUS_LABEL 
 import { Link } from '../../app/router';
 import { useLoad } from '../../app/useLoad';
 import { PriorityBadge, ScoreIndicator, StatusBadge } from '../../components/Badges';
+import { PanelFact, SidePanel } from '../../components/SidePanel';
 import { LoadStateView } from '../../components/States';
 import { buttonPrimary, buttonSecondary } from '../../components/styles';
 import { getLeadTimeline } from '../../services/leadService';
@@ -34,81 +35,40 @@ export function LeadPreview({
 }): React.JSX.Element {
   const [summary, reload] = useLoad(leadId, (signal) => getLeadSummary(leadId, signal));
   const heading = useRef<HTMLHeadingElement>(null);
-  const opener = useRef<Element | null>(null);
-
-  // Ao abrir, o foco vai para o título; ao fechar, volta para quem abriu.
-  useEffect(() => {
-    opener.current = document.activeElement;
-    return () => {
-      if (opener.current instanceof HTMLElement) {
-        opener.current.focus();
-      }
-    };
-  }, []);
+  // Ao carregar, o foco vai para o título; ao fechar, o painel devolve a quem abriu.
   useEffect(() => {
     if (summary.kind === 'ready') {
       heading.current?.focus();
     }
   }, [summary.kind]);
-  useEffect(() => {
-    function onKey(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    }
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
 
   return (
-    <>
-      {/* Celular e tablet: o resumo cobre a lista, e tocar fora dele fecha, sem acionar a
-          linha que está embaixo. No desktop não há fundo: clicar em outra linha troca o resumo. */}
-      {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div
-        aria-hidden="true"
-        data-testid="fundo-resumo"
-        className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
-        onClick={onClose}
-      />
-      <aside
-        id="previa-lead"
-        aria-label="Resumo do lead"
-        // No celular sobra uma faixa à esquerda: é onde se toca para fechar.
-        className="fixed inset-y-0 right-0 z-40 flex w-[calc(100%-3rem)] max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-          <p className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Resumo do lead</p>
-          <button
-            type="button"
-            aria-label="Fechar resumo"
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-brand-500"
-            onClick={onClose}
-          >
-            <X aria-hidden="true" className="size-4" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {summary.kind !== 'ready' ? (
-            <LoadStateView state={summary} onRetry={reload} notFoundMessage="Lead não encontrado." />
-          ) : (
-            <PreviewBody item={summary.data} now={now} headingRef={heading} />
-          )}
-        </div>
-        {summary.kind === 'ready' && (
-          <div className="flex gap-2 border-t border-slate-100 px-5 py-3">
-            <Link to={`/leads/${summary.data.leadId}`} className={`${buttonPrimary} flex-1`}>
-              Abrir lead
-            </Link>
-            <Link to={`/companies/${summary.data.companyId}`} className={buttonSecondary}>
-              Ver empresa
-            </Link>
-          </div>
-        )}
-      </aside>
-    </>
+    <SidePanel
+      id="previa-lead"
+      label="Resumo do lead"
+      backdropTestId="fundo-resumo"
+      onClose={onClose}
+      {...(summary.kind === 'ready'
+        ? {
+            footer: (
+              <>
+                <Link to={`/leads/${summary.data.leadId}`} className={`${buttonPrimary} flex-1`}>
+                  Abrir lead
+                </Link>
+                <Link to={`/companies/${summary.data.companyId}`} className={buttonSecondary}>
+                  Ver empresa
+                </Link>
+              </>
+            ),
+          }
+        : {})}
+    >
+      {summary.kind !== 'ready' ? (
+        <LoadStateView state={summary} onRetry={reload} notFoundMessage="Lead não encontrado." />
+      ) : (
+        <PreviewBody item={summary.data} now={now} headingRef={heading} />
+      )}
+    </SidePanel>
   );
 }
 
@@ -141,26 +101,18 @@ function PreviewBody({
       </div>
 
       <dl className="mt-5 grid grid-cols-2 gap-3">
-        <Fact
-          label="Responsável"
-          value={item.assigneeName ?? 'Sem responsável'}
-          muted={item.assigneeName === undefined}
-        />
-        <Fact
-          label="Valor"
-          value={item.estimatedValue === undefined ? 'Sem valor' : formatCurrency(item.estimatedValue)}
-          muted={item.estimatedValue === undefined}
-        />
-        <Fact
-          label="Na etapa"
-          value={days === undefined ? '—' : days === 0 ? 'desde hoje' : daysLabel(days)}
-          tone={days !== undefined && days >= STALE_DAYS ? 'text-amber-800' : undefined}
-        />
-        <Fact
-          label="Score"
-          value={item.score === undefined ? 'Sem análise' : <ScoreIndicator score={item.score} />}
-          muted={item.score === undefined}
-        />
+        <PanelFact label="Responsável" muted={item.assigneeName === undefined}>
+          {item.assigneeName ?? 'Sem responsável'}
+        </PanelFact>
+        <PanelFact label="Valor" muted={item.estimatedValue === undefined}>
+          {item.estimatedValue === undefined ? 'Sem valor' : formatCurrency(item.estimatedValue)}
+        </PanelFact>
+        <PanelFact label="Na etapa" tone={days !== undefined && days >= STALE_DAYS ? 'text-amber-800' : undefined}>
+          {days === undefined ? '—' : days === 0 ? 'desde hoje' : daysLabel(days)}
+        </PanelFact>
+        <PanelFact label="Score" muted={item.score === undefined}>
+          {item.score === undefined ? 'Sem análise' : <ScoreIndicator score={item.score} />}
+        </PanelFact>
         <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/70">
           <dt className="text-[11px] text-slate-500">Próxima tarefa</dt>
           <dd className="mt-0.5 text-sm text-slate-900">
@@ -186,29 +138,6 @@ function PreviewBody({
       <CompanyContact companyId={item.companyId} />
       <RecentActivity leadId={item.leadId} />
     </>
-  );
-}
-
-function Fact({
-  label,
-  value,
-  muted = false,
-  tone,
-}: {
-  readonly label: string;
-  readonly value: React.ReactNode;
-  readonly muted?: boolean;
-  readonly tone?: string | undefined;
-}): React.JSX.Element {
-  return (
-    <div className="rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/70">
-      <dt className="text-[11px] text-slate-500">{label}</dt>
-      <dd
-        className={`mt-0.5 truncate text-sm font-semibold ${muted ? 'font-normal text-slate-400' : (tone ?? 'text-slate-900')}`}
-      >
-        {value}
-      </dd>
-    </div>
   );
 }
 

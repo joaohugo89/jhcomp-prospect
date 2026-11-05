@@ -1,7 +1,8 @@
 package com.jhcomp.prospect.crm;
 
+import static com.jhcomp.prospect.shared.persistence.SqlValues.instant;
+
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -270,9 +271,5 @@ public class CompanyWorklistQuery {
             total[0] = count == null ? 0 : count;
         }
         return new PageImpl<>(cycles, pageable, total[0]);
-    }
-
-    private static Instant instant(Timestamp timestamp) {
-        return timestamp == null ? null : timestamp.toInstant();
     }
 }

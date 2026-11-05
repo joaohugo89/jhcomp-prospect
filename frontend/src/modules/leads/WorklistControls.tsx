@@ -5,7 +5,7 @@ import { actionErrorMessage } from '../../app/errors';
 import { PRIORITY_LABEL } from '../../app/labels';
 import { Link } from '../../app/router';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { buttonPrimary, buttonSecondary, input } from '../../components/styles';
+import { buttonPrimary, buttonSecondary, chip, input } from '../../components/styles';
 import { bulkUpdateLeads, createView, deleteView } from '../../services/worklistService';
 import { LEAD_PRIORITIES } from '../../types/lead';
 import type { Teammate } from '../../types/session';
@@ -68,11 +68,7 @@ export function QuickFilters({
           key={key}
           type="button"
           aria-pressed={active === key}
-          className={`h-8 rounded-full px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
-            active === key
-              ? 'bg-slate-900 text-white'
-              : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-          }`}
+          className={chip(active === key)}
           onClick={() => {
             onApply(applyQuick(filters, key, currentUserId));
           }}

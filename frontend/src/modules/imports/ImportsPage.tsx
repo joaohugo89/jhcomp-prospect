@@ -5,9 +5,10 @@ import { formatDateTime } from '../../app/format';
 import { Link } from '../../app/router';
 import { useLastReady, useLoad } from '../../app/useLoad';
 import { PageHeader } from '../../components/PageHeader';
+import { StatTile } from '../../components/StatTile';
 import { Pagination } from '../../components/Pagination';
 import { EmptyState, LoadStateView } from '../../components/States';
-import { buttonPrimary, buttonSecondary, card } from '../../components/styles';
+import { buttonPrimary, buttonSecondary, card, chip } from '../../components/styles';
 import { getImportSummary, listImports } from '../../services/importService';
 import type { ImportBatch, ImportStatus, ImportSummary } from '../../types/import';
 import { ImportResultBar, ImportStatusBadge } from './ImportVisuals';
@@ -86,11 +87,7 @@ export function ImportsPage(): React.JSX.Element {
               key={label}
               type="button"
               aria-pressed={filter === value}
-              className={`h-8 rounded-full px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
-                filter === value
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-              }`}
+              className={chip(filter === value)}
               onClick={() => {
                 choose(value);
               }}
@@ -136,32 +133,21 @@ function Overview({
   ];
   return (
     <dl className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {tiles.map(([label, value, tone, status]) => {
-        const content = (
-          <>
-            <dt className="text-xs font-medium text-slate-500">{label}</dt>
-            <dd className={`mt-1 text-2xl font-bold tabular-nums ${tone}`}>{value ?? '—'}</dd>
-          </>
-        );
-        return status === null ? (
-          <div key={label} className={`${card} px-4 py-3`}>
-            {content}
-          </div>
-        ) : (
-          <div key={label} className={`${card} relative px-4 py-3 hover:bg-slate-50`}>
-            {content}
+      {tiles.map(([label, value, tone, status]) => (
+        <StatTile key={label} label={label} value={value} tone={tone}>
+          {status !== null && (
             <button
               type="button"
-              className="absolute inset-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-brand-500"
+              className="absolute inset-0 rounded-2xl hover:bg-slate-900/[0.02] focus-visible:outline-2 focus-visible:outline-brand-500"
               onClick={() => {
                 onFilter(status);
               }}
             >
               <span className="sr-only">{`Ver: ${label}`}</span>
             </button>
-          </div>
-        );
-      })}
+          )}
+        </StatTile>
+      ))}
     </dl>
   );
 }

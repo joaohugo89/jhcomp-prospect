@@ -1,21 +1,8 @@
-import type { Lead, LeadFilters, LeadPriority, LeadStatus, TimelineEntry } from '../types/lead';
+import type { Lead, LeadPriority, LeadStatus, TimelineEntry } from '../types/lead';
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
 /** Leads (doc 05 §5). Mover card é sempre mudança de status (D2). */
-
-export function listLeads(filters: LeadFilters, page: number, signal?: AbortSignal): Promise<Page<Lead>> {
-  const query = toQuery({
-    search: filters.search.trim(),
-    status: filters.status,
-    priority: filters.priority,
-    city: filters.city.trim(),
-    segment: filters.segment.trim(),
-    source: filters.source,
-    page,
-  });
-  return request<Page<Lead>>(`/leads${query}`, signal ? { signal } : {});
-}
 
 export function getLead(id: string, signal?: AbortSignal): Promise<Lead> {
   return request<Lead>(`/leads/${encodeURIComponent(id)}`, signal ? { signal } : {});

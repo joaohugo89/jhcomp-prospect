@@ -17,3 +17,10 @@ export const link = `font-medium text-brand-700 underline-offset-2 hover:underli
 
 /** Superfície de cartão do dashboard e das seções de resumo. */
 export const card = 'rounded-2xl border border-slate-200/70 bg-white shadow-sm';
+
+/** Recorte de um clique (filtro rápido): escuro quando ativo; o estado vai também em `aria-pressed`. */
+export function chip(active: boolean): string {
+  return `h-8 rounded-full px-3 text-xs font-semibold ${focus} ${
+    active ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+  }`;
+}

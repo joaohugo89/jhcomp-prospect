@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 
 import { actionErrorMessage } from '../../app/errors';
-import { buttonSecondary, input } from '../../components/styles';
+import { buttonSecondary, chip, input } from '../../components/styles';
 import { bulkUpdateCompanies, type CompanyBulkChange } from '../../services/companyService';
 import type { CompanyWorklistFilters } from '../../types/company';
 
@@ -59,11 +59,7 @@ export function CompanyQuickFilters({
           key={key}
           type="button"
           aria-pressed={active === key}
-          className={`h-8 rounded-full px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
-            active === key
-              ? 'bg-slate-900 text-white'
-              : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-          }`}
+          className={chip(active === key)}
           onClick={() => {
             onApply(applyQuick(filters, key));
           }}

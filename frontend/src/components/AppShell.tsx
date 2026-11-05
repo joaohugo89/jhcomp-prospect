@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { initials } from '../app/format';
 import { Link, type Route } from '../app/router';
 import type { Session } from '../types/session';
 
@@ -90,11 +91,6 @@ const FULL_SCREEN: ReadonlySet<Route['name']> = new Set(['pipeline']);
 
 /** Formulários de uma coluna: largura de leitura, para a linha não esticar. */
 const READING: ReadonlySet<Route['name']> = new Set(['password']);
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return `${parts[0]?.[0] ?? '?'}${parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : ''}`.toUpperCase();
-}
 
 /**
  * Estrutura das telas autenticadas. No desktop, barra lateral fixa com a

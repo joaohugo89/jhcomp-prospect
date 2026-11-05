@@ -1,5 +1,7 @@
 package com.jhcomp.prospect.crm;
 
+import static com.jhcomp.prospect.shared.persistence.SqlValues.instant;
+
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -253,9 +255,5 @@ public class LeadWorklistQuery {
                  where %s
                 """.formatted(String.join("\n   and ", where)), params, Long.class);
         return value == null ? 0 : value;
-    }
-
-    private static Instant instant(Timestamp timestamp) {
-        return timestamp == null ? null : timestamp.toInstant();
     }
 }

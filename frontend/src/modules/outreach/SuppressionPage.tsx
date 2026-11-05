@@ -7,6 +7,7 @@ import { IDENTIFIER_TYPE_LABEL, OUTREACH_CHANNEL_LABEL } from '../../app/labels'
 import { useLastReady, useLoad } from '../../app/useLoad';
 import { FormField } from '../../components/FormField';
 import { PageHeader } from '../../components/PageHeader';
+import { StatTile } from '../../components/StatTile';
 import { Pagination } from '../../components/Pagination';
 import { EmptyState, LoadStateView } from '../../components/States';
 import { buttonPrimary, buttonSecondary, card, input } from '../../components/styles';
@@ -392,13 +393,7 @@ function SuppressionList({ refresh }: { readonly refresh: number }): React.JSX.E
       </h2>
       <dl className="grid grid-cols-3 gap-3">
         {IDENTIFIER_TYPES.map((item) => (
-          <div key={item} className={`${card} px-4 py-3`}>
-            <dt className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-              <span aria-hidden="true">{TYPE_ICON[item]}</span>
-              {IDENTIFIER_TYPE_LABEL[item]}
-            </dt>
-            <dd className="mt-1 text-2xl font-bold text-slate-900 tabular-nums">{counts?.[item] ?? '—'}</dd>
-          </div>
+          <StatTile key={item} label={IDENTIFIER_TYPE_LABEL[item]} value={counts?.[item]} icon={TYPE_ICON[item]} />
         ))}
       </dl>
 

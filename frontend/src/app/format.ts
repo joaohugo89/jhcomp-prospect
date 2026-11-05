@@ -62,3 +62,14 @@ export function toInstant(value: string): string | undefined {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
+
+/** Iniciais para avatar: "Maria da Silva" vira "MS"; partículas como "da" e "de" não contam. */
+export function initials(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter((part) => part.length > 2 || /^[A-ZÀ-Ý]/.test(part));
+  const first = parts[0]?.[0] ?? '?';
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+  return `${first}${last}`.toUpperCase();
+}

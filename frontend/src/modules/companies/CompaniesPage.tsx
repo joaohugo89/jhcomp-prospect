@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { SOURCE_TYPE_LABEL } from '../../app/labels';
-import { Link } from '../../app/router';
+import { Link, replaceQuery } from '../../app/router';
 import { useLastReady, useLoad } from '../../app/useLoad';
 import { PageHeader } from '../../components/PageHeader';
 import { Pagination } from '../../components/Pagination';
@@ -20,11 +20,6 @@ import {
 import { CompanyPreview } from './CompanyPreview';
 import { CompanyTable } from './CompanyTable';
 import { CompanyBulkBar, CompanyQuickFilters } from './CompanyWorklistControls';
-
-/** Grava os filtros na URL sem nova navegação: voltar e recarregar mantêm o recorte. */
-function writeUrl(query: string): void {
-  window.history.replaceState(null, '', `${window.location.pathname}${query === '' ? '' : `?${query}`}`);
-}
 
 /**
  * Empresas como ferramenta de trabalho (RF-012, D32): lead atual, contato,
@@ -52,7 +47,7 @@ export function CompaniesPage(): React.JSX.Element {
     setDraft(next);
     setPage(0);
     setSelected(new Set());
-    writeUrl(companyFiltersToQuery(next));
+    replaceQuery(companyFiltersToQuery(next));
   }
 
   const filtered = isCompanyFiltered(applied);

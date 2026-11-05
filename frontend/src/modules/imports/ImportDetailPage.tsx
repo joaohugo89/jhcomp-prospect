@@ -5,6 +5,7 @@ import { formatDateTime } from '../../app/format';
 import { IMPORT_FIELD_LABEL } from '../../app/labels';
 import { Link } from '../../app/router';
 import { useLoad } from '../../app/useLoad';
+import { StatTile } from '../../components/StatTile';
 import { LoadStateView } from '../../components/States';
 import { card, link } from '../../components/styles';
 import { getImport } from '../../services/importService';
@@ -122,10 +123,7 @@ function Summary({ batch }: { readonly batch: ImportBatch }): React.JSX.Element 
   return (
     <dl className="mb-6 grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-7">
       {items.map(([label, value]) => (
-        <div key={label} className={`${card} min-w-0 px-3 py-2.5 sm:px-4 sm:py-3`}>
-          <dt className="truncate text-[11px] font-medium text-slate-500 sm:text-xs">{label}</dt>
-          <dd className="mt-0.5 text-lg font-bold tabular-nums text-slate-900 sm:mt-1 sm:text-2xl">{value}</dd>
-        </div>
+        <StatTile key={label} label={label} value={value} />
       ))}
     </dl>
   );

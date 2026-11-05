@@ -1,5 +1,7 @@
 package com.jhcomp.prospect.crm;
 
+import static com.jhcomp.prospect.shared.persistence.SqlValues.instant;
+
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -291,9 +293,5 @@ public class CompanyRemovalService {
 
     private static String normalize(String name) {
         return name.strip().toLowerCase(Locale.ROOT);
-    }
-
-    private static Instant instant(Timestamp timestamp) {
-        return timestamp == null ? null : timestamp.toInstant();
     }
 }

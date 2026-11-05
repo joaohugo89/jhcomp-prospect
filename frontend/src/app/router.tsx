@@ -127,3 +127,11 @@ export function Link({ to, className, children, ...rest }: LinkProps): React.JSX
     </a>
   );
 }
+
+/**
+ * Grava a query string na URL sem nova navegação: voltar e recarregar
+ * mantêm os filtros, e o histórico não ganha uma entrada por filtro.
+ */
+export function replaceQuery(query: string): void {
+  window.history.replaceState(null, '', `${window.location.pathname}${query === '' ? '' : `?${query}`}`);
+}

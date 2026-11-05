@@ -2,13 +2,14 @@ import { KeyRound, ShieldCheck, UserCheck, UserX } from 'lucide-react';
 import { useState } from 'react';
 
 import { actionErrorMessage } from '../../app/errors';
-import { formatDateTime } from '../../app/format';
+import { formatDateTime, initials } from '../../app/format';
 import { useLastReady, useLoad } from '../../app/useLoad';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { PageHeader } from '../../components/PageHeader';
+import { StatTile } from '../../components/StatTile';
 import { Pagination } from '../../components/Pagination';
 import { EmptyState, LoadStateView } from '../../components/States';
-import { buttonPrimary, card, input } from '../../components/styles';
+import { buttonPrimary, card, chip, input } from '../../components/styles';
 import { fetchMembers, getTeamSummary, resetMemberPassword, updateMember } from '../../services/memberService';
 import type { Member, MemberStatus, MemberWithPassword } from '../../types/member';
 import type { OrganizationRole, Session } from '../../types/session';
@@ -54,17 +55,6 @@ const FILTERS: readonly [MemberStatus | '', string][] = [
   ['ACTIVE', 'Ativos'],
   ['REVOKED', 'Removidos'],
 ];
-
-/** Iniciais para o avatar: "Maria da Silva" vira "MS". */
-function initials(name: string): string {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter((part) => part.length > 2 || /^[A-ZÀ-Ý]/.test(part));
-  const first = parts[0]?.[0] ?? '?';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return `${first}${last}`.toUpperCase();
-}
 
 /** "hoje", "ontem", "há 5 dias", ou a data quando passa de um mês. */
 function lastAccess(member: Member, now: number): string {
@@ -154,10 +144,7 @@ export function MembersPage({ session }: { readonly session: Session }): React.J
             ['Removidos', counts?.revoked, 'text-slate-900'],
           ] as const
         ).map(([label, value, tone]) => (
-          <div key={label} className={`${card} px-4 py-3`}>
-            <dt className="text-xs font-medium text-slate-500">{label}</dt>
-            <dd className={`mt-1 text-2xl font-bold tabular-nums ${tone}`}>{value ?? '—'}</dd>
-          </div>
+          <StatTile key={label} label={label} value={value} tone={tone} />
         ))}
       </dl>
 
@@ -184,11 +171,7 @@ export function MembersPage({ session }: { readonly session: Session }): React.J
                   key={label}
                   type="button"
                   aria-pressed={status === value}
-                  className={`h-8 rounded-full px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
-                    status === value
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-                  }`}
+                  className={chip(status === value)}
                   onClick={() => {
                     setStatus(value);
                     setPage(0);

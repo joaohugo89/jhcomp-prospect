@@ -1,7 +1,7 @@
 import type { AnalysisStatus, Confidence, Criterion, EvidenceType, FindingStatus } from '../types/analysis';
 import type { DuplicateSignal, SourceType } from '../types/company';
 import type { InteractionChannel, InteractionDirection, InteractionType } from '../types/crm';
-import type { ImportField, ImportRowStatus, ImportStatus } from '../types/import';
+import type { ImportField, ImportRowStatus } from '../types/import';
 import type { LeadPriority, LeadStatus } from '../types/lead';
 import type { IdentifierType, MessageStatus, OutreachChannel } from '../types/outreach';
 
@@ -50,13 +50,6 @@ export const IMPORT_FIELD_LABEL: Readonly<Record<ImportField, string>> = {
   businessEmail: 'E-mail',
   address: 'Endereço',
   notes: 'Observações',
-};
-
-export const IMPORT_STATUS_LABEL: Readonly<Record<ImportStatus, string>> = {
-  ANALYZED: 'Aguardando revisão',
-  IMPORTING: 'Importando',
-  COMPLETED: 'Importada',
-  DISCARDED: 'Descartada',
 };
 
 export const IMPORT_ROW_STATUS_LABEL: Readonly<Record<ImportRowStatus, string>> = {

@@ -2,7 +2,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { PRIORITY_LABEL, SOURCE_TYPE_LABEL, STATUS_LABEL } from '../../app/labels';
-import { Link } from '../../app/router';
+import { Link, replaceQuery } from '../../app/router';
 import { useLastReady, useLoad } from '../../app/useLoad';
 import { PageHeader } from '../../components/PageHeader';
 import { Pagination } from '../../components/Pagination';
@@ -23,11 +23,6 @@ import { EMPTY_FILTERS, filtersFromQuery, filtersToQuery, isFiltered } from './w
 
 function pick<T extends string>(options: readonly T[], value: string): T | '' {
   return options.find((option) => option === value) ?? '';
-}
-
-/** Grava os filtros na URL sem nova navegação: voltar e recarregar mantêm a busca. */
-function writeUrl(query: string): void {
-  window.history.replaceState(null, '', `${window.location.pathname}${query === '' ? '' : `?${query}`}`);
 }
 
 /**
@@ -80,7 +75,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
     setDraft(next);
     setPage(0);
     setSelected(new Set());
-    writeUrl(filtersToQuery(next));
+    replaceQuery(filtersToQuery(next));
   }
 
   const members = team.kind === 'ready' ? team.data.content : [];

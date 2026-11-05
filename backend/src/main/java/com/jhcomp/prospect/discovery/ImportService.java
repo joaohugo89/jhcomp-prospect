@@ -1,5 +1,7 @@
 package com.jhcomp.prospect.discovery;
 
+import static com.jhcomp.prospect.shared.persistence.SqlValues.count;
+
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -267,11 +269,7 @@ public class ImportService {
     @Transactional(readOnly = true)
     public Summary summary() {
         Object[] row = batchRepository.summarize(organizationContext.requireOrganizationId()).getFirst();
-        return new Summary(number(row[0]), number(row[1]), number(row[2]), number(row[3]), number(row[4]));
-    }
-
-    private static long number(Object value) {
-        return value instanceof Number number ? number.longValue() : 0;
+        return new Summary(count(row[0]), count(row[1]), count(row[2]), count(row[3]), count(row[4]));
     }
 
     @Transactional(readOnly = true)

@@ -1,5 +1,7 @@
 package com.jhcomp.prospect.identity.application;
 
+import static com.jhcomp.prospect.shared.persistence.SqlValues.count;
+
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
@@ -57,11 +59,7 @@ public class MemberQueryService {
     @Transactional(readOnly = true)
     public TeamSummary summary() {
         Object[] row = memberRepository.summarize(organizationContext.requireOrganizationId()).getFirst();
-        return new TeamSummary(number(row[0]), number(row[1]), number(row[2]), number(row[3]));
-    }
-
-    private static long number(Object value) {
-        return value instanceof Number number ? number.longValue() : 0;
+        return new TeamSummary(count(row[0]), count(row[1]), count(row[2]), count(row[3]));
     }
 
     /**
