@@ -52,28 +52,28 @@ export function SidePanel({
       <div
         aria-hidden="true"
         data-testid={backdropTestId}
-        className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
+        className="fixed inset-0 z-30 bg-stone-900/30 lg:hidden"
         onClick={onClose}
       />
       <aside
         id={id}
         aria-label={label}
         // No celular sobra uma faixa à esquerda: é onde se toca para fechar.
-        className="fixed inset-y-0 right-0 z-40 flex w-[calc(100%-3rem)] max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl"
+        className="fixed inset-y-0 right-0 z-40 flex w-[calc(100%-3rem)] max-w-md flex-col border-l border-stone-200 bg-white shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-          <p className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">{label}</p>
+        <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3">
+          <p className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">{label}</p>
           <button
             type="button"
             aria-label={`Fechar ${label.toLowerCase()}`}
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-brand-500"
+            className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100 hover:text-stone-800 focus-visible:outline-2 focus-visible:outline-brand-500"
             onClick={onClose}
           >
             <X aria-hidden="true" className="size-4" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer !== undefined && <div className="flex gap-2 border-t border-slate-100 px-5 py-3">{footer}</div>}
+        {footer !== undefined && <div className="flex gap-2 border-t border-stone-100 px-5 py-3">{footer}</div>}
       </aside>
     </>
   );
@@ -92,10 +92,10 @@ export function PanelFact({
   readonly tone?: string | undefined;
 }): React.JSX.Element {
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/70">
-      <dt className="text-[11px] text-slate-500">{label}</dt>
+    <div className="rounded-xl bg-stone-50 px-3 py-2.5 ring-1 ring-stone-200/70">
+      <dt className="text-[11px] text-stone-500">{label}</dt>
       <dd
-        className={`mt-0.5 text-sm font-semibold break-words ${muted ? 'font-normal text-slate-400' : (tone ?? 'text-slate-900')}`}
+        className={`mt-0.5 text-sm font-semibold break-words ${muted ? 'font-normal text-stone-400' : (tone ?? 'text-stone-900')}`}
       >
         {children}
       </dd>

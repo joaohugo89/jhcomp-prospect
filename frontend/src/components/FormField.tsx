@@ -55,7 +55,7 @@ export function FormField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-medium text-stone-700">
         {label}
         {required && (
           <span className="text-red-700" aria-hidden="true">
@@ -93,7 +93,7 @@ export function FormField({
         </datalist>
       )}
       {hint !== undefined && (
-        <p id={hintId} className="mt-1 text-xs text-slate-500">
+        <p id={hintId} className="mt-1 text-xs text-stone-500">
           {hint}
         </p>
       )}

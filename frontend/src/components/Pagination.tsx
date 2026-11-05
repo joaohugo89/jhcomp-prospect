@@ -10,7 +10,7 @@ interface PaginationProps {
 export function Pagination({ page, onChange }: PaginationProps): React.JSX.Element | null {
   if (page.totalPages <= 1) {
     return (
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-stone-500">
         {page.totalElements} {page.totalElements === 1 ? 'registro' : 'registros'}
       </p>
     );
@@ -18,7 +18,7 @@ export function Pagination({ page, onChange }: PaginationProps): React.JSX.Eleme
 
   return (
     <nav aria-label="Paginação" className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-      <p className="text-slate-600">
+      <p className="text-stone-600">
         Página {page.page + 1} de {page.totalPages} · {page.totalElements} registros
       </p>
       <div className="flex gap-2">

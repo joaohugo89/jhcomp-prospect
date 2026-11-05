@@ -111,7 +111,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
   }
 
   return (
-    <div className={`min-h-dvh bg-slate-50 text-slate-900 md:flex ${fullScreen ? 'md:h-dvh md:overflow-hidden' : ''}`}>
+    <div className={`min-h-dvh bg-cream text-stone-900 md:flex ${fullScreen ? 'md:h-dvh md:overflow-hidden' : ''}`}>
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow"
@@ -119,15 +119,17 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
         Ir para o conteúdo
       </a>
 
-      <aside className="border-b border-slate-200 bg-white md:sticky md:top-0 md:flex md:h-dvh md:w-56 md:shrink-0 md:flex-col md:border-r md:border-b-0">
+      <aside className="border-b border-oxblood-deep bg-oxblood text-cream md:sticky md:top-0 md:flex md:h-dvh md:w-56 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:border-oxblood-deep">
         <div className="flex items-center gap-2 px-4 pt-3 pb-2 md:pt-4">
           <span
             aria-hidden="true"
-            className="inline-flex size-7 items-center justify-center rounded-lg bg-brand-600 text-[11px] font-bold text-white"
+            className="inline-flex size-7 items-center justify-center rounded-lg bg-brand-500 font-mono text-[11px] font-bold text-white"
           >
             JH
           </span>
-          <p className="text-sm font-bold tracking-tight">JH.COMP Prospect</p>
+          <p className="font-display text-base leading-none font-semibold tracking-tight">
+            JH.COMP <em className="font-normal text-brand-200">Prospect</em>
+          </p>
         </div>
 
         <nav aria-label="Principal" className="px-2 md:flex-1 md:overflow-y-auto md:py-2">
@@ -141,7 +143,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
               }
               return (
                 <li key={group} className="contents md:block">
-                  <p className="hidden px-2 pb-1 text-[10px] font-semibold tracking-wider text-slate-400 uppercase md:block">
+                  <p className="hidden px-2 pb-1 font-mono text-[10px] font-semibold tracking-wider text-cream/40 uppercase md:block">
                     {group}
                   </p>
                   <ul className="contents md:flex md:flex-col md:gap-0.5">
@@ -153,13 +155,16 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
                           <Link
                             to={item.to}
                             {...(active ? { 'aria-current': 'page' as const } : {})}
-                            className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
+                            className={`flex items-center gap-2 rounded-lg border-l-2 px-2.5 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream ${
                               active
-                                ? 'bg-brand-50 text-brand-700'
-                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                ? 'border-brand-500 bg-oxblood-lift text-white'
+                                : 'border-transparent text-cream/70 hover:bg-oxblood-lift/60 hover:text-white'
                             }`}
                           >
-                            <Icon aria-hidden="true" className={`size-4 shrink-0 ${active ? '' : 'text-slate-400'}`} />
+                            <Icon
+                              aria-hidden="true"
+                              className={`size-4 shrink-0 ${active ? 'text-brand-200' : 'text-cream/45'}`}
+                            />
                             {item.label}
                           </Link>
                         </li>
@@ -172,23 +177,23 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
           </ul>
         </nav>
 
-        <div className="flex items-center gap-2 border-t border-slate-100 px-3 py-2 md:py-3">
+        <div className="flex items-center gap-2 border-t border-white/10 px-3 py-2 md:py-3">
           <span
             aria-hidden="true"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-oxblood-lift text-xs font-bold text-cream"
           >
             {initials(session.displayName)}
           </span>
           <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-xs font-semibold text-slate-800">{session.displayName}</p>
-            <p className="truncate text-[11px] text-slate-500">{ROLE_LABEL[session.role]}</p>
+            <p className="truncate text-xs font-semibold text-cream">{session.displayName}</p>
+            <p className="truncate text-[11px] text-cream/55">{ROLE_LABEL[session.role]}</p>
           </div>
           <Link
             to="/settings/password"
             aria-label="Minha senha"
             title="Minha senha"
             {...(route.name === 'password' ? { 'aria-current': 'page' as const } : {})}
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-brand-500"
+            className="rounded-lg p-1.5 text-cream/60 hover:bg-oxblood-lift hover:text-white focus-visible:outline-2 focus-visible:outline-cream"
           >
             <KeyRound aria-hidden="true" className="size-4" />
           </Link>
@@ -196,7 +201,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
             type="button"
             aria-label="Sair"
             title="Sair"
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-brand-500 disabled:opacity-50"
+            className="rounded-lg p-1.5 text-cream/60 hover:bg-oxblood-lift hover:text-white focus-visible:outline-2 focus-visible:outline-cream disabled:opacity-50"
             disabled={signingOut}
             onClick={() => {
               void handleSignOut();

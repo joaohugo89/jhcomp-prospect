@@ -78,7 +78,7 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 px-4">
       {/* Teclado no próprio diálogo é o padrão de modal do WAI-ARIA: Esc fecha e Tab fica preso dentro. */}
       {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
@@ -90,10 +90,10 @@ export function ConfirmDialog({
         onKeyDown={handleKeyDown}
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
       >
-        <h2 id={titleId} className="text-lg font-semibold text-slate-900">
+        <h2 id={titleId} className="text-lg font-semibold text-stone-900">
           {title}
         </h2>
-        <p id={descriptionId} className="mt-2 text-sm text-slate-700">
+        <p id={descriptionId} className="mt-2 text-sm text-stone-700">
           {description}
         </p>
         {children}

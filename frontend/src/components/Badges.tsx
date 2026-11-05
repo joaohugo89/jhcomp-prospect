@@ -9,7 +9,7 @@ import type { MessageStatus } from '../types/outreach';
  */
 
 const STATUS_TONE: Readonly<Record<LeadStatus, string>> = {
-  NEW: 'bg-slate-100 text-slate-800 ring-slate-300',
+  NEW: 'bg-stone-100 text-stone-800 ring-stone-300',
   QUALIFIED: 'bg-sky-50 text-sky-900 ring-sky-300',
   CONTACT_APPROVED: 'bg-indigo-50 text-indigo-900 ring-indigo-300',
   CONTACTED: 'bg-violet-50 text-violet-900 ring-violet-300',
@@ -28,19 +28,19 @@ export function StatusBadge({ status }: { readonly status: LeadStatus }): React.
 }
 
 const PRIORITY_TONE: Readonly<Record<LeadPriority, string>> = {
-  LOW: 'bg-white text-slate-700 ring-slate-300',
-  MEDIUM: 'bg-white text-slate-800 ring-slate-400',
+  LOW: 'bg-white text-stone-700 ring-stone-300',
+  MEDIUM: 'bg-white text-stone-800 ring-stone-400',
   HIGH: 'bg-amber-50 text-amber-900 ring-amber-400',
   VERY_HIGH: 'bg-red-50 text-red-900 ring-red-400',
 };
 
 const MESSAGE_TONE: Readonly<Record<MessageStatus, string>> = {
-  DRAFT: 'bg-white text-slate-800 ring-slate-400',
+  DRAFT: 'bg-white text-stone-800 ring-stone-400',
   NEEDS_REVIEW: 'bg-amber-50 text-amber-900 ring-amber-400',
   APPROVED: 'bg-sky-50 text-sky-900 ring-sky-400',
   SENT: 'bg-emerald-50 text-emerald-900 ring-emerald-400',
   FAILED: 'bg-red-50 text-red-900 ring-red-400',
-  CANCELLED: 'bg-slate-100 text-slate-600 ring-slate-300',
+  CANCELLED: 'bg-stone-100 text-stone-600 ring-stone-300',
 };
 
 /** Estado da mensagem; "aprovada" diz "não enviada" no texto, não só na cor (regra 5). */
@@ -55,10 +55,10 @@ export function PriorityBadge({ priority }: { readonly priority: LeadPriority })
 /** Score ausente é "sem análise", nunca zero (D7). */
 export function ScoreIndicator({ score }: { readonly score: number | undefined }): React.JSX.Element {
   if (score === undefined) {
-    return <span className="text-xs text-slate-500">Sem análise</span>;
+    return <span className="text-xs text-stone-500">Sem análise</span>;
   }
   return (
-    <span className="font-mono text-sm tabular-nums text-slate-900" aria-label={`Score ${score} de 100`}>
+    <span className="font-mono text-sm tabular-nums text-stone-900" aria-label={`Score ${score} de 100`}>
       {score}
     </span>
   );
