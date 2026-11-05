@@ -11,7 +11,7 @@ export function PasswordPage({ onChanged }: { readonly onChanged: (session: Sess
   return (
     <>
       <PageHeader title="Minha senha" description="Troque a senha usada para entrar no JH.COMP Prospect." />
-      <section className="max-w-md rounded-lg border border-slate-200 bg-white p-6">
+      <section className="max-w-md rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
         {done ? (
           <p role="status" className="text-sm text-emerald-800">
             Senha trocada. As sessões abertas em outros navegadores foram encerradas.
@@ -47,7 +47,7 @@ export function ForcedPasswordChange({
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-10">
       <section
         aria-labelledby="troca-obrigatoria"
-        className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+        className="w-full max-w-md rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm"
       >
         <h1 id="troca-obrigatoria" className="text-xl font-semibold text-slate-900">
           Defina sua senha

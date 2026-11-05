@@ -14,7 +14,7 @@ export function LoginPage({ sessionExpired, onAuthenticated }: LoginPageProps): 
         <h1 className="text-center text-2xl font-semibold tracking-tight">JH.COMP Prospect</h1>
         <p className="mt-1 text-center text-sm text-slate-600">Acesso restrito à equipe.</p>
 
-        <div className="mt-8 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mt-8 rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
           {sessionExpired && (
             <p role="status" className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
               Sua sessão expirou ou foi encerrada. Entre novamente para continuar.

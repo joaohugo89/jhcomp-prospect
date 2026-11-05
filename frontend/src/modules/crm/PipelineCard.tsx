@@ -64,11 +64,14 @@ export function PipelineCard({
       }}
       onDragEnd={onDragEnd}
       className={`group relative rounded-lg border border-slate-200 bg-white text-sm shadow-sm ${
-        detailed ? 'p-3' : 'px-3 py-2'
+        detailed ? 'p-2.5' : 'px-2.5 py-1.5'
       } ${draggable ? 'cursor-grab' : ''}`}
     >
       <div className="pr-7">
-        <Link to={`/leads/${card.leadId}`} className={`${link} line-clamp-2 break-words`}>
+        <Link
+          to={`/leads/${card.leadId}`}
+          className="line-clamp-2 text-[13px] leading-snug font-semibold break-words text-slate-900 hover:text-brand-700 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
+        >
           {card.companyName}
         </Link>
         <p className="truncate text-xs text-slate-500">{place.join(' · ')}</p>

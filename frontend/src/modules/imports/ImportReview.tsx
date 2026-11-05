@@ -21,7 +21,10 @@ export function ImportReview({
   const [error, setError] = useState<string | null>(null);
 
   const rowsWith = (choice: DuplicateChoice): number[] =>
-    [...choices].filter(([, value]) => value === choice).map(([row]) => row).toSorted((a, b) => a - b);
+    [...choices]
+      .filter(([, value]) => value === choice)
+      .map(([row]) => row)
+      .toSorted((a, b) => a - b);
   const asNew = rowsWith('new');
   const toMerge = rowsWith('merge');
   const toCreate = batch.validRows + asNew.length;
@@ -47,7 +50,7 @@ export function ImportReview({
   }
 
   return (
-    <section aria-labelledby="revisao" className="mb-6 rounded-lg border border-brand-500/30 bg-brand-50 p-6">
+    <section aria-labelledby="revisao" className="mb-6 rounded-2xl border border-brand-500/30 bg-brand-50 p-4">
       <h2 id="revisao" className="text-base font-semibold">
         Revisar e importar
       </h2>

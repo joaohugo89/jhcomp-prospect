@@ -48,7 +48,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
 
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-3">
-      <div aria-hidden="true" className="relative h-48 w-10 sm:h-56">
+      <div aria-hidden="true" className="relative h-44 w-10 sm:h-48">
         {ticks(top).map((tick) => (
           <span
             key={tick}
@@ -68,7 +68,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
         aria-valuemax={Math.max(1, count)}
         aria-valuenow={(active ?? count - 1) + 1}
         aria-valuetext={announced === undefined ? '' : `${announced.title}: ${format(announced.value)}`}
-        className="relative h-48 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500 sm:h-56"
+        className="relative h-44 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500 sm:h-48"
         onMouseLeave={() => {
           setActive(null);
         }}

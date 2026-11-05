@@ -89,7 +89,7 @@ export function AnalysisSection({
   const doNotContact = lead.status === 'DO_NOT_CONTACT';
 
   return (
-    <section aria-labelledby="presenca" className="rounded-lg border border-slate-200 bg-white p-6">
+    <section aria-labelledby="presenca" className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="presenca" className="text-base font-semibold">
@@ -111,9 +111,7 @@ export function AnalysisSection({
         </button>
       </div>
 
-      {doNotContact && (
-        <p className="mt-3 text-sm text-slate-600">Lead marcado como não contatar: não é analisado.</p>
-      )}
+      {doNotContact && <p className="mt-3 text-sm text-slate-600">Lead marcado como não contatar: não é analisado.</p>}
       {error !== null && (
         <p role="alert" className="mt-3 text-sm text-red-700">
           {error}

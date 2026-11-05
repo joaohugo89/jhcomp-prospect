@@ -35,7 +35,7 @@ export function DealSection({
   const [state, reload] = useLoad(`${lead.id}:${lead.status}`, (signal) => getDeal(lead.id, signal));
 
   return (
-    <section aria-labelledby="negocio" className={`${card} p-5`}>
+    <section aria-labelledby="negocio" className={`${card} p-4`}>
       <h2 id="negocio" className="text-sm font-semibold text-slate-900">
         Negócio
       </h2>

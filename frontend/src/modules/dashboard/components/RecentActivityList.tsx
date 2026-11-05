@@ -55,7 +55,8 @@ export function RecentActivityList({
     return <p className="text-sm text-slate-600">Nenhuma atividade no período.</p>;
   }
   return (
-    <ul className="space-y-2">
+    // Uma lista só, com divisórias: seis atividades cabem onde antes cabiam quatro cartões.
+    <ul className={`${card} divide-y divide-slate-100`}>
       {atividades.map((atividade) => (
         <ActivityItem key={atividade.id} atividade={atividade} />
       ))}
@@ -68,12 +69,12 @@ function ActivityItem({ atividade }: { readonly atividade: AtividadeRecente }): 
   const quem = atividade.usuario === undefined ? '' : ` · ${atividade.usuario}`;
 
   return (
-    <li className={`${card} flex items-center gap-3 px-3.5 py-3`}>
+    <li className="flex items-center gap-2.5 px-3 py-2">
       <span
         aria-hidden="true"
-        className={`flex size-9 shrink-0 items-center justify-center rounded-xl ring-1 ${TONE[tom].icon}`}
+        className={`flex size-7 shrink-0 items-center justify-center rounded-lg ring-1 ${TONE[tom].icon}`}
       >
-        <Icon className="size-4" strokeWidth={2} />
+        <Icon className="size-3.5" strokeWidth={2} />
       </span>
       <div className="min-w-0 flex-1">
         <Link
@@ -84,7 +85,7 @@ function ActivityItem({ atividade }: { readonly atividade: AtividadeRecente }): 
         </Link>
         <p className="truncate text-xs text-slate-500">{`${detalhe}${quem}`}</p>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
         <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ${TONE[tom].badge}`}>{etiqueta}</span>
         <time
           dateTime={atividade.data}

@@ -23,7 +23,7 @@ export function LeadCyclesSection({
   );
 
   return (
-    <section aria-labelledby="ciclos" className={`${card} p-5`}>
+    <section aria-labelledby="ciclos" className={`${card} p-4`}>
       <h2 id="ciclos" className="text-sm font-semibold text-slate-900">
         Ciclos comerciais
       </h2>

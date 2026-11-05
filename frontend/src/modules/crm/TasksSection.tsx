@@ -39,7 +39,7 @@ export function TasksSection({
   }
 
   return (
-    <section aria-labelledby="tarefas" className={`${card} @container p-5`}>
+    <section aria-labelledby="tarefas" className={`${card} @container p-4`}>
       <h2 id="tarefas" className="text-sm font-semibold text-slate-900">
         Tarefas
       </h2>
@@ -138,20 +138,22 @@ function NewTaskForm({
   return (
     <form
       // Responde à largura do cartão (lateral estreita do lead), não à da tela.
-      className="mt-3 grid gap-3 @md:grid-cols-[2fr_1fr_auto] @md:items-end"
+      className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 @md:grid-cols-[2fr_1fr_auto]"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <FormField
-        label="Nova tarefa"
-        value={title}
-        onChange={setTitle}
-        required
-        maxLength={200}
-        error={fieldErrors.get('title')}
-      />
+      <div className="col-span-2 @md:col-span-1">
+        <FormField
+          label="Nova tarefa"
+          value={title}
+          onChange={setTitle}
+          required
+          maxLength={200}
+          error={fieldErrors.get('title')}
+        />
+      </div>
       <label className="text-sm font-medium text-slate-700">
         Prazo (opcional)
         <input
@@ -167,7 +169,7 @@ function NewTaskForm({
         {busy ? 'Adicionando…' : 'Adicionar'}
       </button>
       {error !== null && (
-        <p role="alert" className="text-sm text-red-700 sm:col-span-3">
+        <p role="alert" className="col-span-2 text-sm text-red-700 @md:col-span-3">
           {error}
         </p>
       )}

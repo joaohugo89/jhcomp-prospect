@@ -24,7 +24,7 @@ export function DashboardSection({
   children,
 }: DashboardSectionProps): React.JSX.Element {
   return (
-    <section aria-labelledby={id} className={`${card} p-5 sm:p-6 ${className}`}>
+    <section aria-labelledby={id} className={`${card} p-4 sm:p-5 ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           {eyebrow !== undefined && (

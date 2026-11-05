@@ -161,7 +161,7 @@ export function MembersPage({ session }: { readonly session: Session }): React.J
         ))}
       </dl>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-4">
           {issued !== null && (
             <TemporaryPasswordNotice
@@ -244,14 +244,14 @@ export function MembersPage({ session }: { readonly session: Session }): React.J
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <NewMemberForm
             onCreated={(created) => {
               setIssued(created);
               refresh();
             }}
           />
-          <section aria-labelledby="papeis" className={`${card} p-5 text-sm`}>
+          <section aria-labelledby="papeis" className={`${card} p-4 text-sm`}>
             <h2 id="papeis" className="flex items-center gap-2 font-semibold text-slate-900">
               <ShieldCheck aria-hidden="true" className="size-4 text-emerald-600" />
               Papéis e segurança
@@ -312,16 +312,16 @@ function MemberTable({
         <caption className="sr-only">Membros</caption>
         <thead className="hidden border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500 sm:table-header-group">
           <tr>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               Pessoa
             </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               Papel
             </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               Último acesso
             </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               <span className="sr-only">Ações</span>
             </th>
           </tr>
@@ -335,7 +335,7 @@ function MemberTable({
                 key={member.memberId}
                 className={`block py-2 sm:table-row sm:py-0 ${revoked ? 'bg-slate-50/60' : ''}`}
               >
-                <td className="block px-4 py-2 sm:table-cell sm:max-w-[18rem] sm:py-3">
+                <td className="block px-4 py-2 sm:table-cell sm:max-w-[18rem] sm:py-2">
                   <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 font-semibold text-slate-900">
                     <span
                       aria-hidden="true"
@@ -366,7 +366,7 @@ function MemberTable({
                   </p>
                   <p className="-mt-2 truncate pl-12 text-xs text-slate-500">{member.email}</p>
                 </td>
-                <td className="inline-block px-4 py-1 align-middle sm:table-cell sm:py-3">
+                <td className="inline-block px-4 py-1 align-middle sm:table-cell sm:py-2">
                   {self || revoked ? (
                     <span className="text-slate-700">{ROLE_LABEL[member.role]}</span>
                   ) : (
@@ -387,13 +387,13 @@ function MemberTable({
                     </select>
                   )}
                 </td>
-                <td className="inline-block px-4 py-1 align-middle whitespace-nowrap sm:table-cell sm:py-3">
+                <td className="inline-block px-4 py-1 align-middle whitespace-nowrap sm:table-cell sm:py-2">
                   <span className={member.lastLoginAt === undefined ? 'text-slate-400' : 'text-slate-700'}>
                     {lastAccess(member, now)}
                   </span>
                   <span className="block text-xs text-slate-400">{`Desde ${formatDateTime(member.createdAt)}`}</span>
                 </td>
-                <td className="block px-3 py-1 sm:table-cell sm:py-3">
+                <td className="block px-3 py-1 sm:table-cell sm:py-2">
                   {self ? null : (
                     <div className="flex flex-wrap gap-1 sm:justify-end">
                       {revoked ? (

@@ -91,7 +91,7 @@ export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.El
       <header className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight break-words text-slate-900">{company.name}</h1>
+            <h1 className="text-xl font-bold tracking-tight break-words text-slate-900">{company.name}</h1>
             <p className="mt-1 text-sm text-slate-500">
               {[company.segment ?? 'Sem segmento', `${company.city}/${company.state}`].join(' · ')}
               {company.archived && (
@@ -136,13 +136,13 @@ export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.El
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0 space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-4">
           <CompanyData company={company} />
           <LeadCyclesSection companyId={company.id} refreshKey={String(version)} />
           <SourcesSection key={version} companyId={company.id} />
         </div>
-        <aside aria-label="Oportunidade e duplicatas" className="space-y-6 lg:sticky lg:top-4 lg:self-start">
+        <aside aria-label="Oportunidade e duplicatas" className="space-y-4 lg:sticky lg:top-4 lg:self-start">
           {!company.archived && item !== null && openLead === undefined && <OpenLeadSection companyId={company.id} />}
           <DuplicatesSection
             company={company}
@@ -245,23 +245,29 @@ function CompanyData({ company }: { readonly company: Company }): React.JSX.Elem
     ['Cadastrada em', formatDateTime(company.createdAt)],
     ['Atualizada em', formatDateTime(company.updatedAt)],
   ];
+  const missing = rows.filter(([, value]) => value === undefined).map(([label]) => label);
 
   return (
-    <section aria-labelledby="dados" className={`${card} p-5`}>
+    <section aria-labelledby="dados" className={`${card} p-4`}>
       <h2 id="dados" className="text-sm font-semibold text-slate-900">
         Dados
       </h2>
-      <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
-        {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-slate-500">{label}</dt>
-            {/* Ausente não é "não existe": só não foi informado (doc 06 §5). */}
-            <dd className="break-words text-slate-900">
-              {value ?? <span className="text-slate-400">Não informado</span>}
-            </dd>
-          </div>
-        ))}
+      <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-[9rem_1fr]">
+        {rows
+          .filter(([, value]) => value !== undefined)
+          .map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="text-slate-500">{label}</dt>
+              <dd className="break-words text-slate-900">{value}</dd>
+            </div>
+          ))}
       </dl>
+      {/* Ausente não é "não existe": só não foi informado (doc 06 §5). Uma linha só para todos. */}
+      {missing.length > 0 && (
+        <p className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
+          {`Não informado: ${missing.join(', ')}.`}
+        </p>
+      )}
     </section>
   );
 }

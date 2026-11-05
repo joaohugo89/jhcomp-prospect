@@ -69,21 +69,21 @@ export function CompaniesPage(): React.JSX.Element {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-3">
         <CompanyQuickFilters filters={applied} onApply={apply} />
       </div>
 
       <form
         role="search"
         aria-label="Filtrar empresas"
-        className="mb-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
+        className="mb-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           apply(draft);
         }}
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
-          <label className="text-sm font-medium text-slate-700">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
+          <label className="col-span-2 text-xs font-medium text-slate-500 lg:col-span-1">
             Buscar por nome
             <input
               type="search"
@@ -102,7 +102,7 @@ export function CompaniesPage(): React.JSX.Element {
             segments={segments.kind === 'ready' ? segments.data : null}
             allowNone
           />
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-xs font-medium text-slate-500">
             Cidade
             <input
               className={input}
@@ -112,7 +112,7 @@ export function CompaniesPage(): React.JSX.Element {
               }}
             />
           </label>
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-xs font-medium text-slate-500">
             Origem
             <select
               className={input}
@@ -129,7 +129,7 @@ export function CompaniesPage(): React.JSX.Element {
               ))}
             </select>
           </label>
-          <div className="flex items-end">
+          <div className="col-span-2 flex items-end lg:col-span-1">
             <button type="submit" className={buttonPrimary}>
               Filtrar
             </button>

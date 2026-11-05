@@ -6,7 +6,6 @@ import { usePreference } from '../../app/preferences';
 import { Link } from '../../app/router';
 import { useFilters } from '../../app/useFilters';
 import { useLoad } from '../../app/useLoad';
-import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, LoadStateView } from '../../components/States';
 import { buttonPrimary, buttonSecondary, input } from '../../components/styles';
 import { getBoard, type BoardFilters } from '../../services/crmService';
@@ -80,56 +79,58 @@ export function PipelinePage(): React.JSX.Element {
 
   return (
     <>
-      <PageHeader
-        title="Pipeline"
-        description="Arraste um card ou use “Mover” para mudar o status do lead."
-        actions={<DensityToggle density={density} onChange={setDensity} />}
-      />
-
-      <form
-        role="search"
-        aria-label="Filtrar pipeline"
-        className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
-        onSubmit={(event) => {
-          event.preventDefault();
-          apply();
-        }}
-      >
-        <label className="text-sm font-medium text-slate-700">
-          Buscar empresa
-          <input
-            type="search"
-            className={input}
-            value={draft.search}
-            onChange={(event) => {
-              setDraft({ ...draft, search: event.target.value });
-            }}
-          />
-        </label>
-        <label className="text-sm font-medium text-slate-700">
-          Segmento
-          <input
-            className={input}
-            value={draft.segment}
-            onChange={(event) => {
-              setDraft({ ...draft, segment: event.target.value });
-            }}
-          />
-        </label>
-        <label className="text-sm font-medium text-slate-700">
-          Cidade
-          <input
-            className={input}
-            value={draft.city}
-            onChange={(event) => {
-              setDraft({ ...draft, city: event.target.value });
-            }}
-          />
-        </label>
-        <button type="submit" className={`${buttonSecondary} self-end`}>
-          Filtrar
-        </button>
-      </form>
+      {/* Título, filtros e densidade numa faixa só: o quadro começa logo abaixo. */}
+      <header className="mb-3 flex flex-wrap items-end gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Pipeline</h1>
+          <p className="mt-0.5 text-sm text-slate-500">Arraste um card ou use “Mover” para mudar o status do lead.</p>
+        </div>
+        <form
+          role="search"
+          aria-label="Filtrar pipeline"
+          className="flex flex-1 flex-wrap items-end gap-2 lg:justify-end"
+          onSubmit={(event) => {
+            event.preventDefault();
+            apply();
+          }}
+        >
+          <label className="min-w-[12rem] flex-1 text-xs font-medium text-slate-500 lg:max-w-xs">
+            Buscar empresa
+            <input
+              type="search"
+              className={input}
+              value={draft.search}
+              onChange={(event) => {
+                setDraft({ ...draft, search: event.target.value });
+              }}
+            />
+          </label>
+          <label className="w-36 text-xs font-medium text-slate-500">
+            Segmento
+            <input
+              className={input}
+              value={draft.segment}
+              onChange={(event) => {
+                setDraft({ ...draft, segment: event.target.value });
+              }}
+            />
+          </label>
+          <label className="w-36 text-xs font-medium text-slate-500">
+            Cidade
+            <input
+              className={input}
+              value={draft.city}
+              onChange={(event) => {
+                setDraft({ ...draft, city: event.target.value });
+              }}
+            />
+          </label>
+          <button type="submit" className={buttonSecondary}>
+            Filtrar
+          </button>
+        </form>
+        <DensityToggle density={density} onChange={setDensity} />
+      </header>
 
       <div aria-live="polite">
         {error !== null && (

@@ -28,20 +28,20 @@ interface DashboardLayoutProps {
  */
 export function DashboardLayout(props: DashboardLayoutProps): React.JSX.Element {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <DashboardHeader subtitle={props.subtitle} filters={props.filters} />
 
       {props.attention}
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">{props.hero}</div>
-        <div className="grid content-start gap-6 md:grid-cols-2 xl:grid-cols-1">{props.highlights}</div>
+        <div className="grid content-start gap-4 md:grid-cols-2 xl:grid-cols-1">{props.highlights}</div>
       </div>
 
       {props.metrics}
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <div className="min-w-0 space-y-6 xl:col-span-2">{props.funnel}</div>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="min-w-0 space-y-4 xl:col-span-2">{props.funnel}</div>
         <div className="min-w-0">{props.activity}</div>
       </div>
     </div>

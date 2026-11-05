@@ -31,7 +31,7 @@ export function ConversionReport({ conversao }: { readonly conversao: Conversao 
       </button>
 
       {open && (
-        <section id="relatorio-conversao" aria-label="Relatório de conversão" className={`${card} p-5 sm:p-6`}>
+        <section id="relatorio-conversao" aria-label="Relatório de conversão" className={`${card} p-4 sm:p-5`}>
           <p className="text-xs text-slate-500">
             {`Leads abertos no período. Percentual só com ${conversao.amostraMinima} leads ou mais no grupo.`}
           </p>

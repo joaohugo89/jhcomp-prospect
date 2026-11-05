@@ -65,7 +65,7 @@ export function CompanyTable(props: CompanyTableProps): React.JSX.Element {
         <caption className="sr-only">Empresas</caption>
         <thead className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
           <tr>
-            <th scope="col" className="w-10 px-3 py-2.5">
+            <th scope="col" className="w-10 px-3 py-2">
               <input
                 type="checkbox"
                 aria-label="Selecionar todas as empresas da página"
@@ -76,19 +76,19 @@ export function CompanyTable(props: CompanyTableProps): React.JSX.Element {
               />
             </th>
             <SortHeader column={COLUMNS.name} {...props} />
-            <th scope="col" className="px-3 py-2.5 font-medium">
+            <th scope="col" className="px-3 py-2 font-medium">
               Lead atual
             </th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">
+            <th scope="col" className="hidden px-3 py-2 font-medium sm:table-cell">
               Contato
             </th>
             <SortHeader column={COLUMNS.city} {...props} />
-            <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">
+            <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">
               Origem
             </th>
             <SortHeader column={COLUMNS.activity} {...props} />
             <SortHeader column={COLUMNS.created} {...props} />
-            <th scope="col" className="w-10 px-3 py-2.5">
+            <th scope="col" className="w-10 px-3 py-2">
               <span className="sr-only">Abrir</span>
             </th>
           </tr>
@@ -126,7 +126,7 @@ function SortHeader({
     <th
       scope="col"
       aria-sort={!active ? 'none' : direction === 'asc' ? 'ascending' : 'descending'}
-      className={`px-3 py-2.5 font-medium ${column.className ?? ''}`}
+      className={`px-3 py-2 font-medium ${column.className ?? ''}`}
     >
       <button
         type="button"
@@ -184,7 +184,7 @@ function Row({
       className={`cursor-pointer ${previewed ? 'bg-brand-50/60' : checked ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
       onClick={onPreview}
     >
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <input
           type="checkbox"
           aria-label={`Selecionar ${item.name}`}
@@ -195,7 +195,7 @@ function Row({
           onChange={onToggle}
         />
       </td>
-      <td className="max-w-[18rem] px-3 py-2.5">
+      <td className="max-w-[18rem] px-3 py-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <button
             type="button"
@@ -220,10 +220,12 @@ function Row({
           )}
         </div>
         <p className="truncate text-xs text-slate-500">
-          {[item.segment ?? 'Sem segmento', `${item.city}/${item.state}`].join(' · ')}
+          {item.segment ?? 'Sem segmento'}
+          {/* A cidade tem coluna própria a partir do tablet; antes disso, vem aqui. */}
+          <span className="md:hidden">{` · ${item.city}/${item.state}`}</span>
         </p>
       </td>
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         {lead === undefined ? (
           <span className="text-slate-400">Sem lead</span>
         ) : (
@@ -236,24 +238,24 @@ function Row({
           </div>
         )}
       </td>
-      <td className="hidden px-3 py-2.5 sm:table-cell">
+      <td className="hidden px-3 py-2 sm:table-cell">
         <ContactIcons item={item} />
       </td>
-      <td className="hidden px-3 py-2.5 whitespace-nowrap text-slate-700 md:table-cell">{`${item.city}/${item.state}`}</td>
-      <td className="hidden px-3 py-2.5 whitespace-nowrap text-slate-600 lg:table-cell">
+      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-700 md:table-cell">{`${item.city}/${item.state}`}</td>
+      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-600 lg:table-cell">
         {item.origin === undefined ? '—' : SOURCE_TYPE_LABEL[item.origin]}
       </td>
-      <td className="hidden px-3 py-2.5 whitespace-nowrap text-slate-600 lg:table-cell">
+      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-600 lg:table-cell">
         {item.lastActivityAt === undefined ? (
           <span className="text-slate-400">Nenhuma</span>
         ) : (
           formatDateTime(item.lastActivityAt)
         )}
       </td>
-      <td className="hidden px-3 py-2.5 whitespace-nowrap text-slate-600 xl:table-cell">
+      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-600 xl:table-cell">
         {formatDateTime(item.createdAt)}
       </td>
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <Link
           to={`/companies/${item.companyId}`}
           aria-label={`Abrir ${item.name}`}

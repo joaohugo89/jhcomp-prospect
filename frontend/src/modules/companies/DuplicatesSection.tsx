@@ -43,7 +43,7 @@ export function DuplicatesSection({
   }
 
   return (
-    <section aria-labelledby="duplicatas" className={`${card} p-5`}>
+    <section aria-labelledby="duplicatas" className={`${card} p-4`}>
       <h2 id="duplicatas" className="text-sm font-semibold text-slate-900">
         Possíveis duplicatas
       </h2>

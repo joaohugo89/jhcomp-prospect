@@ -38,7 +38,7 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
       </Link>
       <header className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight break-all text-slate-900">{batch.fileName}</h1>
+          <h1 className="text-xl font-bold tracking-tight break-all text-slate-900">{batch.fileName}</h1>
           <ImportStatusBadge batch={batch} />
         </div>
         <p className="text-sm text-slate-500">

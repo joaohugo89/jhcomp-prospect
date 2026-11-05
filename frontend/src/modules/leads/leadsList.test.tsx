@@ -400,7 +400,7 @@ describe('Responsavel pelo lead', () => {
     const calls = detailRoutes(() => json({ ...lead, assignedUserId: 'u-2' }));
     render(<LeadDetailPage id={LEAD_ID} />);
 
-    const select = await screen.findByLabelText('Responsável pelo lead');
+    const select = await screen.findByLabelText('Responsável');
     await waitFor(() => {
       expect(within(select).getByRole('option', { name: 'Operadora Ficticia' })).toBeInTheDocument();
     });
@@ -419,7 +419,7 @@ describe('Responsavel pelo lead', () => {
     detailRoutes(() => json({ type: 'RESOURCE_NOT_FOUND', status: 404 }, 404));
     render(<LeadDetailPage id={LEAD_ID} />);
 
-    const select = await screen.findByLabelText('Responsável pelo lead');
+    const select = await screen.findByLabelText('Responsável');
     await waitFor(() => {
       expect(within(select).getByRole('option', { name: 'Operadora Ficticia' })).toBeInTheDocument();
     });

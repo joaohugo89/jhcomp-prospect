@@ -90,7 +90,7 @@ export function OpenLeadSection({ companyId }: { readonly companyId: string }): 
   }
 
   return (
-    <section aria-labelledby="oportunidade" className={`${card} p-5`}>
+    <section aria-labelledby="oportunidade" className={`${card} p-4`}>
       <h2 id="oportunidade" className="text-sm font-semibold text-slate-900">
         Oportunidade
       </h2>

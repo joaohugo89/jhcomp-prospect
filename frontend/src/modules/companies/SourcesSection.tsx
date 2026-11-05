@@ -14,7 +14,7 @@ export function SourcesSection({ companyId }: { readonly companyId: string }): R
   const [state, reload] = useLoad(`${companyId}:${page}`, (signal) => listCompanySources(companyId, page, signal));
 
   return (
-    <section aria-labelledby="origem" className={`${card} p-5`}>
+    <section aria-labelledby="origem" className={`${card} p-4`}>
       <h2 id="origem" className="text-sm font-semibold text-slate-900">
         Origem dos dados
       </h2>

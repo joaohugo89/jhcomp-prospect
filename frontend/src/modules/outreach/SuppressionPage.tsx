@@ -71,8 +71,8 @@ export function SuppressionPage({ session }: { readonly session: Session }): Rea
         title="Não contato"
         description="Pedidos de quem não quer mais ser abordado. O bloqueio vale para todas as empresas com o mesmo contato e não é removido por importação."
       />
-      <div className={`grid gap-6 ${admin ? 'lg:grid-cols-[minmax(0,1fr)_24rem]' : 'lg:grid-cols-2'}`}>
-        <div className="min-w-0 space-y-6">
+      <div className={`grid gap-4 ${admin ? 'lg:grid-cols-[minmax(0,1fr)_24rem]' : 'lg:grid-cols-2'}`}>
+        <div className="min-w-0 space-y-4">
           {admin ? (
             <SuppressionList refresh={refresh} />
           ) : (
@@ -85,7 +85,7 @@ export function SuppressionPage({ session }: { readonly session: Session }): Rea
             </>
           )}
         </div>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {admin && <CheckCard />}
           <RegisterForm
             onRegistered={() => {
@@ -160,7 +160,7 @@ function CheckCard(): React.JSX.Element {
   }
 
   return (
-    <section aria-labelledby="conferir-contato" className={`${card} space-y-4 p-5`}>
+    <section aria-labelledby="conferir-contato" className={`${card} space-y-3 p-4`}>
       <div>
         <h2 id="conferir-contato" className="text-sm font-semibold text-slate-900">
           Conferir um contato
@@ -289,7 +289,7 @@ function RegisterForm({ onRegistered }: { readonly onRegistered: () => void }): 
   }
 
   return (
-    <section aria-labelledby="registrar-bloqueio" className={`${card} p-5`}>
+    <section aria-labelledby="registrar-bloqueio" className={`${card} p-4`}>
       <h2 id="registrar-bloqueio" className="text-sm font-semibold text-slate-900">
         Registrar pedido de não contato
       </h2>
@@ -470,16 +470,16 @@ function Table({ entries }: { readonly entries: readonly SuppressionEntry[] }): 
         <caption className="sr-only">Pedidos de não contato</caption>
         <thead className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
           <tr>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               Contato
             </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               Canal
             </th>
-            <th scope="col" className="hidden px-4 py-2.5 font-medium md:table-cell">
+            <th scope="col" className="hidden px-4 py-2 font-medium md:table-cell">
               Motivo
             </th>
-            <th scope="col" className="hidden px-4 py-2.5 font-medium sm:table-cell">
+            <th scope="col" className="hidden px-4 py-2 font-medium sm:table-cell">
               Pedido em
             </th>
           </tr>
@@ -487,7 +487,7 @@ function Table({ entries }: { readonly entries: readonly SuppressionEntry[] }): 
         <tbody className="divide-y divide-slate-100">
           {entries.map((entry) => (
             <tr key={entry.id}>
-              <td className="px-4 py-3">
+              <td className="px-4 py-2">
                 <p className="flex items-center gap-2 font-mono text-[13px] break-all text-slate-900">
                   <span aria-hidden="true" className="shrink-0 text-slate-400">
                     {TYPE_ICON[entry.identifierType]}
@@ -496,7 +496,7 @@ function Table({ entries }: { readonly entries: readonly SuppressionEntry[] }): 
                 </p>
                 <p className="pl-6 text-xs text-slate-500">{IDENTIFIER_TYPE_LABEL[entry.identifierType]}</p>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-2">
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ${
                     entry.channel === undefined
@@ -507,10 +507,10 @@ function Table({ entries }: { readonly entries: readonly SuppressionEntry[] }): 
                   {entry.channel === undefined ? 'Todos' : OUTREACH_CHANNEL_LABEL[entry.channel]}
                 </span>
               </td>
-              <td className="hidden max-w-[22rem] px-4 py-3 text-slate-600 md:table-cell">
+              <td className="hidden max-w-[22rem] px-4 py-2 text-slate-600 md:table-cell">
                 <span className="line-clamp-2">{entry.reason}</span>
               </td>
-              <td className="hidden px-4 py-3 whitespace-nowrap text-slate-600 sm:table-cell">
+              <td className="hidden px-4 py-2 whitespace-nowrap text-slate-600 sm:table-cell">
                 {formatDateTime(entry.requestedAt)}
               </td>
             </tr>

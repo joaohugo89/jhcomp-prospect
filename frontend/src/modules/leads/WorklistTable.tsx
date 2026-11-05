@@ -73,7 +73,7 @@ export function WorklistTable(props: WorklistTableProps): React.JSX.Element {
         <caption className="sr-only">Leads</caption>
         <thead className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
           <tr>
-            <th scope="col" className="w-10 px-3 py-2.5">
+            <th scope="col" className="w-10 px-3 py-2">
               <input
                 type="checkbox"
                 aria-label="Selecionar todos os leads da página"
@@ -84,17 +84,17 @@ export function WorklistTable(props: WorklistTableProps): React.JSX.Element {
               />
             </th>
             <SortHeader column={COLUMNS.company} {...props} />
-            <th scope="col" className="px-3 py-2.5 font-medium">
+            <th scope="col" className="px-3 py-2 font-medium">
               Status
             </th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">
+            <th scope="col" className="hidden px-3 py-2 font-medium lg:table-cell">
               Responsável
             </th>
             <SortHeader column={COLUMNS.nextTask} {...props} />
             <SortHeader column={COLUMNS.stage} {...props} />
             <SortHeader column={COLUMNS.value} {...props} />
             <SortHeader column={COLUMNS.score} {...props} />
-            <th scope="col" className="w-10 px-3 py-2.5">
+            <th scope="col" className="w-10 px-3 py-2">
               <span className="sr-only">Abrir</span>
             </th>
           </tr>
@@ -137,7 +137,7 @@ function SortHeader({
     <th
       scope="col"
       aria-sort={shown === null ? 'none' : shown === 'asc' ? 'ascending' : 'descending'}
-      className={`px-3 py-2.5 font-medium ${column.className ?? ''}`}
+      className={`px-3 py-2 font-medium ${column.className ?? ''}`}
     >
       <button
         type="button"
@@ -184,7 +184,7 @@ function Row({
       className={`cursor-pointer ${previewed ? 'bg-brand-50/60' : checked ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
       onClick={onPreview}
     >
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <input
           type="checkbox"
           aria-label={`Selecionar ${item.companyName}`}
@@ -195,7 +195,7 @@ function Row({
           onChange={onToggle}
         />
       </td>
-      <td className="max-w-[18rem] px-3 py-2.5">
+      <td className="max-w-[18rem] px-3 py-2">
         <button
           type="button"
           aria-expanded={previewed}
@@ -210,7 +210,7 @@ function Row({
         </button>
         <p className="truncate text-xs text-slate-500">{place}</p>
       </td>
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusBadge status={item.status} />
           {item.priority === 'HIGH' || item.priority === 'VERY_HIGH' ? (
@@ -218,10 +218,10 @@ function Row({
           ) : null}
         </div>
       </td>
-      <td className="hidden px-3 py-2.5 text-slate-700 lg:table-cell">
+      <td className="hidden px-3 py-2 text-slate-700 lg:table-cell">
         {item.assigneeName ?? <span className="text-slate-400">Sem responsável</span>}
       </td>
-      <td className="hidden max-w-[14rem] px-3 py-2.5 lg:table-cell">
+      <td className="hidden max-w-[14rem] px-3 py-2 lg:table-cell">
         {item.nextTaskTitle === undefined ? (
           <span className="text-slate-400">Nenhuma</span>
         ) : (
@@ -238,7 +238,7 @@ function Row({
           </>
         )}
       </td>
-      <td className="hidden px-3 py-2.5 whitespace-nowrap md:table-cell">
+      <td className="hidden px-3 py-2 whitespace-nowrap md:table-cell">
         {days === undefined ? (
           '—'
         ) : (
@@ -250,17 +250,17 @@ function Row({
           </span>
         )}
       </td>
-      <td className="hidden px-3 py-2.5 text-right whitespace-nowrap text-slate-900 tabular-nums md:table-cell">
+      <td className="hidden px-3 py-2 text-right whitespace-nowrap text-slate-900 tabular-nums md:table-cell">
         {item.estimatedValue === undefined ? (
           <span className="text-slate-400">—</span>
         ) : (
           formatCurrency(item.estimatedValue)
         )}
       </td>
-      <td className="hidden px-3 py-2.5 text-right xl:table-cell">
+      <td className="hidden px-3 py-2 text-right xl:table-cell">
         {item.score === undefined ? <span className="text-slate-400">—</span> : <ScoreIndicator score={item.score} />}
       </td>
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-2">
         <Link
           to={`/leads/${item.leadId}`}
           aria-label={`Abrir ${item.companyName}`}

@@ -31,7 +31,7 @@ export function TemporaryPasswordNotice({
     <section
       role="status"
       aria-labelledby="senha-temporaria"
-      className="rounded-lg border border-amber-300 bg-amber-50 p-6 text-sm text-amber-950"
+      className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
     >
       <h2 id="senha-temporaria" className="text-base font-semibold">
         {`Senha temporária de ${member.displayName}`}

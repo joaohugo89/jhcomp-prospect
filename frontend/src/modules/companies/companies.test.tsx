@@ -256,7 +256,7 @@ describe('Empresas', () => {
       expect(await screen.findByText('Mesmo domínio')).toBeInTheDocument();
       expect(await screen.findByText('Cadastro manual')).toBeInTheDocument();
       // Ausente é "não informado", não "não existe" (doc 06 §5).
-      expect(screen.getAllByText('Não informado').length).toBeGreaterThan(0);
+      expect(screen.getByText(/^Não informado: /)).toBeInTheDocument();
       const summary = await screen.findByLabelText('Resumo da empresa');
       expect(await within(summary).findByText('Sem lead')).toBeInTheDocument();
       expect(within(summary).getByText('Contato: telefone, site')).toBeInTheDocument();

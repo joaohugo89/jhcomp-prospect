@@ -67,7 +67,7 @@ export function UploadForm(): React.JSX.Element {
   return (
     <form
       noValidate
-      className="space-y-5 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm sm:p-6"
+      className="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
       onSubmit={(event) => {
         void submit(event);
       }}

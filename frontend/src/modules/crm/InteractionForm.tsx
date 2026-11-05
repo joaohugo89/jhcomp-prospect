@@ -98,13 +98,13 @@ export function InteractionForm({
   const dateError = fieldErrors.get('occurredAt');
 
   return (
-    <section aria-labelledby="interacao" className="rounded-lg border border-slate-200 bg-white p-6">
-      <h2 id="interacao" className="text-base font-semibold">
+    <section aria-labelledby="interacao" className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+      <h2 id="interacao" className="text-sm font-semibold text-slate-900">
         Registrar interação
       </h2>
       <p className="mt-1 text-xs text-slate-500">Registrar contato não muda o status do lead.</p>
       <form
-        className="mt-3 grid gap-3 sm:grid-cols-2"
+        className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
         onSubmit={(event) => {
           event.preventDefault();
           if (type === 'DO_NOT_CONTACT_REQUEST') {
@@ -199,18 +199,18 @@ export function InteractionForm({
         </div>
 
         {blocked && (
-          <p role="note" className="rounded-md bg-red-50 p-3 text-sm text-red-900 sm:col-span-2">
+          <p role="note" className="rounded-md bg-red-50 p-3 text-sm text-red-900 sm:col-span-2 xl:col-span-4">
             Esta empresa está marcada como “Não contatar”. Só é possível registrar o que partiu dela ou uma anotação
             interna.
           </p>
         )}
         {type === 'DO_NOT_CONTACT_REQUEST' && lead.status !== 'DO_NOT_CONTACT' && (
-          <p role="note" className="rounded-md bg-amber-50 p-3 text-sm text-amber-950 sm:col-span-2">
+          <p role="note" className="rounded-md bg-amber-50 p-3 text-sm text-amber-950 sm:col-span-2 xl:col-span-4">
             Ao registrar, o lead passa para “Não contatar”.
           </p>
         )}
 
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 xl:col-span-4">
           <button type="submit" className={buttonPrimary} disabled={busy || blocked}>
             {busy ? 'Registrando…' : 'Registrar interação'}
           </button>

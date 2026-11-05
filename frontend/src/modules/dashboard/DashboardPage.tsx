@@ -137,7 +137,7 @@ export function DashboardPage({ session }: { readonly session: Session }): React
 
   if (summary.kind !== 'ready') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <DashboardHeader filters={filtersControl} />
         <LoadStateView state={summary} onRetry={reloadSummary} />
       </div>

@@ -122,22 +122,27 @@ export function StatusChangeForm({ lead, onChanged, initialTarget }: StatusChang
         </label>
       )}
 
-      <label className="block text-sm font-medium text-slate-700">
-        {target === 'LOST' ? 'Motivo da perda (opcional)' : 'Motivo (opcional)'}
-        <textarea
-          className={input}
-          rows={2}
-          maxLength={500}
-          value={reason}
-          onChange={(event) => {
-            setReason(event.target.value);
-          }}
-        />
-      </label>
+      {/* Motivo e botão só depois de escolher: sem escolha, não há o que confirmar. */}
+      {target !== '' && (
+        <>
+          <label className="block text-sm font-medium text-slate-700">
+            {target === 'LOST' ? 'Motivo da perda (opcional)' : 'Motivo (opcional)'}
+            <textarea
+              className={input}
+              rows={2}
+              maxLength={500}
+              value={reason}
+              onChange={(event) => {
+                setReason(event.target.value);
+              }}
+            />
+          </label>
 
-      <button type="submit" className={buttonPrimary} disabled={!canSubmit}>
-        {busy ? 'Salvando…' : 'Alterar status'}
-      </button>
+          <button type="submit" className={buttonPrimary} disabled={!canSubmit}>
+            {busy ? 'Salvando…' : 'Alterar status'}
+          </button>
+        </>
+      )}
 
       <div aria-live="polite">
         {error !== null && (

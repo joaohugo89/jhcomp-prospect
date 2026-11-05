@@ -44,7 +44,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
     <section
       aria-labelledby={headingId}
       className={`flex shrink-0 flex-col rounded-xl border transition-opacity ${tone} ${
-        collapsed ? 'w-12 items-center px-1 py-2' : 'w-72 p-3 md:max-h-full md:w-auto md:min-w-48 md:flex-1 md:basis-0'
+        collapsed ? 'w-12 items-center px-1 py-2' : 'w-72 p-2 md:max-h-full md:w-auto md:min-w-48 md:flex-1 md:basis-0'
       }`}
       onDragOver={(event) => {
         if (accepts) {

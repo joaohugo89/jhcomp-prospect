@@ -90,7 +90,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
     <>
       <PageHeader title="Leads" description="Fila de trabalho: o que fazer com cada oportunidade." />
 
-      <div className="mb-4 space-y-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <QuickFilters filters={applied} currentUserId={session.userId} onApply={apply} />
         <SavedViews
           views={views.kind === 'ready' ? views.data : []}
@@ -105,15 +105,15 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
       <form
         role="search"
         aria-label="Filtrar leads"
-        className="mb-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
+        className="mb-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           apply(draft);
         }}
       >
         {/* Os quatro filtros mais usados à vista; o resto em "Mais filtros", aberto quando algum está ativo. */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
-          <label className="text-sm font-medium text-slate-700">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
+          <label className="col-span-2 text-xs font-medium text-slate-500 lg:col-span-1">
             Buscar empresa
             <input
               type="search"
@@ -124,7 +124,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
               }}
             />
           </label>
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-xs font-medium text-slate-500">
             Status
             <select
               className={input}
@@ -149,7 +149,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
             segments={segments.kind === 'ready' ? segments.data : null}
             allowNone
           />
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-xs font-medium text-slate-500">
             Responsável
             <select
               className={input}
@@ -172,7 +172,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
               ))}
             </select>
           </label>
-          <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
+          <div className="col-span-2 flex items-end gap-2 lg:col-span-1">
             <button
               type="button"
               aria-expanded={showMore}
@@ -201,7 +201,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
             id="mais-filtros"
             className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 lg:grid-cols-4"
           >
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-xs font-medium text-slate-500">
               Prioridade
               <select
                 className={input}
@@ -218,7 +218,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
                 ))}
               </select>
             </label>
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-xs font-medium text-slate-500">
               Cidade
               <input
                 className={input}
@@ -228,7 +228,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
                 }}
               />
             </label>
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-xs font-medium text-slate-500">
               Origem
               <select
                 className={input}
@@ -245,7 +245,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
                 ))}
               </select>
             </label>
-            <fieldset className="text-sm font-medium text-slate-700">
+            <fieldset className="text-xs font-medium text-slate-500">
               <legend>Score</legend>
               <div className="mt-1 flex items-center gap-1.5">
                 <label className="flex-1">

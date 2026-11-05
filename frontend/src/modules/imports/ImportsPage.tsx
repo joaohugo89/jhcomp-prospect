@@ -54,9 +54,9 @@ export function ImportsPage(): React.JSX.Element {
         description="Envie um CSV para revisar antes de gravar. Nenhuma empresa é criada até você confirmar."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <UploadForm />
-        <aside aria-labelledby="como-importar" className={`${card} space-y-4 p-5 text-sm`}>
+        <aside aria-labelledby="como-importar" className={`${card} space-y-3 p-4 text-sm`}>
           <h2 id="como-importar" className="flex items-center gap-2 font-semibold text-slate-900">
             <ShieldCheck aria-hidden="true" className="size-4 text-emerald-600" />
             Como a importação protege a base
@@ -173,19 +173,19 @@ function History({ items }: { readonly items: readonly ImportBatch[] }): React.J
         <caption className="sr-only">Importações</caption>
         <thead className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
           <tr>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               Arquivo
             </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="px-4 py-2 font-medium">
               Situação
             </th>
-            <th scope="col" className="hidden px-4 py-2.5 font-medium md:table-cell">
+            <th scope="col" className="hidden px-4 py-2 font-medium md:table-cell">
               Resultado
             </th>
-            <th scope="col" className="hidden px-4 py-2.5 font-medium lg:table-cell">
+            <th scope="col" className="hidden px-4 py-2 font-medium lg:table-cell">
               Enviada em
             </th>
-            <th scope="col" className="w-10 px-4 py-2.5">
+            <th scope="col" className="w-10 px-4 py-2">
               <span className="sr-only">Abrir</span>
             </th>
           </tr>
@@ -193,7 +193,7 @@ function History({ items }: { readonly items: readonly ImportBatch[] }): React.J
         <tbody className="divide-y divide-slate-100">
           {items.map((batch) => (
             <tr key={batch.id} className={batch.status === 'ANALYZED' ? 'bg-amber-50/40' : ''}>
-              <td className="max-w-[20rem] px-4 py-3">
+              <td className="max-w-[20rem] px-4 py-2">
                 <Link
                   to={`/imports/${batch.id}`}
                   className="block truncate font-semibold text-slate-900 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-500"
@@ -202,16 +202,16 @@ function History({ items }: { readonly items: readonly ImportBatch[] }): React.J
                 </Link>
                 <p className="truncate text-xs text-slate-500">{batch.sourceName}</p>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-2">
                 <ImportStatusBadge batch={batch} />
               </td>
-              <td className="hidden px-4 py-3 md:table-cell">
+              <td className="hidden px-4 py-2 md:table-cell">
                 <ImportResultBar batch={batch} />
               </td>
-              <td className="hidden px-4 py-3 whitespace-nowrap text-slate-600 lg:table-cell">
+              <td className="hidden px-4 py-2 whitespace-nowrap text-slate-600 lg:table-cell">
                 {formatDateTime(batch.createdAt)}
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-2 text-right">
                 {batch.status === 'ANALYZED' ? (
                   <Link to={`/imports/${batch.id}`} className={`${buttonPrimary} h-8 px-3 py-0 text-xs`}>
                     Revisar

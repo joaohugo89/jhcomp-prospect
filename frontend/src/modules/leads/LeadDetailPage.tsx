@@ -168,7 +168,7 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
       <header className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight break-words text-slate-900">{lead.company.name}</h1>
+            <h1 className="text-xl font-bold tracking-tight break-words text-slate-900">{lead.company.name}</h1>
             <p className="mt-1 text-sm text-slate-500">
               {[lead.company.segment ?? 'Sem segmento', `${lead.company.city}/${lead.company.state}`].join(' · ')}
               {' · '}
@@ -182,15 +182,23 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
         <SummaryStrip lead={lead} summary={summary.kind === 'ready' ? summary.data : null} />
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside aria-label="Estado do lead" className="space-y-6 lg:sticky lg:top-4 lg:self-start">
-          <section id="mover-etapa" aria-labelledby="propriedades" className={`${card} space-y-4 p-5`}>
+      <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <aside aria-label="Estado do lead" className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <section id="mover-etapa" aria-labelledby="propriedades" className={`${card} space-y-3 p-4`}>
             <h2 id="propriedades" className="text-sm font-semibold text-slate-900">
               Propriedades
             </h2>
             <StatusChangeForm lead={lead} onChanged={changed} />
-            <PriorityField lead={lead} onChanged={changed} />
-            <AssigneeField lead={lead} onChanged={changed} />
+            {/* Prioridade e responsável lado a lado: cabem na lateral e economizam uma linha cada. */}
+            <div className="grid grid-cols-2 gap-3">
+              <PriorityField lead={lead} onChanged={changed} />
+              <AssigneeField lead={lead} onChanged={changed} />
+            </div>
+            <p className="border-t border-slate-100 pt-2 text-xs text-slate-500">
+              {`Aberto em ${formatDateTime(lead.createdAt)} · atualizado em ${formatDateTime(lead.updatedAt)}${
+                lead.closedAt === undefined ? '' : ` · encerrado em ${formatDateTime(lead.closedAt)}`
+              }`}
+            </p>
           </section>
 
           <DealSection lead={lead} onChanged={refreshSummary} />
@@ -198,24 +206,6 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
           <div id="tarefas-lead">
             <TasksSection leadId={lead.id} onChanged={refreshSummary} />
           </div>
-
-          <section aria-labelledby="datas" className={`${card} p-5 text-sm`}>
-            <h2 id="datas" className="mb-2 text-sm font-semibold text-slate-900">
-              Datas
-            </h2>
-            <dl className="grid grid-cols-[7rem_1fr] gap-y-1">
-              <dt className="text-slate-500">Aberto em</dt>
-              <dd>{formatDateTime(lead.createdAt)}</dd>
-              <dt className="text-slate-500">Atualizado em</dt>
-              <dd>{formatDateTime(lead.updatedAt)}</dd>
-              {lead.closedAt !== undefined && (
-                <>
-                  <dt className="text-slate-500">Encerrado em</dt>
-                  <dd>{formatDateTime(lead.closedAt)}</dd>
-                </>
-              )}
-            </dl>
-          </section>
         </aside>
 
         <div className="min-w-0">
@@ -259,7 +249,7 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
             role="tabpanel"
             aria-labelledby="tab-history"
             hidden={tab !== 'history'}
-            className="space-y-6"
+            className="space-y-4"
           >
             <div id="registrar-interacao">
               <InteractionForm
@@ -488,7 +478,7 @@ function PriorityField({
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700">
-        Prioridade do lead
+        Prioridade
         <select
           className={input}
           value={lead.priority}
