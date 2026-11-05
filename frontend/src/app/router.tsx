@@ -95,6 +95,8 @@ interface LinkProps {
   readonly 'aria-current'?: 'page';
   /** Nome acessível quando o texto visível não basta (ícone, ou contexto extra). */
   readonly 'aria-label'?: string;
+  /** Dica ao passar o mouse, para link só com ícone. */
+  readonly title?: string;
 }
 
 /**

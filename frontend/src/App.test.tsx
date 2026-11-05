@@ -86,13 +86,13 @@ describe('App', () => {
 
     render(<App />);
     await screen.findByRole('heading', { level: 1, name: 'Leads' });
-    expect(document.getElementById('conteudo')).toHaveClass('max-w-6xl');
+    expect(document.getElementById('conteudo')).toHaveClass('max-w-[100rem]');
 
     await userEvent.click(screen.getByRole('link', { name: 'Pipeline' }));
     await screen.findByRole('heading', { level: 1, name: 'Pipeline' });
     const main = document.getElementById('conteudo');
-    expect(main).not.toHaveClass('max-w-6xl');
-    expect(main).toHaveClass('md:flex-1');
+    expect(main).not.toHaveClass('max-w-[100rem]');
+    expect(main).toHaveClass('md:flex-col');
   });
 
   it('operador nao ve o item de membros', async () => {

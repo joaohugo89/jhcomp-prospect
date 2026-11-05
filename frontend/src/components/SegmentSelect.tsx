@@ -36,7 +36,7 @@ export function SegmentSelect({
     !known.some((item) => item.name.toLowerCase() === value.segment.toLowerCase());
 
   return (
-    <label className="text-sm font-medium text-slate-700">
+    <label className="text-xs font-medium text-slate-500">
       Segmento
       <select
         className={input}
