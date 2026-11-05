@@ -100,7 +100,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
       <form
         role="search"
         aria-label="Filtrar leads"
-        className="mb-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm"
+        className="mb-3 rounded-2xl border border-stone-200/70 bg-white p-3 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           apply(draft);
@@ -108,7 +108,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
       >
         {/* Os quatro filtros mais usados à vista; o resto em "Mais filtros", aberto quando algum está ativo. */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
-          <label className="col-span-2 text-xs font-medium text-slate-500 lg:col-span-1">
+          <label className="col-span-2 text-xs font-medium text-stone-500 lg:col-span-1">
             Buscar empresa
             <input
               type="search"
@@ -119,7 +119,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
               }}
             />
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-stone-500">
             Status
             <select
               className={input}
@@ -144,7 +144,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
             segments={segments.kind === 'ready' ? segments.data : null}
             allowNone
           />
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-stone-500">
             Responsável
             <select
               className={input}
@@ -194,9 +194,9 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
         {showMore && (
           <div
             id="mais-filtros"
-            className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 lg:grid-cols-4"
+            className="mt-3 grid gap-3 border-t border-stone-100 pt-3 sm:grid-cols-2 lg:grid-cols-4"
           >
-            <label className="text-xs font-medium text-slate-500">
+            <label className="text-xs font-medium text-stone-500">
               Prioridade
               <select
                 className={input}
@@ -213,7 +213,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
                 ))}
               </select>
             </label>
-            <label className="text-xs font-medium text-slate-500">
+            <label className="text-xs font-medium text-stone-500">
               Cidade
               <input
                 className={input}
@@ -223,7 +223,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
                 }}
               />
             </label>
-            <label className="text-xs font-medium text-slate-500">
+            <label className="text-xs font-medium text-stone-500">
               Origem
               <select
                 className={input}
@@ -240,7 +240,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
                 ))}
               </select>
             </label>
-            <fieldset className="text-xs font-medium text-slate-500">
+            <fieldset className="text-xs font-medium text-stone-500">
               <legend>Score</legend>
               <div className="mt-1 flex items-center gap-1.5">
                 <label className="flex-1">
@@ -255,7 +255,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
                     }}
                   />
                 </label>
-                <span aria-hidden="true" className="text-slate-400">
+                <span aria-hidden="true" className="text-stone-400">
                   –
                 </span>
                 <label className="flex-1">
@@ -277,7 +277,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
         {filtered && (
           <button
             type="button"
-            className="mt-3 text-sm font-medium text-slate-500 hover:text-slate-800"
+            className="mt-3 text-sm font-medium text-stone-500 hover:text-stone-800"
             onClick={() => {
               apply({ ...EMPTY_FILTERS, sort: applied.sort, direction: applied.direction });
             }}

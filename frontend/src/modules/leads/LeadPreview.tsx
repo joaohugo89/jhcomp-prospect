@@ -89,10 +89,10 @@ function PreviewBody({
 
   return (
     <>
-      <h2 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-slate-900 focus:outline-none">
+      <h2 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-stone-900 focus:outline-none">
         {item.companyName}
       </h2>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-stone-500">
         {[item.segment ?? 'Sem segmento', `${item.city}/${item.state}`].join(' · ')}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -113,17 +113,17 @@ function PreviewBody({
         <PanelFact label="Score" muted={item.score === undefined}>
           {item.score === undefined ? 'Sem análise' : <ScoreIndicator score={item.score} />}
         </PanelFact>
-        <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/70">
-          <dt className="text-[11px] text-slate-500">Próxima tarefa</dt>
-          <dd className="mt-0.5 text-sm text-slate-900">
+        <div className="col-span-2 rounded-xl bg-stone-50 px-3 py-2.5 ring-1 ring-stone-200/70">
+          <dt className="text-[11px] text-stone-500">Próxima tarefa</dt>
+          <dd className="mt-0.5 text-sm text-stone-900">
             {item.nextTaskTitle === undefined ? (
-              <span className="text-slate-500">Nenhuma tarefa aberta</span>
+              <span className="text-stone-500">Nenhuma tarefa aberta</span>
             ) : (
               <>
                 <span className="font-medium">{item.nextTaskTitle}</span>
                 {item.nextTaskDueAt !== undefined && (
                   <span
-                    className={`mt-0.5 flex items-center gap-1 text-xs ${overdue ? 'font-semibold text-red-700' : 'text-slate-500'}`}
+                    className={`mt-0.5 flex items-center gap-1 text-xs ${overdue ? 'font-semibold text-red-700' : 'text-stone-500'}`}
                   >
                     {overdue && <AlarmClock aria-hidden="true" className="size-3" />}
                     {`${overdue ? 'Atrasada · ' : 'Até '}${formatDateTime(item.nextTaskDueAt)}`}
@@ -149,17 +149,17 @@ function RecentActivity({ leadId }: { readonly leadId: string }): React.JSX.Elem
   const entries = timeline.data.content.slice(0, RECENT);
   return (
     <section aria-labelledby="previa-historico" className="mt-5">
-      <h3 id="previa-historico" className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+      <h3 id="previa-historico" className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">
         Últimas atividades
       </h3>
       {entries.length === 0 ? (
-        <p className="mt-2 text-xs text-slate-500">Sem atividade registrada.</p>
+        <p className="mt-2 text-xs text-stone-500">Sem atividade registrada.</p>
       ) : (
         <ol className="mt-2 space-y-2">
           {entries.map((entry) => (
             <li key={entry.id} className="text-sm">
-              <p className="text-slate-800">{describe(entry)}</p>
-              <p className="text-xs text-slate-400">
+              <p className="text-stone-800">{describe(entry)}</p>
+              <p className="text-xs text-stone-400">
                 {`${formatDateTime(entry.occurredAt)}${entry.actorName === undefined ? '' : ` · ${entry.actorName}`}`}
               </p>
             </li>

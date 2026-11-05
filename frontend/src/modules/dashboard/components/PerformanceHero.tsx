@@ -76,7 +76,7 @@ export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element 
       }
     >
       <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <p className="text-3xl font-bold tracking-tight text-slate-900">{format(atual[metric.key])}</p>
+        <p className="font-display text-3xl font-semibold tracking-tight text-stone-900">{format(atual[metric.key])}</p>
         <VariationBadge variacao={variacao(atual[metric.key], anterior?.[metric.key])} />
       </div>
 
@@ -89,8 +89,8 @@ export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element 
               aria-pressed={option.key === metricKey}
               className={`h-8 rounded-full px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
                 option.key === metricKey
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                  ? 'bg-stone-900 text-white'
+                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
               }`}
               onClick={() => {
                 setMetricKey(option.key);
@@ -100,7 +100,7 @@ export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element 
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs font-medium whitespace-nowrap text-slate-500">
+        <label className="flex items-center gap-2 text-xs font-medium whitespace-nowrap text-stone-500">
           Agrupar por
           <select
             className={`${input} mt-0 h-8 w-auto py-0 text-xs`}
@@ -162,10 +162,10 @@ function SeriesChart({
         <summary className="w-fit cursor-pointer font-semibold text-brand-700 hover:underline">
           {`Ver dados por ${unit} em tabela`}
         </summary>
-        <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-slate-200/70">
+        <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-stone-200/70">
           <table className="min-w-full text-sm">
             <caption className="sr-only">{`${metric.label} por ${unit}`}</caption>
-            <thead className="sticky top-0 bg-slate-50 text-left text-xs text-slate-500">
+            <thead className="sticky top-0 bg-stone-50 text-left text-xs text-stone-500">
               <tr>
                 <th scope="col" className="px-3 py-2 font-medium capitalize">
                   {unit}
@@ -175,10 +175,10 @@ function SeriesChart({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-stone-100">
               {points.map((point) => (
                 <tr key={point.key}>
-                  <th scope="row" className="px-3 py-1.5 text-left font-normal text-slate-700">
+                  <th scope="row" className="px-3 py-1.5 text-left font-normal text-stone-700">
                     {point.title}
                   </th>
                   <td className="px-3 py-1.5 text-right tabular-nums">{format(point.value)}</td>
@@ -194,9 +194,9 @@ function SeriesChart({
 
 function QuickStat({ label, value }: { readonly label: string; readonly value: string }): React.JSX.Element {
   return (
-    <div className="rounded-xl bg-slate-50 px-2 py-2.5 text-center ring-1 ring-slate-200/70">
-      <dt className="text-[11px] text-slate-500">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm font-bold text-slate-900">{value}</dd>
+    <div className="rounded-xl bg-stone-50 px-2 py-2.5 text-center ring-1 ring-stone-200/70">
+      <dt className="text-[11px] text-stone-500">{label}</dt>
+      <dd className="mt-0.5 truncate text-sm font-bold text-stone-900">{value}</dd>
     </div>
   );
 }

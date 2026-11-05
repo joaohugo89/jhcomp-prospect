@@ -45,7 +45,7 @@ export function StatusChangeForm({ lead, onChanged, initialTarget }: StatusChang
 
   if (lead.allowedTransitions.length === 0) {
     return (
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-stone-600">
         Este lead está em um estado final ({STATUS_LABEL[lead.status]}) e não aceita mudança de status.
       </p>
     );
@@ -89,7 +89,7 @@ export function StatusChangeForm({ lead, onChanged, initialTarget }: StatusChang
         void submit(target);
       }}
     >
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-sm font-medium text-stone-700">
         Novo status
         <select
           className={input}
@@ -125,7 +125,7 @@ export function StatusChangeForm({ lead, onChanged, initialTarget }: StatusChang
       {/* Motivo e botão só depois de escolher: sem escolha, não há o que confirmar. */}
       {target !== '' && (
         <>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-sm font-medium text-stone-700">
             {target === 'LOST' ? 'Motivo da perda (opcional)' : 'Motivo (opcional)'}
             <textarea
               className={input}

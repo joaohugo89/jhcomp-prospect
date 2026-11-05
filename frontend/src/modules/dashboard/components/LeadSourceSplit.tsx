@@ -12,7 +12,7 @@ const SOURCE_COLOR: Readonly<Record<string, string>> = {
   MANUAL: 'bg-emerald-600',
   INTEGRATION: 'bg-violet-500',
 };
-const OTHER_COLOR = 'bg-slate-400';
+const OTHER_COLOR = 'bg-stone-400';
 
 /** Origem dos leads abertos no período: participação de cada uma no total. */
 export function LeadSourceSplit({
@@ -32,14 +32,14 @@ export function LeadSourceSplit({
       description="Leads abertos no período"
       actions={
         conversao === undefined ? undefined : (
-          <span className="text-xs font-semibold text-slate-500 tabular-nums">{`${total} no total`}</span>
+          <span className="text-xs font-semibold text-stone-500 tabular-nums">{`${total} no total`}</span>
         )
       }
     >
       {conversao === undefined ? (
-        <p className="mt-4 text-xs text-slate-500">Carregando…</p>
+        <p className="mt-4 text-xs text-stone-500">Carregando…</p>
       ) : total === 0 ? (
-        <p className="mt-4 text-xs text-slate-500">Nenhum lead aberto no período.</p>
+        <p className="mt-4 text-xs text-stone-500">Nenhum lead aberto no período.</p>
       ) : (
         <ul className="mt-4 space-y-3.5">
           {conversao.porOrigem.map((grupo) => {
@@ -47,7 +47,7 @@ export function LeadSourceSplit({
             return (
               <li key={grupo.chave ?? 'sem-origem'}>
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="flex min-w-0 items-center gap-2 font-medium text-slate-700">
+                  <span className="flex min-w-0 items-center gap-2 font-medium text-stone-700">
                     <span
                       aria-hidden="true"
                       className={`size-2 shrink-0 rounded-full ${SOURCE_COLOR[grupo.chave ?? ''] ?? OTHER_COLOR}`}
@@ -60,12 +60,12 @@ export function LeadSourceSplit({
                       </Link>
                     )}
                   </span>
-                  <span className="shrink-0 font-semibold text-slate-900 tabular-nums">
+                  <span className="shrink-0 font-semibold text-stone-900 tabular-nums">
                     {grupo.leads}
-                    <span className="ml-1 font-normal text-slate-400">{`(${Math.round(share * 100)}%)`}</span>
+                    <span className="ml-1 font-normal text-stone-400">{`(${Math.round(share * 100)}%)`}</span>
                   </span>
                 </div>
-                <div aria-hidden="true" className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div aria-hidden="true" className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
                   <div
                     className={`h-full rounded-full ${SOURCE_COLOR[grupo.chave ?? ''] ?? OTHER_COLOR}`}
                     style={{ width: `${share * 100}%` }}
@@ -77,7 +77,7 @@ export function LeadSourceSplit({
         </ul>
       )}
       {conversao !== undefined && total > 0 && (
-        <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
+        <p className="mt-4 border-t border-stone-100 pt-3 text-xs text-stone-500">
           {`${conversao.total.contatados} ${conversao.total.contatados === 1 ? 'contatado' : 'contatados'} · ${conversao.total.ganhos} ${conversao.total.ganhos === 1 ? 'ganho' : 'ganhos'}`}
         </p>
       )}

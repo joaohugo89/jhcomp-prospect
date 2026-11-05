@@ -32,7 +32,7 @@ const TONE: Readonly<Record<Tom, { readonly icon: string; readonly badge: string
     icon: 'bg-violet-50 text-violet-600 ring-violet-100',
     badge: 'bg-violet-50 text-violet-700 ring-violet-200',
   },
-  slate: { icon: 'bg-slate-100 text-slate-500 ring-slate-200', badge: 'bg-slate-100 text-slate-600 ring-slate-200' },
+  slate: { icon: 'bg-stone-100 text-stone-500 ring-stone-200', badge: 'bg-stone-100 text-stone-600 ring-stone-200' },
   red: { icon: 'bg-red-50 text-red-600 ring-red-100', badge: 'bg-red-50 text-red-700 ring-red-200' },
 };
 
@@ -52,11 +52,11 @@ export function RecentActivityList({
   readonly atividades: readonly AtividadeRecente[];
 }): React.JSX.Element {
   if (atividades.length === 0) {
-    return <p className="text-sm text-slate-600">Nenhuma atividade no período.</p>;
+    return <p className="text-sm text-stone-600">Nenhuma atividade no período.</p>;
   }
   return (
     // Uma lista só, com divisórias: seis atividades cabem onde antes cabiam quatro cartões.
-    <ul className={`${card} divide-y divide-slate-100`}>
+    <ul className={`${card} divide-y divide-stone-100`}>
       {atividades.map((atividade) => (
         <ActivityItem key={atividade.id} atividade={atividade} />
       ))}
@@ -79,18 +79,18 @@ function ActivityItem({ atividade }: { readonly atividade: AtividadeRecente }): 
       <div className="min-w-0 flex-1">
         <Link
           to={`/leads/${atividade.leadId}`}
-          className="block truncate text-sm font-semibold text-slate-900 hover:text-brand-700 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
+          className="block truncate text-sm font-semibold text-stone-900 hover:text-brand-700 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
         >
           {atividade.empresa}
         </Link>
-        <p className="truncate text-xs text-slate-500">{`${detalhe}${quem}`}</p>
+        <p className="truncate text-xs text-stone-500">{`${detalhe}${quem}`}</p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ${TONE[tom].badge}`}>{etiqueta}</span>
         <time
           dateTime={atividade.data}
           title={formatDateTime(atividade.data)}
-          className="text-[11px] text-slate-400 tabular-nums"
+          className="text-[11px] text-stone-400 tabular-nums"
         >
           {horario(atividade.data)}
         </time>

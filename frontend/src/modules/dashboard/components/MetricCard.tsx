@@ -30,7 +30,7 @@ const ICON_TONE: Readonly<Record<Tom | 'amber', string>> = {
   indigo: 'bg-indigo-50 text-indigo-700',
   violet: 'bg-violet-50 text-violet-700',
   emerald: 'bg-emerald-50 text-emerald-700',
-  slate: 'bg-slate-100 text-slate-600',
+  slate: 'bg-stone-100 text-stone-600',
   amber: 'bg-amber-50 text-amber-700',
 };
 
@@ -47,8 +47,8 @@ export function MetricGrid({
   return (
     <section aria-label={titulo} className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">{titulo}</h2>
-        {legenda !== undefined && <p className="text-xs text-slate-400">{legenda}</p>}
+        <h2 className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">{titulo}</h2>
+        {legenda !== undefined && <p className="text-xs text-stone-400">{legenda}</p>}
       </div>
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {metricas.map((metrica) => (
@@ -76,7 +76,7 @@ export function MetricCard({
         href === undefined ? '' : 'transition-shadow focus-within:ring-2 focus-within:ring-brand-500 hover:shadow-md'
       }`}
     >
-      <dt className="pr-9 text-xs font-medium text-slate-500">
+      <dt className="pr-9 text-xs font-medium text-stone-500">
         {href === undefined ? (
           titulo
         ) : (
@@ -88,11 +88,11 @@ export function MetricCard({
       </dt>
       {/* Número isolado em figuras proporcionais; tabular só em colunas. */}
       <dd
-        className={`mt-2 text-2xl font-bold tracking-tight ${estado === 'vazio' ? 'text-slate-300' : 'text-slate-900'}`}
+        className={`mt-2 font-display text-2xl font-semibold tracking-tight ${estado === 'vazio' ? 'text-stone-300' : 'text-stone-900'}`}
       >
         {valor}
       </dd>
-      <dd className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+      <dd className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-stone-500">
         {alerta && (
           <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800">
             <TriangleAlert aria-hidden="true" className="size-3" />

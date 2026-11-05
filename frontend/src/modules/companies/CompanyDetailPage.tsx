@@ -82,7 +82,7 @@ export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.El
     <div className="space-y-5">
       <Link
         to="/companies"
-        className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900"
+        className="inline-flex items-center gap-1 text-sm font-medium text-stone-600 hover:text-stone-900"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
         Voltar para empresas
@@ -91,11 +91,13 @@ export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.El
       <header className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight break-words text-slate-900">{company.name}</h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1 className="font-display text-2xl font-semibold tracking-tight break-words text-stone-900">
+              {company.name}
+            </h1>
+            <p className="mt-1 text-sm text-stone-500">
               {[company.segment ?? 'Sem segmento', `${company.city}/${company.state}`].join(' · ')}
               {company.archived && (
-                <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">
+                <span className="ml-2 rounded bg-stone-200 px-1.5 py-0.5 text-xs text-stone-700">
                   {`Arquivada em ${company.archivedAt === undefined ? '—' : formatDateTime(company.archivedAt)}`}
                 </span>
               )}
@@ -173,7 +175,7 @@ function SummaryStrip({ item }: { readonly item: CompanyWorklistItem | null }): 
         ) : (
           <span className="flex items-center gap-1.5">
             <StatusBadge status={lead.status} />
-            {!lead.open && <span className="text-xs font-normal text-slate-500">encerrado</span>}
+            {!lead.open && <span className="text-xs font-normal text-stone-500">encerrado</span>}
           </span>
         )}
       </Tile>
@@ -208,8 +210,8 @@ function Tile({
 }): React.JSX.Element {
   return (
     <div className={`${card} min-w-0 px-4 py-3`}>
-      <dt className="text-[11px] font-medium text-slate-500">{label}</dt>
-      <dd className={`mt-1 truncate text-sm font-semibold ${muted ? 'font-normal text-slate-400' : 'text-slate-900'}`}>
+      <dt className="text-[11px] font-medium text-stone-500">{label}</dt>
+      <dd className={`mt-1 truncate text-sm font-semibold ${muted ? 'font-normal text-stone-400' : 'text-stone-900'}`}>
         {children}
       </dd>
     </div>
@@ -249,7 +251,7 @@ function CompanyData({ company }: { readonly company: Company }): React.JSX.Elem
 
   return (
     <section aria-labelledby="dados" className={`${card} p-4`}>
-      <h2 id="dados" className="text-sm font-semibold text-slate-900">
+      <h2 id="dados" className="text-sm font-semibold text-stone-900">
         Dados
       </h2>
       <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-[9rem_1fr]">
@@ -257,14 +259,14 @@ function CompanyData({ company }: { readonly company: Company }): React.JSX.Elem
           .filter(([, value]) => value !== undefined)
           .map(([label, value]) => (
             <div key={label} className="contents">
-              <dt className="text-slate-500">{label}</dt>
-              <dd className="break-words text-slate-900">{value}</dd>
+              <dt className="text-stone-500">{label}</dt>
+              <dd className="break-words text-stone-900">{value}</dd>
             </div>
           ))}
       </dl>
       {/* Ausente não é "não existe": só não foi informado (doc 06 §5). Uma linha só para todos. */}
       {missing.length > 0 && (
-        <p className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
+        <p className="mt-3 border-t border-stone-100 pt-2 text-xs text-stone-500">
           {`Não informado: ${missing.join(', ')}.`}
         </p>
       )}

@@ -63,18 +63,18 @@ export function PipelineCard({
         onDragStart();
       }}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-lg border border-slate-200 bg-white text-sm shadow-sm ${
+      className={`group relative rounded-lg border border-stone-200 bg-white text-sm shadow-sm ${
         detailed ? 'p-2.5' : 'px-2.5 py-1.5'
       } ${draggable ? 'cursor-grab' : ''}`}
     >
       <div className="pr-7">
         <Link
           to={`/leads/${card.leadId}`}
-          className="line-clamp-2 text-[13px] leading-snug font-semibold break-words text-slate-900 hover:text-brand-700 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
+          className="line-clamp-2 text-[13px] leading-snug font-semibold break-words text-stone-900 hover:text-brand-700 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
         >
           {card.companyName}
         </Link>
-        <p className="truncate text-xs text-slate-500">{place.join(' · ')}</p>
+        <p className="truncate text-xs text-stone-500">{place.join(' · ')}</p>
       </div>
 
       {draggable && moving === null && (
@@ -82,7 +82,7 @@ export function PipelineCard({
           type="button"
           aria-label={`Mover ${card.companyName}`}
           title="Mover para outra etapa"
-          className="absolute top-2 right-2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-brand-500 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+          className="absolute top-2 right-2 rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-brand-500 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
           onClick={() => {
             onMove({ leadId: card.leadId });
           }}
@@ -94,14 +94,14 @@ export function PipelineCard({
       {(card.estimatedValue !== undefined || detailed) && (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           {card.estimatedValue !== undefined && (
-            <span className="text-xs font-semibold text-slate-900 tabular-nums">
+            <span className="text-xs font-semibold text-stone-900 tabular-nums">
               {formatCurrency(card.estimatedValue)}
             </span>
           )}
           {detailed && <PriorityBadge priority={card.priority} />}
           {/* Sem análise não é informação: o score só aparece quando existe (D7). */}
           {detailed && card.score !== undefined && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-stone-500">
               Score <ScoreIndicator score={card.score} />
             </span>
           )}
@@ -111,7 +111,7 @@ export function PipelineCard({
       <Signals signals={signals} />
 
       {detailed && (
-        <div className="mt-1.5 space-y-0.5 text-xs text-slate-600">
+        <div className="mt-1.5 space-y-0.5 text-xs text-stone-600">
           {card.service !== undefined && <p>{`Serviço: ${card.service}`}</p>}
           {card.lastInteractionType !== undefined && card.lastInteractionAt !== undefined && (
             <p>{`Última interação: ${INTERACTION_TYPE_LABEL[card.lastInteractionType]} em ${formatDateTime(card.lastInteractionAt)}`}</p>
@@ -125,7 +125,7 @@ export function PipelineCard({
       )}
 
       {moving !== null && (
-        <div className="mt-3 border-t border-slate-200 pt-3">
+        <div className="mt-3 border-t border-stone-200 pt-3">
           <StatusChangeForm
             key={moving.target ?? ''}
             lead={{ id: card.leadId, status: card.status, allowedTransitions: card.allowedTransitions }}
@@ -165,14 +165,14 @@ function Signals({ signals }: { readonly signals: ReturnType<typeof signalsOf> }
       )}
       {daysInStage > 0 && (
         <Signal
-          tone={stale ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-slate-50 text-slate-500 ring-slate-200'}
+          tone={stale ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-stone-50 text-stone-500 ring-stone-200'}
           icon={<Clock className="size-3" />}
         >
           {`${daysLabel(daysInStage)} na etapa`}
         </Signal>
       )}
       {quietDays !== undefined && (
-        <Signal tone="bg-slate-100 text-slate-700 ring-slate-200" icon={<MessageSquareOff className="size-3" />}>
+        <Signal tone="bg-stone-100 text-stone-700 ring-stone-200" icon={<MessageSquareOff className="size-3" />}>
           {`Sem interação há ${daysLabel(quietDays)}`}
         </Signal>
       )}

@@ -17,7 +17,7 @@ export function ConversionReport({ conversao }: { readonly conversao: Conversao 
         type="button"
         aria-expanded={open}
         aria-controls="relatorio-conversao"
-        className={`${card} flex w-full items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-brand-500`}
+        className={`${card} flex w-full items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-stone-700 hover:bg-stone-50 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-brand-500`}
         onClick={() => {
           setOpen(!open);
         }}
@@ -26,17 +26,17 @@ export function ConversionReport({ conversao }: { readonly conversao: Conversao 
         {open ? 'Recolher relatório de conversão' : 'Expandir relatório de conversão por origem e segmento'}
         <ChevronDown
           aria-hidden="true"
-          className={`size-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`size-4 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {open && (
         <section id="relatorio-conversao" aria-label="Relatório de conversão" className={`${card} p-4 sm:p-5`}>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-stone-500">
             {`Leads abertos no período. Percentual só com ${conversao.amostraMinima} leads ou mais no grupo.`}
           </p>
           {conversao.porOrigem.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-600">Nenhum lead aberto no período.</p>
+            <p className="mt-3 text-sm text-stone-600">Nenhum lead aberto no período.</p>
           ) : (
             <div className="mt-4 grid gap-8 lg:grid-cols-2">
               <ConversionTable title="Por origem" grupos={conversao.porOrigem} />
@@ -59,9 +59,9 @@ function ConversionTable({
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
-        <caption className="mb-2 text-left text-xs font-semibold text-slate-700">{title}</caption>
+        <caption className="mb-2 text-left text-xs font-semibold text-stone-700">{title}</caption>
         <thead>
-          <tr className="border-b border-slate-200 text-left text-[11px] tracking-wide text-slate-500 uppercase">
+          <tr className="border-b border-stone-200 text-left text-[11px] tracking-wide text-stone-500 uppercase">
             <th scope="col" className="py-2 pr-3 font-medium">
               Grupo
             </th>
@@ -76,13 +76,13 @@ function ConversionTable({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-stone-100">
           {grupos.map((grupo) => (
             <tr key={grupo.chave ?? ''}>
-              <th scope="row" className="py-2 pr-3 text-left font-normal text-slate-800">
+              <th scope="row" className="py-2 pr-3 text-left font-normal text-stone-800">
                 {grupo.nome}
                 {!grupo.amostraSuficiente && (
-                  <span className="mt-1 block w-fit rounded-full bg-slate-100 px-2 py-0.5 text-[11px] whitespace-nowrap text-slate-500 sm:mt-0 sm:ml-2 sm:inline">
+                  <span className="mt-1 block w-fit rounded-full bg-stone-100 px-2 py-0.5 text-[11px] whitespace-nowrap text-stone-500 sm:mt-0 sm:ml-2 sm:inline">
                     amostra pequena
                   </span>
                 )}

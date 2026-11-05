@@ -256,7 +256,7 @@ function RecentActivityPanel({
 
   return (
     <section aria-labelledby="atividade" aria-busy={loadingNext} className="space-y-3">
-      <h2 id="atividade" className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+      <h2 id="atividade" className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">
         Interações e atividades
       </h2>
       {shown === null || (state.kind !== 'ready' && state.kind !== 'loading') ? (

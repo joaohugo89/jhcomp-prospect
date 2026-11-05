@@ -15,26 +15,26 @@ export function SourcesSection({ companyId }: { readonly companyId: string }): R
 
   return (
     <section aria-labelledby="origem" className={`${card} p-4`}>
-      <h2 id="origem" className="text-sm font-semibold text-slate-900">
+      <h2 id="origem" className="text-sm font-semibold text-stone-900">
         Origem dos dados
       </h2>
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : (
         <>
-          <ul className="mt-3 divide-y divide-slate-100">
+          <ul className="mt-3 divide-y divide-stone-100">
             {state.data.content.map((source) => {
               const href = safeHref(source.url);
               return (
                 <li key={source.id} className="py-2 text-sm">
-                  <p className="font-medium text-slate-900">
-                    {source.name} <span className="font-normal text-slate-500">· {SOURCE_TYPE_LABEL[source.type]}</span>
+                  <p className="font-medium text-stone-900">
+                    {source.name} <span className="font-normal text-stone-500">· {SOURCE_TYPE_LABEL[source.type]}</span>
                   </p>
-                  <p className="text-slate-600">
+                  <p className="text-stone-600">
                     Coletado em {formatDateTime(source.collectedAt)}
                     {source.leadId === undefined ? '' : ' · ligado a uma oportunidade'}
                   </p>
-                  {source.reference !== undefined && <p className="text-slate-600">{source.reference}</p>}
+                  {source.reference !== undefined && <p className="text-stone-600">{source.reference}</p>}
                   {href !== undefined && (
                     <a href={href} target="_blank" rel="noopener noreferrer" className={`${link} break-all`}>
                       {source.url}

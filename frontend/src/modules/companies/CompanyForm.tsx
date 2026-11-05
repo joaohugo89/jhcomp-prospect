@@ -116,7 +116,7 @@ export function CompanyForm({
       onSubmit={(event) => {
         void handleSubmit(event);
       }}
-      className="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
+      className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm"
     >
       <fieldset className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <legend className="sr-only">Dados da empresa</legend>
@@ -142,9 +142,9 @@ export function CompanyForm({
       </fieldset>
 
       {withSource && (
-        <fieldset className="grid gap-3 border-t border-slate-200 pt-3 md:grid-cols-3">
-          <legend className="text-sm font-medium text-slate-800">Origem (opcional)</legend>
-          <p className="text-xs text-slate-500 md:col-span-3">
+        <fieldset className="grid gap-3 border-t border-stone-200 pt-3 md:grid-cols-3">
+          <legend className="text-sm font-medium text-stone-800">Origem (opcional)</legend>
+          <p className="text-xs text-stone-500 md:col-span-3">
             De onde veio esta empresa. Sem preencher, fica registrado como cadastro manual de hoje.
           </p>
           <FormField label="Fonte" maxLength={120} {...sourceField('name')} />

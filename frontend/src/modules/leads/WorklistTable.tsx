@@ -68,10 +68,10 @@ export function WorklistTable(props: WorklistTableProps): React.JSX.Element {
   return (
     // relative: os textos só para leitor de tela (sr-only, posição absoluta) ficam presos
     // aqui; sem isso escapam da rolagem da tabela e alargam a página no celular.
-    <div className="relative overflow-x-auto rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 bg-white">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Leads</caption>
-        <thead className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
+        <thead className="border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500">
           <tr>
             <th scope="col" className="w-10 px-3 py-2">
               <input
@@ -99,7 +99,7 @@ export function WorklistTable(props: WorklistTableProps): React.JSX.Element {
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-stone-100">
           {items.map((item) => (
             <Row
               key={item.leadId}
@@ -141,8 +141,8 @@ function SortHeader({
     >
       <button
         type="button"
-        className={`inline-flex items-center gap-1 rounded hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-brand-500 ${
-          active ? 'text-slate-900' : ''
+        className={`inline-flex items-center gap-1 rounded hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-brand-500 ${
+          active ? 'text-stone-900' : ''
         } ${isRight ? 'flex-row-reverse' : ''}`}
         onClick={() => {
           const next = active ? (direction === 'asc' ? 'desc' : 'asc') : column.firstDirection;
@@ -150,7 +150,7 @@ function SortHeader({
         }}
       >
         {column.label}
-        <Icon aria-hidden="true" className={`size-3.5 ${active ? '' : 'text-slate-300'}`} />
+        <Icon aria-hidden="true" className={`size-3.5 ${active ? '' : 'text-stone-300'}`} />
       </button>
     </th>
   );
@@ -181,7 +181,7 @@ function Row({
 
   return (
     <tr
-      className={`cursor-pointer ${previewed ? 'bg-brand-50/60' : checked ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+      className={`cursor-pointer ${previewed ? 'bg-brand-50/60' : checked ? 'bg-stone-50' : 'hover:bg-stone-50'}`}
       onClick={onPreview}
     >
       <td className="px-3 py-2">
@@ -200,7 +200,7 @@ function Row({
           type="button"
           aria-expanded={previewed}
           aria-controls="previa-lead"
-          className="block max-w-full truncate text-left font-semibold text-slate-900 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-500"
+          className="block max-w-full truncate text-left font-semibold text-stone-900 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-500"
           onClick={(event) => {
             event.stopPropagation();
             onPreview();
@@ -208,7 +208,7 @@ function Row({
         >
           {item.companyName}
         </button>
-        <p className="truncate text-xs text-slate-500">{place}</p>
+        <p className="truncate text-xs text-stone-500">{place}</p>
       </td>
       <td className="px-3 py-2">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -218,18 +218,18 @@ function Row({
           ) : null}
         </div>
       </td>
-      <td className="hidden px-3 py-2 text-slate-700 lg:table-cell">
-        {item.assigneeName ?? <span className="text-slate-400">Sem responsável</span>}
+      <td className="hidden px-3 py-2 text-stone-700 lg:table-cell">
+        {item.assigneeName ?? <span className="text-stone-400">Sem responsável</span>}
       </td>
       <td className="hidden max-w-[14rem] px-3 py-2 lg:table-cell">
         {item.nextTaskTitle === undefined ? (
-          <span className="text-slate-400">Nenhuma</span>
+          <span className="text-stone-400">Nenhuma</span>
         ) : (
           <>
-            <p className="truncate text-slate-700">{item.nextTaskTitle}</p>
+            <p className="truncate text-stone-700">{item.nextTaskTitle}</p>
             {item.nextTaskDueAt !== undefined && (
               <p
-                className={`flex items-center gap-1 text-xs ${overdue ? 'font-semibold text-red-700' : 'text-slate-500'}`}
+                className={`flex items-center gap-1 text-xs ${overdue ? 'font-semibold text-red-700' : 'text-stone-500'}`}
               >
                 {overdue && <AlarmClock aria-hidden="true" className="size-3" />}
                 {`${overdue ? 'Atrasada · ' : ''}${formatDateTime(item.nextTaskDueAt)}`}
@@ -243,28 +243,28 @@ function Row({
           '—'
         ) : (
           <span
-            className={stale ? 'rounded-md bg-amber-50 px-1.5 py-0.5 font-medium text-amber-800' : 'text-slate-600'}
+            className={stale ? 'rounded-md bg-amber-50 px-1.5 py-0.5 font-medium text-amber-800' : 'text-stone-600'}
           >
             {days === 0 ? 'hoje' : daysLabel(days)}
             {stale && <span className="sr-only">{' (parado)'}</span>}
           </span>
         )}
       </td>
-      <td className="hidden px-3 py-2 text-right whitespace-nowrap text-slate-900 tabular-nums md:table-cell">
+      <td className="hidden px-3 py-2 text-right whitespace-nowrap text-stone-900 tabular-nums md:table-cell">
         {item.estimatedValue === undefined ? (
-          <span className="text-slate-400">—</span>
+          <span className="text-stone-400">—</span>
         ) : (
           formatCurrency(item.estimatedValue)
         )}
       </td>
       <td className="hidden px-3 py-2 text-right xl:table-cell">
-        {item.score === undefined ? <span className="text-slate-400">—</span> : <ScoreIndicator score={item.score} />}
+        {item.score === undefined ? <span className="text-stone-400">—</span> : <ScoreIndicator score={item.score} />}
       </td>
       <td className="px-3 py-2">
         <Link
           to={`/leads/${item.leadId}`}
           aria-label={`Abrir ${item.companyName}`}
-          className="inline-flex rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-brand-500"
+          className="inline-flex rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-brand-500"
         >
           <ChevronRight aria-hidden="true" className="size-4" />
         </Link>

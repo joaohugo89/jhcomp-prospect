@@ -60,10 +60,10 @@ export function CompanyTable(props: CompanyTableProps): React.JSX.Element {
 
   return (
     // relative: prende os textos sr-only (posição absoluta) dentro da rolagem da tabela.
-    <div className="relative overflow-x-auto rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 bg-white">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Empresas</caption>
-        <thead className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
+        <thead className="border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500">
           <tr>
             <th scope="col" className="w-10 px-3 py-2">
               <input
@@ -93,7 +93,7 @@ export function CompanyTable(props: CompanyTableProps): React.JSX.Element {
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-stone-100">
           {items.map((item) => (
             <Row
               key={item.companyId}
@@ -130,15 +130,15 @@ function SortHeader({
     >
       <button
         type="button"
-        className={`inline-flex items-center gap-1 rounded hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-brand-500 ${
-          active ? 'text-slate-900' : ''
+        className={`inline-flex items-center gap-1 rounded hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-brand-500 ${
+          active ? 'text-stone-900' : ''
         }`}
         onClick={() => {
           onSort(column.sort, active ? (direction === 'asc' ? 'desc' : 'asc') : column.firstDirection);
         }}
       >
         {column.label}
-        <Icon aria-hidden="true" className={`size-3.5 ${active ? '' : 'text-slate-300'}`} />
+        <Icon aria-hidden="true" className={`size-3.5 ${active ? '' : 'text-stone-300'}`} />
       </button>
     </th>
   );
@@ -156,7 +156,7 @@ export function ContactIcons({ item }: { readonly item: CompanyWorklistItem }): 
   return (
     <span className="inline-flex items-center gap-1.5">
       {channels.map(([has, label, icon]) => (
-        <span key={label} aria-hidden="true" className={has ? 'text-slate-600' : 'text-slate-200'}>
+        <span key={label} aria-hidden="true" className={has ? 'text-stone-600' : 'text-stone-200'}>
           {icon}
         </span>
       ))}
@@ -181,7 +181,7 @@ function Row({
   const lead = item.currentLead;
   return (
     <tr
-      className={`cursor-pointer ${previewed ? 'bg-brand-50/60' : checked ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+      className={`cursor-pointer ${previewed ? 'bg-brand-50/60' : checked ? 'bg-stone-50' : 'hover:bg-stone-50'}`}
       onClick={onPreview}
     >
       <td className="px-3 py-2">
@@ -201,7 +201,7 @@ function Row({
             type="button"
             aria-expanded={previewed}
             aria-controls="previa-empresa"
-            className="block min-w-0 truncate text-left font-semibold text-slate-900 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-500"
+            className="block min-w-0 truncate text-left font-semibold text-stone-900 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-500"
             onClick={(event) => {
               event.stopPropagation();
               onPreview();
@@ -216,10 +216,10 @@ function Row({
             </span>
           )}
           {item.archived && (
-            <span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">Arquivada</span>
+            <span className="shrink-0 rounded-md bg-stone-100 px-1.5 py-0.5 text-[11px] text-stone-600">Arquivada</span>
           )}
         </div>
-        <p className="truncate text-xs text-slate-500">
+        <p className="truncate text-xs text-stone-500">
           {item.segment ?? 'Sem segmento'}
           {/* A cidade tem coluna própria a partir do tablet; antes disso, vem aqui. */}
           <span className="md:hidden">{` · ${item.city}/${item.state}`}</span>
@@ -227,39 +227,39 @@ function Row({
       </td>
       <td className="px-3 py-2">
         {lead === undefined ? (
-          <span className="text-slate-400">Sem lead</span>
+          <span className="text-stone-400">Sem lead</span>
         ) : (
           <div className="flex flex-col items-start gap-0.5">
             <span className="flex items-center gap-1.5">
               <StatusBadge status={lead.status} />
-              {!lead.open && <span className="text-[11px] text-slate-500">encerrado</span>}
+              {!lead.open && <span className="text-[11px] text-stone-500">encerrado</span>}
             </span>
-            {lead.open && <span className="text-xs text-slate-500">{lead.assigneeName ?? 'Sem responsável'}</span>}
+            {lead.open && <span className="text-xs text-stone-500">{lead.assigneeName ?? 'Sem responsável'}</span>}
           </div>
         )}
       </td>
       <td className="hidden px-3 py-2 sm:table-cell">
         <ContactIcons item={item} />
       </td>
-      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-700 md:table-cell">{`${item.city}/${item.state}`}</td>
-      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-600 lg:table-cell">
+      <td className="hidden px-3 py-2 whitespace-nowrap text-stone-700 md:table-cell">{`${item.city}/${item.state}`}</td>
+      <td className="hidden px-3 py-2 whitespace-nowrap text-stone-600 lg:table-cell">
         {item.origin === undefined ? '—' : SOURCE_TYPE_LABEL[item.origin]}
       </td>
-      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-600 lg:table-cell">
+      <td className="hidden px-3 py-2 whitespace-nowrap text-stone-600 lg:table-cell">
         {item.lastActivityAt === undefined ? (
-          <span className="text-slate-400">Nenhuma</span>
+          <span className="text-stone-400">Nenhuma</span>
         ) : (
           formatDateTime(item.lastActivityAt)
         )}
       </td>
-      <td className="hidden px-3 py-2 whitespace-nowrap text-slate-600 xl:table-cell">
+      <td className="hidden px-3 py-2 whitespace-nowrap text-stone-600 xl:table-cell">
         {formatDateTime(item.createdAt)}
       </td>
       <td className="px-3 py-2">
         <Link
           to={`/companies/${item.companyId}`}
           aria-label={`Abrir ${item.name}`}
-          className="inline-flex rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-brand-500"
+          className="inline-flex rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-brand-500"
         >
           <ChevronRight aria-hidden="true" className="size-4" />
         </Link>

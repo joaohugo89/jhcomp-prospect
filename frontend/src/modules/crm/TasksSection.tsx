@@ -40,7 +40,7 @@ export function TasksSection({
 
   return (
     <section aria-labelledby="tarefas" className={`${card} @container p-4`}>
-      <h2 id="tarefas" className="text-sm font-semibold text-slate-900">
+      <h2 id="tarefas" className="text-sm font-semibold text-stone-900">
         Tarefas
       </h2>
       <NewTaskForm
@@ -53,9 +53,9 @@ export function TasksSection({
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : state.data.content.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-600">Nenhuma tarefa para este lead.</p>
+        <p className="mt-3 text-sm text-stone-600">Nenhuma tarefa para este lead.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-slate-100">
+        <ul className="mt-3 divide-y divide-stone-100">
           {state.data.content.map((task) => (
             <li key={task.id} className="flex items-start gap-2 py-2 text-sm">
               <input
@@ -69,7 +69,7 @@ export function TasksSection({
                 }}
               />
               <div className="min-w-0">
-                <p className={task.status === 'DONE' ? 'text-slate-500 line-through' : 'text-slate-900'}>
+                <p className={task.status === 'DONE' ? 'text-stone-500 line-through' : 'text-stone-900'}>
                   {task.title}
                 </p>
                 <TaskDue task={task} now={now} />
@@ -90,7 +90,7 @@ export function TasksSection({
 function TaskDue({ task, now }: { readonly task: Task; readonly now: number }): React.JSX.Element | null {
   if (task.status === 'DONE') {
     return task.completedAt === undefined ? null : (
-      <p className="text-xs text-slate-500">{`Concluída em ${formatDateTime(task.completedAt)}`}</p>
+      <p className="text-xs text-stone-500">{`Concluída em ${formatDateTime(task.completedAt)}`}</p>
     );
   }
   if (task.dueAt === undefined) {
@@ -99,7 +99,7 @@ function TaskDue({ task, now }: { readonly task: Task; readonly now: number }): 
   // Texto, e não só cor, indica o atraso (doc 08 §12).
   const overdue = new Date(task.dueAt).getTime() < now;
   return (
-    <p className={`text-xs ${overdue ? 'font-medium text-red-700' : 'text-slate-500'}`}>
+    <p className={`text-xs ${overdue ? 'font-medium text-red-700' : 'text-stone-500'}`}>
       {`${overdue ? 'Atrasada · ' : ''}Prazo ${formatDateTime(task.dueAt)}`}
     </p>
   );
@@ -154,7 +154,7 @@ function NewTaskForm({
           error={fieldErrors.get('title')}
         />
       </div>
-      <label className="text-sm font-medium text-slate-700">
+      <label className="text-sm font-medium text-stone-700">
         Prazo (opcional)
         <input
           type="datetime-local"

@@ -13,11 +13,11 @@ export function CompanyContact({ companyId }: { readonly companyId: string }): R
   const { phone, businessEmail, websiteUrl } = company.data;
   const site = safeHref(websiteUrl);
   if (phone === undefined && businessEmail === undefined && site === undefined) {
-    return <p className="mt-5 text-xs text-slate-500">Empresa sem telefone, e-mail ou site cadastrado.</p>;
+    return <p className="mt-5 text-xs text-stone-500">Empresa sem telefone, e-mail ou site cadastrado.</p>;
   }
   return (
     <section aria-labelledby="previa-contato" className="mt-5">
-      <h3 id="previa-contato" className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+      <h3 id="previa-contato" className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">
         Contato da empresa
       </h3>
       <ul className="mt-2 space-y-1.5 text-sm">
@@ -51,8 +51,8 @@ function ContactLine({
   readonly external?: boolean;
 }): React.JSX.Element {
   return (
-    <li className="flex min-w-0 items-center gap-2 text-slate-700">
-      <span aria-hidden="true" className="text-slate-400">
+    <li className="flex min-w-0 items-center gap-2 text-stone-700">
+      <span aria-hidden="true" className="text-stone-400">
         {icon}
       </span>
       <a
@@ -62,7 +62,7 @@ function ContactLine({
       >
         {text}
       </a>
-      {external && <ExternalLink aria-hidden="true" className="size-3 shrink-0 text-slate-400" />}
+      {external && <ExternalLink aria-hidden="true" className="size-3 shrink-0 text-stone-400" />}
     </li>
   );
 }

@@ -119,13 +119,13 @@ export function BulkBar({
     <div
       role="region"
       aria-label="Ações em lote"
-      className="flex flex-wrap items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg"
+      className="flex flex-wrap items-center gap-3 rounded-2xl bg-stone-900 px-4 py-3 text-sm text-white shadow-lg"
     >
       <span className="font-semibold">{`${selected.size} ${selected.size === 1 ? 'selecionado' : 'selecionados'}`}</span>
       <label className="flex items-center gap-2">
         <span className="sr-only">Responsável para os selecionados</span>
         <select
-          className={`${input} mt-0 h-9 w-48 py-0 text-slate-900`}
+          className={`${input} mt-0 h-9 w-48 py-0 text-stone-900`}
           value={assignee}
           disabled={busy}
           onChange={(event) => {
@@ -154,7 +154,7 @@ export function BulkBar({
       <label className="flex items-center gap-2">
         <span className="sr-only">Prioridade para os selecionados</span>
         <select
-          className={`${input} mt-0 h-9 w-40 py-0 text-slate-900`}
+          className={`${input} mt-0 h-9 w-40 py-0 text-stone-900`}
           value={priority}
           disabled={busy}
           onChange={(event) => {
@@ -182,7 +182,7 @@ export function BulkBar({
           Alterar
         </button>
       </label>
-      <button type="button" className="ml-auto text-xs font-semibold text-slate-300 hover:text-white" onClick={onClear}>
+      <button type="button" className="ml-auto text-xs font-semibold text-stone-300 hover:text-white" onClick={onClear}>
         Limpar seleção
       </button>
       {error !== null && (
@@ -232,11 +232,11 @@ export function SavedViews({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+      <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">
         <Bookmark aria-hidden="true" className="size-3.5" />
         Visões
       </span>
-      {views.length === 0 && !naming && <span className="text-xs text-slate-400">Nenhuma salva</span>}
+      {views.length === 0 && !naming && <span className="text-xs text-stone-400">Nenhuma salva</span>}
       <ul aria-label="Visões salvas" className="contents">
         {views.map((view) => (
           <li
@@ -244,7 +244,7 @@ export function SavedViews({
             className={`inline-flex items-center rounded-full text-xs font-medium ring-1 ${
               view.query === currentQuery
                 ? 'bg-brand-50 text-brand-800 ring-brand-100'
-                : 'bg-white text-slate-700 ring-slate-200'
+                : 'bg-white text-stone-700 ring-stone-200'
             }`}
           >
             <Link
@@ -254,7 +254,7 @@ export function SavedViews({
                 view.canDelete ? 'pr-1' : 'rounded-r-full pr-3'
               }`}
             >
-              {view.shared && <Users aria-hidden="true" className="size-3 text-slate-500" />}
+              {view.shared && <Users aria-hidden="true" className="size-3 text-stone-500" />}
               {view.name}
             </Link>
             {/* Apagar só aparece quando o servidor aceitaria: compartilhada é do administrador. */}
@@ -262,7 +262,7 @@ export function SavedViews({
               <button
                 type="button"
                 aria-label={`Apagar a visão ${view.name}`}
-                className="rounded-r-full py-1 pr-2 pl-1 text-slate-400 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-brand-500"
+                className="rounded-r-full py-1 pr-2 pl-1 text-stone-400 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-brand-500"
                 onClick={() => {
                   setRemoving(view);
                 }}
@@ -300,7 +300,7 @@ export function SavedViews({
             />
           </label>
           {canShare && (
-            <label className="flex items-center gap-1.5 text-xs text-slate-600">
+            <label className="flex items-center gap-1.5 text-xs text-stone-600">
               <input
                 type="checkbox"
                 checked={shared}
@@ -316,7 +316,7 @@ export function SavedViews({
           </button>
           <button
             type="button"
-            className="text-xs text-slate-500 hover:text-slate-800"
+            className="text-xs text-stone-500 hover:text-stone-800"
             onClick={() => {
               setNaming(false);
               setError(null);

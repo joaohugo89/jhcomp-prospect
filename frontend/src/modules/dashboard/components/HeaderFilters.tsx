@@ -74,12 +74,12 @@ export function HeaderFilters({
         type="button"
         aria-expanded={open}
         aria-controls="painel-filtros"
-        className={`${toolbarButton} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}
+        className={`${toolbarButton} border border-stone-200 bg-white text-stone-700 hover:bg-stone-50`}
         onClick={() => {
           setOpen(!open);
         }}
       >
-        <SlidersHorizontal aria-hidden="true" className="size-4 text-slate-500" />
+        <SlidersHorizontal aria-hidden="true" className="size-4 text-stone-500" />
         Filtros
         {extra > 0 && (
           <span className="rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white">
@@ -107,11 +107,11 @@ export function HeaderFilters({
           }}
         >
           {PRESETS.map((days) => (
-            <option key={days} value={days} className="bg-white text-slate-900">
+            <option key={days} value={days} className="bg-white text-stone-900">
               {`${days}D`}
             </option>
           ))}
-          <option value="custom" className="bg-white text-slate-900">
+          <option value="custom" className="bg-white text-stone-900">
             Personalizado
           </option>
         </select>
@@ -128,7 +128,7 @@ export function HeaderFilters({
         <div
           aria-hidden="true"
           data-testid="fundo-filtros"
-          className="fixed inset-0 z-20 bg-slate-900/20 sm:bg-transparent"
+          className="fixed inset-0 z-20 bg-stone-900/20 sm:bg-transparent"
           onClick={() => {
             setOpen(false);
           }}
@@ -238,7 +238,7 @@ export function HeaderFilters({
 
 function Field({ label, children }: { readonly label: string; readonly children: React.ReactNode }): React.JSX.Element {
   return (
-    <label className="text-xs font-medium text-slate-600">
+    <label className="text-xs font-medium text-stone-600">
       {label}
       {children}
     </label>

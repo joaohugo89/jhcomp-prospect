@@ -63,7 +63,7 @@ export function DashboardPreviewPage(): React.JSX.Element {
       activity={
         <div className="space-y-3">
           <section aria-labelledby="atividade" className="space-y-3">
-            <h2 id="atividade" className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+            <h2 id="atividade" className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">
               Interações e atividades
             </h2>
             <RecentActivityList atividades={mockAtividadesRecentes} />

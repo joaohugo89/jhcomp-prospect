@@ -59,8 +59,8 @@ export function DashboardHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Dashboard</h1>
-        {subtitle !== undefined && <div className="mt-1 text-xs text-slate-500">{subtitle}</div>}
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-stone-900">Dashboard</h1>
+        {subtitle !== undefined && <div className="mt-1 text-xs text-stone-500">{subtitle}</div>}
       </div>
       {filters}
     </header>

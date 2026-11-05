@@ -17,7 +17,7 @@ const STAGE_COLOR: Readonly<Record<LeadStatus, string>> = {
   IN_CONVERSATION: 'bg-brand-600',
   PROPOSAL_SENT: 'bg-brand-700',
   WON: 'bg-emerald-600',
-  LOST: 'bg-slate-400',
+  LOST: 'bg-stone-400',
   DO_NOT_CONTACT: 'bg-red-500',
 };
 
@@ -46,13 +46,13 @@ export function StatusProgressList({
       title="Funil · status dos leads"
       description="Situação de agora, em todas as etapas"
       actions={
-        <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 tabular-nums">
+        <span className="rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700 tabular-nums">
           {`${total} ${total === 1 ? 'lead' : 'leads'}`}
         </span>
       }
     >
       {total === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-stone-600">
           {filtrado ? 'Nenhum lead com o segmento, a cidade ou a origem escolhidos.' : 'Nenhum lead ainda. '}
           {!filtrado && (
             <Link to="/companies" className={link}>
@@ -77,9 +77,9 @@ export function StatusProgressList({
             {comLead.map((item) => (
               <div
                 key={item.status}
-                className="flex h-11 items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 ring-1 ring-slate-200/70"
+                className="flex h-11 items-center justify-between gap-2 rounded-xl bg-stone-50 px-3 ring-1 ring-stone-200/70"
               >
-                <dt className="flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-700">
+                <dt className="flex min-w-0 items-center gap-2 text-xs font-semibold text-stone-700">
                   <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${STAGE_COLOR[item.status]}`} />
                   {leadsHref === undefined ? (
                     <span className="truncate">{item.nome}</span>
@@ -89,22 +89,22 @@ export function StatusProgressList({
                     </Link>
                   )}
                 </dt>
-                <dd className="shrink-0 text-xs font-bold text-slate-900 tabular-nums">
+                <dd className="shrink-0 text-xs font-bold text-stone-900 tabular-nums">
                   {item.quantidade}
-                  <span className="ml-1 font-normal text-slate-400">{`(${Math.round((item.quantidade / total) * 100)}%)`}</span>
+                  <span className="ml-1 font-normal text-stone-400">{`(${Math.round((item.quantidade / total) * 100)}%)`}</span>
                 </dd>
               </div>
             ))}
           </dl>
 
           {vazias.length > 0 && (
-            <div className="mt-4 border-t border-slate-100 pt-3">
+            <div className="mt-4 border-t border-stone-100 pt-3">
               <p className="sr-only">Etapas sem lead</p>
               <ul className="flex flex-wrap gap-1.5">
                 {vazias.map((item) => (
                   <li
                     key={item.status}
-                    className="rounded-md bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200/70"
+                    className="rounded-md bg-stone-50 px-2 py-0.5 text-[11px] text-stone-500 ring-1 ring-stone-200/70"
                   >
                     {`${item.nome}: 0`}
                   </li>

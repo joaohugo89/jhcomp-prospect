@@ -118,7 +118,7 @@ export function CompanyBulkBar({
     <div
       role="region"
       aria-label="Ações em lote"
-      className="flex flex-wrap items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg"
+      className="flex flex-wrap items-center gap-3 rounded-2xl bg-stone-900 px-4 py-3 text-sm text-white shadow-lg"
     >
       <span className="font-semibold">{`${selected.size} ${selected.size === 1 ? 'selecionada' : 'selecionadas'}`}</span>
       <div className="flex items-center gap-2">
@@ -128,7 +128,7 @@ export function CompanyBulkBar({
             list={listId}
             placeholder="Segmento…"
             maxLength={80}
-            className={`${input} mt-0 h-9 w-44 py-0 text-slate-900`}
+            className={`${input} mt-0 h-9 w-44 py-0 text-stone-900`}
             value={segment}
             disabled={busy}
             onChange={(event) => {
@@ -160,7 +160,7 @@ export function CompanyBulkBar({
           <input
             placeholder="Cidade…"
             maxLength={120}
-            className={`${input} mt-0 h-9 w-40 py-0 text-slate-900`}
+            className={`${input} mt-0 h-9 w-40 py-0 text-stone-900`}
             value={city}
             disabled={busy}
             onChange={(event) => {
@@ -173,7 +173,7 @@ export function CompanyBulkBar({
           <input
             placeholder="UF"
             maxLength={2}
-            className={`${input} mt-0 h-9 w-16 py-0 text-slate-900 uppercase`}
+            className={`${input} mt-0 h-9 w-16 py-0 text-stone-900 uppercase`}
             value={state}
             disabled={busy}
             onChange={(event) => {
@@ -192,7 +192,7 @@ export function CompanyBulkBar({
           Corrigir cidade
         </button>
       </div>
-      <button type="button" className="ml-auto text-xs font-semibold text-slate-300 hover:text-white" onClick={onClear}>
+      <button type="button" className="ml-auto text-xs font-semibold text-stone-300 hover:text-white" onClick={onClear}>
         Limpar seleção
       </button>
       {error !== null && (

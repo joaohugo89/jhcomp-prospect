@@ -49,7 +49,7 @@ export function AssigneeField({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-sm font-medium text-stone-700">
         Responsável
         <select
           className={input}

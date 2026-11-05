@@ -52,7 +52,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
         {ticks(top).map((tick) => (
           <span
             key={tick}
-            className="absolute right-0 translate-y-1/2 text-[11px] whitespace-nowrap text-slate-400 tabular-nums"
+            className="absolute right-0 translate-y-1/2 text-[11px] whitespace-nowrap text-stone-400 tabular-nums"
             style={{ bottom: `${100 - yOf(tick)}%` }}
           >
             {formatTick(tick)}
@@ -94,7 +94,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
           <span
             key={tick}
             aria-hidden="true"
-            className={`absolute inset-x-0 h-px ${tick === 0 ? 'bg-slate-200' : 'bg-slate-100'}`}
+            className={`absolute inset-x-0 h-px ${tick === 0 ? 'bg-stone-200' : 'bg-stone-100'}`}
             style={{ top: `${yOf(tick)}%` }}
           />
         ))}
@@ -120,7 +120,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
         {active !== null && (
           <span
             aria-hidden="true"
-            className="absolute inset-y-0 w-px -translate-x-1/2 bg-slate-300"
+            className="absolute inset-y-0 w-px -translate-x-1/2 bg-stone-300"
             style={{ left: `${xOf(active)}%` }}
           />
         )}
@@ -164,11 +164,11 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
         {current !== undefined && active !== null && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute top-0 z-10 rounded-xl border border-slate-200 bg-white px-3 py-2 whitespace-nowrap shadow-md"
+            className="pointer-events-none absolute top-0 z-10 rounded-xl border border-stone-200 bg-white px-3 py-2 whitespace-nowrap shadow-md"
             style={alongX(xOf(active))}
           >
-            <p className="text-sm font-semibold text-slate-900 tabular-nums">{format(current.value)}</p>
-            <p className="text-xs text-slate-500">{current.title}</p>
+            <p className="text-sm font-semibold text-stone-900 tabular-nums">{format(current.value)}</p>
+            <p className="text-xs text-stone-500">{current.title}</p>
           </div>
         )}
       </div>
@@ -179,7 +179,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
           index % step === 0 ? (
             <span
               key={point.key}
-              className="absolute text-[11px] whitespace-nowrap text-slate-400"
+              className="absolute text-[11px] whitespace-nowrap text-stone-400"
               style={alongX(xOf(index))}
             >
               {point.label}

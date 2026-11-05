@@ -28,12 +28,12 @@ export function DashboardSection({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           {eyebrow !== undefined && (
-            <p className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">{eyebrow}</p>
+            <p className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">{eyebrow}</p>
           )}
-          <h2 id={id} className={`text-sm font-semibold text-slate-900 ${eyebrow === undefined ? '' : 'mt-0.5'}`}>
+          <h2 id={id} className={`text-sm font-semibold text-stone-900 ${eyebrow === undefined ? '' : 'mt-0.5'}`}>
             {title}
           </h2>
-          {description !== undefined && <div className="mt-0.5 text-xs text-slate-500">{description}</div>}
+          {description !== undefined && <div className="mt-0.5 text-xs text-stone-500">{description}</div>}
         </div>
         {actions}
       </div>

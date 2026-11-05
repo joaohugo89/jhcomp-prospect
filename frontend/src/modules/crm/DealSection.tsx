@@ -36,11 +36,11 @@ export function DealSection({
 
   return (
     <section aria-labelledby="negocio" className={`${card} p-4`}>
-      <h2 id="negocio" className="text-sm font-semibold text-slate-900">
+      <h2 id="negocio" className="text-sm font-semibold text-stone-900">
         Negócio
       </h2>
       {state.kind === 'notFound' ? (
-        <p className="mt-2 text-sm text-slate-600">O negócio é criado quando a proposta é enviada.</p>
+        <p className="mt-2 text-sm text-stone-600">O negócio é criado quando a proposta é enviada.</p>
       ) : state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : (
@@ -107,7 +107,7 @@ function DealForm({
         void save();
       }}
     >
-      <p className="text-sm text-slate-700">
+      <p className="text-sm text-stone-700">
         {`Situação: ${OUTCOME_LABEL[deal.outcome]}`}
         {deal.estimatedValue === undefined ? '' : ` · ${formatCurrency(deal.estimatedValue)}`}
       </p>
@@ -119,7 +119,7 @@ function DealForm({
         error={fieldErrors.get('service')}
       />
       <div>
-        <label htmlFor={valueId} className="block text-sm font-medium text-slate-700">
+        <label htmlFor={valueId} className="block text-sm font-medium text-stone-700">
           Valor estimado (R$)
         </label>
         <input
@@ -156,9 +156,9 @@ function DealForm({
         <button type="submit" className={buttonPrimary} disabled={busy}>
           {busy ? 'Salvando…' : 'Salvar negócio'}
         </button>
-        <span className="text-xs text-slate-500">{`Atualizado em ${formatDateTime(deal.updatedAt)}`}</span>
+        <span className="text-xs text-stone-500">{`Atualizado em ${formatDateTime(deal.updatedAt)}`}</span>
       </div>
-      <p aria-live="polite" className="text-sm text-slate-700">
+      <p aria-live="polite" className="text-sm text-stone-700">
         {message}
       </p>
     </form>

@@ -101,7 +101,7 @@ export function DeleteCompanyAction({
           }}
           onCancel={close}
         >
-          <label className="mt-4 block text-sm font-medium text-slate-700">
+          <label className="mt-4 block text-sm font-medium text-stone-700">
             {`Digite "${company.name}" para confirmar`}
             <input
               className={input}

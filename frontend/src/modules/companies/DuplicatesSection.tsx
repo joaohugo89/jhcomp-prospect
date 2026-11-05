@@ -44,18 +44,18 @@ export function DuplicatesSection({
 
   return (
     <section aria-labelledby="duplicatas" className={`${card} p-4`}>
-      <h2 id="duplicatas" className="text-sm font-semibold text-slate-900">
+      <h2 id="duplicatas" className="text-sm font-semibold text-stone-900">
         Possíveis duplicatas
       </h2>
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : state.data.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-stone-600">
           Nenhuma empresa com o mesmo domínio, telefone ou nome nesta cidade.
         </p>
       ) : (
         <>
-          <p className="mt-1 text-sm text-slate-600">São sugestões, não confirmações. Compare antes de mesclar.</p>
+          <p className="mt-1 text-sm text-stone-600">São sugestões, não confirmações. Compare antes de mesclar.</p>
           <ul className="mt-3 space-y-3">
             {state.data.map((candidate) => (
               <li key={candidate.companyId} className="text-sm">
@@ -64,7 +64,7 @@ export function DuplicatesSection({
                     <Link to={`/companies/${candidate.companyId}`} className={link}>
                       {candidate.name}
                     </Link>
-                    <span className="text-slate-600">
+                    <span className="text-stone-600">
                       {` · ${candidate.city}/${candidate.state}${candidate.archived ? ' · arquivada' : ''}`}
                     </span>
                   </span>

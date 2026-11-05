@@ -82,8 +82,8 @@ export function PipelinePage(): React.JSX.Element {
       {/* Título, filtros e densidade numa faixa só: o quadro começa logo abaixo. */}
       <header className="mb-3 flex flex-wrap items-end gap-x-4 gap-y-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Pipeline</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Arraste um card ou use “Mover” para mudar o status do lead.</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-stone-900">Pipeline</h1>
+          <p className="mt-0.5 text-sm text-stone-500">Arraste um card ou use “Mover” para mudar o status do lead.</p>
         </div>
         <form
           role="search"
@@ -94,7 +94,7 @@ export function PipelinePage(): React.JSX.Element {
             apply();
           }}
         >
-          <label className="min-w-[12rem] flex-1 text-xs font-medium text-slate-500 lg:max-w-xs">
+          <label className="min-w-[12rem] flex-1 text-xs font-medium text-stone-500 lg:max-w-xs">
             Buscar empresa
             <input
               type="search"
@@ -105,7 +105,7 @@ export function PipelinePage(): React.JSX.Element {
               }}
             />
           </label>
-          <label className="w-36 text-xs font-medium text-slate-500">
+          <label className="w-36 text-xs font-medium text-stone-500">
             Segmento
             <input
               className={input}
@@ -115,7 +115,7 @@ export function PipelinePage(): React.JSX.Element {
               }}
             />
           </label>
-          <label className="w-36 text-xs font-medium text-slate-500">
+          <label className="w-36 text-xs font-medium text-stone-500">
             Cidade
             <input
               className={input}
@@ -209,14 +209,14 @@ function BoardSummary({ columns }: { readonly columns: readonly BoardColumn[] })
   return (
     <dl aria-label="Resumo do quadro" className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
       <div className="flex items-baseline gap-1.5">
-        <dt className="text-slate-500">Em aberto</dt>
-        <dd className="font-semibold text-slate-900 tabular-nums">
+        <dt className="text-stone-500">Em aberto</dt>
+        <dd className="font-semibold text-stone-900 tabular-nums">
           {`${openLeads} ${openLeads === 1 ? 'lead' : 'leads'} · ${formatCurrency(openValue)}`}
         </dd>
       </div>
       {won?.recentDays !== undefined && (
         <div className="flex items-baseline gap-1.5">
-          <dt className="text-slate-500">{`Ganho nos últimos ${won.recentDays} dias`}</dt>
+          <dt className="text-stone-500">{`Ganho nos últimos ${won.recentDays} dias`}</dt>
           <dd className="font-semibold text-emerald-700 tabular-nums">
             {`${won.total} · ${formatCurrency(won.totalValue)}`}
           </dd>
@@ -239,14 +239,14 @@ function DensityToggle({
     ['detailed', 'Detalhado'],
   ];
   return (
-    <div role="group" aria-label="Densidade dos cards" className="inline-flex rounded-lg bg-slate-200/70 p-0.5">
+    <div role="group" aria-label="Densidade dos cards" className="inline-flex rounded-lg bg-stone-200/70 p-0.5">
       {options.map(([value, label]) => (
         <button
           key={value}
           type="button"
           aria-pressed={density === value}
           className={`rounded-md px-3 py-1.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand-500 ${
-            density === value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            density === value ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
           }`}
           onClick={() => {
             onChange(value);

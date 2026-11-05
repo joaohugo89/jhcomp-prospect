@@ -71,14 +71,14 @@ export function CompaniesPage(): React.JSX.Element {
       <form
         role="search"
         aria-label="Filtrar empresas"
-        className="mb-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm"
+        className="mb-3 rounded-2xl border border-stone-200/70 bg-white p-3 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           apply(draft);
         }}
       >
         <div className="grid grid-cols-2 gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
-          <label className="col-span-2 text-xs font-medium text-slate-500 lg:col-span-1">
+          <label className="col-span-2 text-xs font-medium text-stone-500 lg:col-span-1">
             Buscar por nome
             <input
               type="search"
@@ -97,7 +97,7 @@ export function CompaniesPage(): React.JSX.Element {
             segments={segments.kind === 'ready' ? segments.data : null}
             allowNone
           />
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-stone-500">
             Cidade
             <input
               className={input}
@@ -107,7 +107,7 @@ export function CompaniesPage(): React.JSX.Element {
               }}
             />
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="text-xs font-medium text-stone-500">
             Origem
             <select
               className={input}
@@ -133,7 +133,7 @@ export function CompaniesPage(): React.JSX.Element {
         {filtered && (
           <button
             type="button"
-            className="mt-3 text-sm font-medium text-slate-500 hover:text-slate-800"
+            className="mt-3 text-sm font-medium text-stone-500 hover:text-stone-800"
             onClick={() => {
               apply({ ...EMPTY_COMPANY_FILTERS, sort: applied.sort, direction: applied.direction });
             }}

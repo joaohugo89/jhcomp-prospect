@@ -91,17 +91,17 @@ export function OpenLeadSection({ companyId }: { readonly companyId: string }): 
 
   return (
     <section aria-labelledby="oportunidade" className={`${card} p-4`}>
-      <h2 id="oportunidade" className="text-sm font-semibold text-slate-900">
+      <h2 id="oportunidade" className="text-sm font-semibold text-stone-900">
         Oportunidade
       </h2>
-      <p className="mt-1 text-sm text-slate-600">Abre um lead para acompanhar a intenção comercial.</p>
+      <p className="mt-1 text-sm text-stone-600">Abre um lead para acompanhar a intenção comercial.</p>
       <form
         className="mt-3 space-y-3"
         onSubmit={(event) => {
           void open(event);
         }}
       >
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-stone-700">
           Prioridade
           <select
             className={input}

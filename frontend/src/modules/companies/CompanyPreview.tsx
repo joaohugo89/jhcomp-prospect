@@ -76,10 +76,10 @@ function PreviewBody({
   const lead = item.currentLead;
   return (
     <>
-      <h2 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-slate-900 focus:outline-none">
+      <h2 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-stone-900 focus:outline-none">
         {item.name}
       </h2>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-stone-500">
         {[item.segment ?? 'Sem segmento', `${item.city}/${item.state}`].join(' · ')}
       </p>
       {item.possibleDuplicate && (
@@ -90,15 +90,15 @@ function PreviewBody({
       )}
 
       <dl className="mt-5 grid grid-cols-2 gap-3">
-        <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2.5 ring-1 ring-slate-200/70">
-          <dt className="text-[11px] text-slate-500">Lead atual</dt>
+        <div className="col-span-2 rounded-xl bg-stone-50 px-3 py-2.5 ring-1 ring-stone-200/70">
+          <dt className="text-[11px] text-stone-500">Lead atual</dt>
           <dd className="mt-1 text-sm">
             {lead === undefined ? (
-              <span className="text-slate-500">Nenhum lead aberto ainda</span>
+              <span className="text-stone-500">Nenhum lead aberto ainda</span>
             ) : (
               <span className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={lead.status} />
-                <span className="text-slate-600">
+                <span className="text-stone-600">
                   {lead.open ? (lead.assigneeName ?? 'Sem responsável') : 'ciclo encerrado'}
                 </span>
               </span>

@@ -24,16 +24,16 @@ export function LeadCyclesSection({
 
   return (
     <section aria-labelledby="ciclos" className={`${card} p-4`}>
-      <h2 id="ciclos" className="text-sm font-semibold text-slate-900">
+      <h2 id="ciclos" className="text-sm font-semibold text-stone-900">
         Ciclos comerciais
       </h2>
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : state.data.content.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-600">Nenhum lead aberto para esta empresa ainda.</p>
+        <p className="mt-2 text-sm text-stone-600">Nenhum lead aberto para esta empresa ainda.</p>
       ) : (
         <>
-          <ol className="mt-3 divide-y divide-slate-100">
+          <ol className="mt-3 divide-y divide-stone-100">
             {state.data.content.map((cycle) => (
               <li key={cycle.leadId} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
                 <div className="min-w-0">
@@ -43,15 +43,15 @@ export function LeadCyclesSection({
                       Abrir lead
                     </Link>
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-stone-500">
                     {`Aberto em ${formatDateTime(cycle.createdAt)}${
                       cycle.closedAt === undefined ? '' : ` · encerrado em ${formatDateTime(cycle.closedAt)}`
                     } · ${cycle.assigneeName ?? 'sem responsável'}`}
                   </p>
                 </div>
-                <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                <span className="text-sm font-semibold text-stone-900 tabular-nums">
                   {cycle.estimatedValue === undefined ? (
-                    <span className="font-normal text-slate-400">Sem valor</span>
+                    <span className="font-normal text-stone-400">Sem valor</span>
                   ) : (
                     formatCurrency(cycle.estimatedValue)
                   )}

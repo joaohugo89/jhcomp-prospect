@@ -98,11 +98,11 @@ export function InteractionForm({
   const dateError = fieldErrors.get('occurredAt');
 
   return (
-    <section aria-labelledby="interacao" className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
-      <h2 id="interacao" className="text-sm font-semibold text-slate-900">
+    <section aria-labelledby="interacao" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
+      <h2 id="interacao" className="text-sm font-semibold text-stone-900">
         Registrar interação
       </h2>
-      <p className="mt-1 text-xs text-slate-500">Registrar contato não muda o status do lead.</p>
+      <p className="mt-1 text-xs text-stone-500">Registrar contato não muda o status do lead.</p>
       <form
         className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
         onSubmit={(event) => {
@@ -114,7 +114,7 @@ export function InteractionForm({
           void submit();
         }}
       >
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-stone-700">
           Tipo
           <select
             className={input}
@@ -132,7 +132,7 @@ export function InteractionForm({
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-stone-700">
           Canal
           <select
             className={input}
@@ -148,7 +148,7 @@ export function InteractionForm({
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-stone-700">
           Quem iniciou
           <select
             className={input}
@@ -164,7 +164,7 @@ export function InteractionForm({
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-stone-700">
           Quando
           <input
             type="datetime-local"
@@ -214,7 +214,7 @@ export function InteractionForm({
           <button type="submit" className={buttonPrimary} disabled={busy || blocked}>
             {busy ? 'Registrando…' : 'Registrar interação'}
           </button>
-          <p aria-live="polite" className="mt-2 text-sm text-slate-700">
+          <p aria-live="polite" className="mt-2 text-sm text-stone-700">
             {message}
           </p>
         </div>

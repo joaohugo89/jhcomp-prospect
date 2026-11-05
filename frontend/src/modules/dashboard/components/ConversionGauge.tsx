@@ -42,10 +42,10 @@ export function ConversionGauge({ conversao }: { readonly conversao: Conversao |
           )}
         </svg>
         <div className="min-w-0">
-          <p className="text-3xl leading-none font-bold tracking-tight text-slate-900">
+          <p className="text-3xl leading-none font-bold tracking-tight text-stone-900">
             {taxa === undefined ? '—' : `${percent.format(taxa * 100)}%`}
           </p>
-          <p className="mt-1.5 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs text-stone-500">
             {total === undefined
               ? 'Carregando…'
               : total.leads === 0

@@ -18,10 +18,10 @@ export function DataQualityNotice({ semSegmento }: { readonly semSegmento: numbe
         <Tags className="size-4" />
       </span>
       <div className="min-w-0">
-        <p className="font-semibold text-slate-900">
+        <p className="font-semibold text-stone-900">
           {`${semSegmento} ${semSegmento === 1 ? 'empresa sem segmento' : 'empresas sem segmento'}`}
         </p>
-        <p className="mt-0.5 text-xs text-slate-500">A conversão por segmento fica incompleta sem essa informação.</p>
+        <p className="mt-0.5 text-xs text-stone-500">A conversão por segmento fica incompleta sem essa informação.</p>
         <Link to="/companies" className="mt-1.5 inline-block text-xs font-semibold text-brand-700 hover:underline">
           Completar em Empresas
         </Link>

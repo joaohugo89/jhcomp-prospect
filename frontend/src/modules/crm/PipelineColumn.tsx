@@ -23,7 +23,7 @@ interface PipelineColumnProps {
 }
 
 const toggleButton =
-  'rounded-md p-1 text-slate-400 hover:bg-white hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-brand-500';
+  'rounded-md p-1 text-stone-400 hover:bg-white hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-brand-500';
 
 /** Uma etapa do Kanban: cabeçalho com contagem e valor, cards que rolam por dentro. */
 export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
@@ -36,7 +36,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
 
   const tone = accepts
     ? 'border-brand-500 bg-brand-50'
-    : `border-slate-200 bg-slate-100 ${refuses ? 'opacity-50' : ''}`;
+    : `border-stone-200 bg-stone-100 ${refuses ? 'opacity-50' : ''}`;
 
   return (
     // Arrastar é atalho de mouse; o teclado usa o botão "Mover" de cada card.
@@ -71,7 +71,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
           </button>
           <h2
             id={headingId}
-            className="mt-2 text-xs font-semibold whitespace-nowrap text-slate-700 [writing-mode:vertical-rl]"
+            className="mt-2 text-xs font-semibold whitespace-nowrap text-stone-700 [writing-mode:vertical-rl]"
           >
             {`${stage.name} · ${total}`}
           </h2>
@@ -80,16 +80,16 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
         <>
           <div className="mb-2 flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h2 id={headingId} className="flex items-baseline gap-2 text-sm font-semibold text-slate-800">
+              <h2 id={headingId} className="flex items-baseline gap-2 text-sm font-semibold text-stone-800">
                 <span className="truncate">{stage.name}</span>
                 <span
-                  className="rounded-full bg-white px-1.5 text-xs font-semibold text-slate-600 tabular-nums ring-1 ring-slate-200"
+                  className="rounded-full bg-white px-1.5 text-xs font-semibold text-stone-600 tabular-nums ring-1 ring-stone-200"
                   aria-label={`${total} leads`}
                 >
                   {total}
                 </span>
               </h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-stone-500">
                 {[
                   totalValue > 0 ? formatCurrency(totalValue) : undefined,
                   recentDays === undefined ? undefined : `últimos ${recentDays} dias`,
@@ -110,7 +110,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
           </div>
 
           {cards.length === 0 ? (
-            <p className="py-4 text-center text-xs text-slate-500">Nenhum lead nesta etapa.</p>
+            <p className="py-4 text-center text-xs text-stone-500">Nenhum lead nesta etapa.</p>
           ) : (
             // Rola por dentro da coluna; o -mx/px deixa o contorno de foco dos cards visível.
             <ul className="space-y-2 md:-mx-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:px-1 md:pb-1">
@@ -134,7 +134,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
           )}
 
           {(total > cards.length || recentDays !== undefined) && (
-            <p className="mt-2 text-xs text-slate-600">
+            <p className="mt-2 text-xs text-stone-600">
               {total > cards.length ? `Mostrando ${cards.length} de ${total}. ` : ''}
               {recentDays === undefined ? 'Use os filtros ou a ' : 'Os mais antigos estão na '}
               <Link to="/leads" className={link}>
