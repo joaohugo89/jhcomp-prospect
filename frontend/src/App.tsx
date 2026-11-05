@@ -71,7 +71,7 @@ export function App(): React.JSX.Element {
 
   if (auth.kind === 'checking') {
     return (
-      <main className="min-h-dvh bg-slate-50">
+      <main className="min-h-dvh bg-stone-50">
         <LoadingState label="Verificando sessão…" />
       </main>
     );
