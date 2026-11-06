@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { applyTheme, initTheme, readThemeChoice } from './theme';
+import { applyTheme, initTheme, readTheme } from './theme';
 
 /** Simula a preferência do aparelho, que o jsdom não tem. */
 function stubSystemDark(dark: boolean): void {
@@ -32,22 +32,22 @@ describe('tema', () => {
     expect(document.documentElement.dataset['theme']).toBe('light');
   });
 
-  it('a escolha explícita vence a preferência do aparelho', () => {
+  it('a escolha guardada vence a preferência do aparelho', () => {
     stubSystemDark(true);
     window.localStorage.setItem('jh-prospect:theme', 'LIGHT');
 
     initTheme();
 
-    expect(readThemeChoice()).toBe('LIGHT');
+    expect(readTheme()).toBe('LIGHT');
     expect(document.documentElement.dataset['theme']).toBe('light');
   });
 
-  it('escolha desconhecida no armazenamento volta para o do sistema', () => {
+  it('valor desconhecido no armazenamento volta para o do aparelho', () => {
     stubSystemDark(true);
     window.localStorage.setItem('jh-prospect:theme', 'NEON');
 
-    expect(readThemeChoice()).toBe('SYSTEM');
-    applyTheme(readThemeChoice());
+    expect(readTheme()).toBe('DARK');
+    applyTheme(readTheme());
     expect(document.documentElement.dataset['theme']).toBe('dark');
   });
 });

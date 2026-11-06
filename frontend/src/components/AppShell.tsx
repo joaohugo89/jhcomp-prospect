@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
-  Monitor,
   Moon,
   Sun,
   Users,
@@ -17,7 +16,7 @@ import { useState } from 'react';
 
 import { initials } from '../app/format';
 import { Link, type Route } from '../app/router';
-import { useTheme, type ThemeChoice } from '../app/theme';
+import { useTheme } from '../app/theme';
 import type { Session } from '../types/session';
 
 interface AppShellProps {
@@ -232,38 +231,20 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
   );
 }
 
-const THEME_ORDER: readonly ThemeChoice[] = ['SYSTEM', 'LIGHT', 'DARK'];
-
-const THEME_LABEL: Record<ThemeChoice, string> = {
-  SYSTEM: 'Tema: do sistema',
-  LIGHT: 'Tema: claro',
-  DARK: 'Tema: escuro',
-};
-
-const THEME_ICON: Record<ThemeChoice, LucideIcon> = {
-  SYSTEM: Monitor,
-  LIGHT: Sun,
-  DARK: Moon,
-};
-
-/**
- * Alterna claro, escuro e o do sistema. O estado vai no rotulo acessivel e no
- * `title`, e nao so no icone: quem usa leitor de tela precisa ouvir qual esta
- * valendo, nao apenas qual e o botao.
- */
+/** Alterna claro e escuro. O estado vai no rotulo acessivel, e nao so no icone. */
 function ThemeToggle(): React.ReactElement {
-  const [choice, setChoice] = useTheme();
-  const Icon = THEME_ICON[choice];
-  const next = THEME_ORDER[(THEME_ORDER.indexOf(choice) + 1) % THEME_ORDER.length] ?? 'SYSTEM';
+  const [theme, setTheme] = useTheme();
+  const dark = theme === 'DARK';
+  const Icon = dark ? Sun : Moon;
 
   return (
     <button
       type="button"
-      aria-label={`${THEME_LABEL[choice]}. Mudar para ${THEME_LABEL[next].toLowerCase()}`}
-      title={THEME_LABEL[choice]}
+      aria-label={dark ? 'Tema escuro. Mudar para o claro' : 'Tema claro. Mudar para o escuro'}
+      title={dark ? 'Tema escuro' : 'Tema claro'}
       className="ml-auto rounded-lg p-1 text-cream/60 hover:bg-oxblood-lift hover:text-white focus-visible:outline-2 focus-visible:outline-cream"
       onClick={() => {
-        setChoice(next);
+        setTheme(dark ? 'LIGHT' : 'DARK');
       }}
     >
       <Icon aria-hidden="true" className="size-4" />

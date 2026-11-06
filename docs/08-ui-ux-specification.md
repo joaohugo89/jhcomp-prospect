@@ -40,7 +40,7 @@ São dois modos, com os mesmos tokens:
 - **escuro** — vinho profundo de fundo, superfícies de creme translúcido.
 
 O padrão acompanha a preferência do aparelho; o botão no topo do menu lateral
-alterna claro, escuro e "do sistema", e a escolha fica no `localStorage`. A
+alterna os dois, e a escolha fica no `localStorage`. A
 tela de entrada é sempre vinho, nos dois modos. Não há azul na paleta: as
 famílias usadas para informação e etapas do funil são areia, terracota e
 ameixa. Definições em `frontend/src/index.css`; o tema, em
