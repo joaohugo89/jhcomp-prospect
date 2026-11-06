@@ -89,7 +89,7 @@ export function AnalysisSection({
   const doNotContact = lead.status === 'DO_NOT_CONTACT';
 
   return (
-    <section aria-labelledby="presenca" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
+    <section aria-labelledby="presenca" className="rounded-2xl border border-stone-200/70 glass p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="presenca" className="text-base font-semibold">

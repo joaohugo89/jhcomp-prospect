@@ -118,7 +118,7 @@ export function CompanyBulkBar({
     <div
       role="region"
       aria-label="Ações em lote"
-      className="flex flex-wrap items-center gap-3 rounded-2xl bg-stone-900 px-4 py-3 text-sm text-white shadow-lg"
+      className="flex flex-wrap items-center gap-3 rounded-2xl glass-lift ring-1 ring-stone-300 px-4 py-3 text-sm text-stone-900"
     >
       <span className="font-semibold">{`${selected.size} ${selected.size === 1 ? 'selecionada' : 'selecionadas'}`}</span>
       <div className="flex items-center gap-2">

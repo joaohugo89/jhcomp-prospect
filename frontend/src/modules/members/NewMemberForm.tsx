@@ -44,7 +44,7 @@ export function NewMemberForm({
   return (
     <section aria-labelledby="novo-membro" className={`${card} p-4`}>
       <h2 id="novo-membro" className="flex items-center gap-2 text-sm font-semibold text-stone-900">
-        <UserPlus aria-hidden="true" className="size-4 text-brand-600" />
+        <UserPlus aria-hidden="true" className="size-4 text-brand-700" />
         Adicionar membro
       </h2>
       <p className="mt-1 text-xs text-stone-500">

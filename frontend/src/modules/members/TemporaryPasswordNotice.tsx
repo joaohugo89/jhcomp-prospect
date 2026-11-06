@@ -39,7 +39,7 @@ export function TemporaryPasswordNotice({
       <p className="mt-2">
         {`Entregue a senha abaixo para ${member.email} por um canal seguro, como pessoalmente ou por mensagem direta. Ela não será mostrada de novo. No primeiro acesso, será preciso trocá-la.`}
       </p>
-      <p className="mt-3 select-all rounded-md bg-white px-3 py-2 font-mono text-base tracking-wide text-stone-900">
+      <p className="mt-3 select-all rounded-md glass px-3 py-2 font-mono text-base tracking-wide text-stone-900">
         {temporaryPassword}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">

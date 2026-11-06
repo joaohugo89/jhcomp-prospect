@@ -48,7 +48,7 @@ export function OutreachSection({
 
   if (state.kind !== 'ready') {
     return (
-      <section aria-labelledby="mensagens" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
+      <section aria-labelledby="mensagens" className="rounded-2xl border border-stone-200/70 glass p-4 shadow-sm">
         <h2 id="mensagens" className="mb-3 text-base font-semibold">
           Mensagens
         </h2>
@@ -76,7 +76,7 @@ export function OutreachSection({
   }
 
   return (
-    <section aria-labelledby="mensagens" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
+    <section aria-labelledby="mensagens" className="rounded-2xl border border-stone-200/70 glass p-4 shadow-sm">
       <h2 id="mensagens" className="text-base font-semibold">
         Mensagens
       </h2>

@@ -100,7 +100,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
       <form
         role="search"
         aria-label="Filtrar leads"
-        className="mb-3 rounded-2xl border border-stone-200/70 bg-white p-3 shadow-sm"
+        className="mb-3 rounded-2xl border border-stone-200/70 glass p-3 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           apply(draft);

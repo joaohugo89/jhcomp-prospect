@@ -23,17 +23,17 @@ type Tom = 'emerald' | 'brand' | 'sky' | 'violet' | 'slate' | 'red';
 
 const TONE: Readonly<Record<Tom, { readonly icon: string; readonly badge: string }>> = {
   emerald: {
-    icon: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+    icon: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
     badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
   },
-  brand: { icon: 'bg-brand-50 text-brand-600 ring-brand-100', badge: 'bg-brand-50 text-brand-700 ring-brand-100' },
-  sky: { icon: 'bg-sky-50 text-sky-600 ring-sky-100', badge: 'bg-sky-50 text-sky-700 ring-sky-200' },
+  brand: { icon: 'bg-brand-50 text-brand-700 ring-brand-100', badge: 'bg-brand-50 text-brand-700 ring-brand-100' },
+  sky: { icon: 'bg-sky-50 text-sky-700 ring-sky-100', badge: 'bg-sky-50 text-sky-700 ring-sky-200' },
   violet: {
-    icon: 'bg-violet-50 text-violet-600 ring-violet-100',
+    icon: 'bg-violet-50 text-violet-700 ring-violet-100',
     badge: 'bg-violet-50 text-violet-700 ring-violet-200',
   },
   slate: { icon: 'bg-stone-100 text-stone-500 ring-stone-200', badge: 'bg-stone-100 text-stone-600 ring-stone-200' },
-  red: { icon: 'bg-red-50 text-red-600 ring-red-100', badge: 'bg-red-50 text-red-700 ring-red-200' },
+  red: { icon: 'bg-red-50 text-red-700 ring-red-100', badge: 'bg-red-50 text-red-700 ring-red-200' },
 };
 
 interface Apresentacao {

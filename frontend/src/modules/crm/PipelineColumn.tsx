@@ -23,7 +23,7 @@ interface PipelineColumnProps {
 }
 
 const toggleButton =
-  'rounded-md p-1 text-stone-400 hover:bg-white hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-brand-500';
+  'rounded-md p-1 text-stone-400 hover:glass hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-brand-500';
 
 /** Uma etapa do Kanban: cabeçalho com contagem e valor, cards que rolam por dentro. */
 export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
@@ -83,7 +83,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
               <h2 id={headingId} className="flex items-baseline gap-2 text-sm font-semibold text-stone-800">
                 <span className="truncate">{stage.name}</span>
                 <span
-                  className="rounded-full bg-white px-1.5 text-xs font-semibold text-stone-600 tabular-nums ring-1 ring-stone-200"
+                  className="rounded-full glass px-1.5 text-xs font-semibold text-stone-600 tabular-nums ring-1 ring-stone-200"
                   aria-label={`${total} leads`}
                 >
                   {total}

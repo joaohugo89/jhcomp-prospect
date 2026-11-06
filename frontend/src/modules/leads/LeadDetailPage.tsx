@@ -316,7 +316,7 @@ function NeighbourLink({
   readonly shortcut: string;
   readonly icon: React.ReactNode;
 }): React.JSX.Element {
-  const className = 'inline-flex items-center rounded-lg border border-stone-200 bg-white p-1.5 shadow-sm';
+  const className = 'inline-flex items-center rounded-lg border border-stone-200 glass p-1.5 shadow-sm';
   if (to === undefined) {
     return (
       <span aria-hidden="true" className={`${className} text-stone-300`}>
@@ -357,7 +357,7 @@ function ActionBar({
           className={`inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
             index === 0
               ? 'bg-brand-600 text-white hover:bg-brand-700'
-              : 'border border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
+              : 'border border-stone-200 glass text-stone-700 hover:bg-stone-50'
           }`}
           onClick={actions[key]}
         >
@@ -366,7 +366,7 @@ function ActionBar({
           {shortcut !== null && (
             <kbd
               aria-hidden="true"
-              className={`rounded px-1 text-[10px] font-semibold ${index === 0 ? 'bg-white/20' : 'bg-stone-100 text-stone-500'}`}
+              className={`rounded px-1 text-[10px] font-semibold ${index === 0 ? 'glass-lift text-stone-900' : 'bg-stone-100 text-stone-500'}`}
             >
               {shortcut}
             </kbd>

@@ -22,7 +22,7 @@ export function ConversionReport({ conversao }: { readonly conversao: Conversao 
           setOpen(!open);
         }}
       >
-        <ChartColumn aria-hidden="true" className="size-4 text-brand-600" />
+        <ChartColumn aria-hidden="true" className="size-4 text-brand-700" />
         {open ? 'Recolher relatório de conversão' : 'Expandir relatório de conversão por origem e segmento'}
         <ChevronDown
           aria-hidden="true"

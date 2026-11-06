@@ -92,9 +92,9 @@ export function AttentionPanel({
             {clear.map((spec) => (
               <li
                 key={spec.key}
-                className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-stone-500 ring-1 ring-stone-200/70"
+                className="inline-flex items-center gap-1 rounded-full glass px-2.5 py-1 text-[11px] font-medium text-stone-500 ring-1 ring-stone-200/70"
               >
-                <CircleCheck aria-hidden="true" className="size-3.5 text-emerald-600" />
+                <CircleCheck aria-hidden="true" className="size-3.5 text-emerald-700" />
                 {`${spec.title}: nenhum`}
               </li>
             ))}

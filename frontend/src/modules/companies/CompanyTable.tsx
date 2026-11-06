@@ -60,7 +60,7 @@ export function CompanyTable(props: CompanyTableProps): React.JSX.Element {
 
   return (
     // relative: prende os textos sr-only (posição absoluta) dentro da rolagem da tabela.
-    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 bg-white">
+    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 glass">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Empresas</caption>
         <thead className="border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500">
@@ -156,7 +156,7 @@ export function ContactIcons({ item }: { readonly item: CompanyWorklistItem }): 
   return (
     <span className="inline-flex items-center gap-1.5">
       {channels.map(([has, label, icon]) => (
-        <span key={label} aria-hidden="true" className={has ? 'text-stone-600' : 'text-stone-200'}>
+        <span key={label} aria-hidden="true" className={has ? 'text-stone-600' : 'text-stone-400'}>
           {icon}
         </span>
       ))}

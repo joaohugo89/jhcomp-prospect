@@ -239,14 +239,14 @@ function DensityToggle({
     ['detailed', 'Detalhado'],
   ];
   return (
-    <div role="group" aria-label="Densidade dos cards" className="inline-flex rounded-lg bg-stone-200/70 p-0.5">
+    <div role="group" aria-label="Densidade dos cards" className="inline-flex rounded-lg bg-stone-100 p-0.5">
       {options.map(([value, label]) => (
         <button
           key={value}
           type="button"
           aria-pressed={density === value}
           className={`rounded-md px-3 py-1.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand-500 ${
-            density === value ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+            density === value ? 'glass text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
           }`}
           onClick={() => {
             onChange(value);

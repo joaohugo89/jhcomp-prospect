@@ -118,7 +118,7 @@ function TypeChoice({
           <label
             key={type}
             className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold focus-within:outline-2 focus-within:outline-brand-500 ${
-              value === type ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              value === type ? 'glass text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <input
@@ -460,7 +460,7 @@ function SuppressionList({ refresh }: { readonly refresh: number }): React.JSX.E
 
 function Table({ entries }: { readonly entries: readonly SuppressionEntry[] }): React.JSX.Element {
   return (
-    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 bg-white">
+    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 glass">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Pedidos de não contato</caption>
         <thead className="border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500">

@@ -67,7 +67,7 @@ export function UploadForm(): React.JSX.Element {
   return (
     <form
       noValidate
-      className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm"
+      className="space-y-4 rounded-2xl border border-stone-200/70 glass p-4 shadow-sm"
       onSubmit={(event) => {
         void submit(event);
       }}
@@ -95,7 +95,7 @@ export function UploadForm(): React.JSX.Element {
             void chooseFile(event.dataTransfer.files.item(0));
           }}
         >
-          <UploadCloud aria-hidden="true" className="size-8 text-brand-600" />
+          <UploadCloud aria-hidden="true" className="size-8 text-brand-700" />
           <span className="text-sm font-semibold text-stone-900">Arraste o CSV aqui ou clique para escolher</span>
           <span id="csv-file-hint" className="text-xs text-stone-500">
             UTF-8, até 2 MB e 2.000 linhas. Obrigatórias: nome, cidade e UF. No Excel: “Salvar como” → “CSV UTF-8”.
@@ -115,7 +115,7 @@ export function UploadForm(): React.JSX.Element {
         </label>
       ) : (
         <div className="flex items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 ring-1 ring-stone-200">
-          <FileSpreadsheet aria-hidden="true" className="size-8 shrink-0 text-emerald-600" />
+          <FileSpreadsheet aria-hidden="true" className="size-8 shrink-0 text-emerald-700" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-stone-900">{file.name}</p>
             <p className="text-xs text-stone-500">
@@ -125,7 +125,7 @@ export function UploadForm(): React.JSX.Element {
           <button
             type="button"
             aria-label="Trocar arquivo"
-            className="rounded-lg p-1.5 text-stone-500 hover:bg-white hover:text-stone-800 focus-visible:outline-2 focus-visible:outline-brand-500"
+            className="rounded-lg p-1.5 text-stone-500 hover:glass hover:text-stone-800 focus-visible:outline-2 focus-visible:outline-brand-500"
             onClick={() => {
               void chooseFile(null);
               setInputKey((value) => value + 1);

@@ -119,7 +119,7 @@ export function BulkBar({
     <div
       role="region"
       aria-label="Ações em lote"
-      className="flex flex-wrap items-center gap-3 rounded-2xl bg-stone-900 px-4 py-3 text-sm text-white shadow-lg"
+      className="flex flex-wrap items-center gap-3 rounded-2xl glass-lift ring-1 ring-stone-300 px-4 py-3 text-sm text-stone-900"
     >
       <span className="font-semibold">{`${selected.size} ${selected.size === 1 ? 'selecionado' : 'selecionados'}`}</span>
       <label className="flex items-center gap-2">
@@ -244,7 +244,7 @@ export function SavedViews({
             className={`inline-flex items-center rounded-full text-xs font-medium ring-1 ${
               view.query === currentQuery
                 ? 'bg-brand-50 text-brand-800 ring-brand-100'
-                : 'bg-white text-stone-700 ring-stone-200'
+                : 'glass text-stone-700 ring-stone-200'
             }`}
           >
             <Link

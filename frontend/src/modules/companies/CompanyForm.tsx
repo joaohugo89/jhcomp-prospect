@@ -116,7 +116,7 @@ export function CompanyForm({
       onSubmit={(event) => {
         void handleSubmit(event);
       }}
-      className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm"
+      className="space-y-4 rounded-2xl border border-stone-200/70 glass p-4 shadow-sm"
     >
       <fieldset className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <legend className="sr-only">Dados da empresa</legend>

@@ -11,7 +11,7 @@ const STATUS_TONE: Readonly<Record<FindingStatus, string>> = {
   CONFIRMED: 'bg-amber-50 text-amber-900 ring-amber-300',
   NOT_FOUND: 'bg-stone-100 text-stone-700 ring-stone-300',
   NOT_VERIFIED: 'bg-stone-100 text-stone-700 ring-stone-300',
-  NOT_APPLICABLE: 'bg-white text-stone-600 ring-stone-300',
+  NOT_APPLICABLE: 'glass text-stone-600 ring-stone-300',
   CONTRADICTED: 'bg-emerald-50 text-emerald-900 ring-emerald-300',
 };
 

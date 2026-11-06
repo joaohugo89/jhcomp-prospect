@@ -98,7 +98,7 @@ export function InteractionForm({
   const dateError = fieldErrors.get('occurredAt');
 
   return (
-    <section aria-labelledby="interacao" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
+    <section aria-labelledby="interacao" className="rounded-2xl border border-stone-200/70 glass p-4 shadow-sm">
       <h2 id="interacao" className="text-sm font-semibold text-stone-900">
         Registrar interação
       </h2>

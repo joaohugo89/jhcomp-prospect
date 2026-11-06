@@ -74,7 +74,7 @@ export function HeaderFilters({
         type="button"
         aria-expanded={open}
         aria-controls="painel-filtros"
-        className={`${toolbarButton} border border-stone-200 bg-white text-stone-700 hover:bg-stone-50`}
+        className={`${toolbarButton} border border-stone-200 glass text-stone-700 hover:bg-stone-50`}
         onClick={() => {
           setOpen(!open);
         }}
@@ -107,11 +107,11 @@ export function HeaderFilters({
           }}
         >
           {PRESETS.map((days) => (
-            <option key={days} value={days} className="bg-white text-stone-900">
+            <option key={days} value={days} className="glass text-stone-900">
               {`${days}D`}
             </option>
           ))}
-          <option value="custom" className="bg-white text-stone-900">
+          <option value="custom" className="glass text-stone-900">
             Personalizado
           </option>
         </select>
@@ -128,7 +128,7 @@ export function HeaderFilters({
         <div
           aria-hidden="true"
           data-testid="fundo-filtros"
-          className="fixed inset-0 z-20 bg-stone-900/20 sm:bg-transparent"
+          className="fixed inset-0 z-20 bg-oxblood-deep/50 sm:bg-transparent"
           onClick={() => {
             setOpen(false);
           }}
@@ -138,7 +138,7 @@ export function HeaderFilters({
         <form
           id="painel-filtros"
           aria-label="Filtros"
-          className={`${card} absolute top-11 right-0 z-30 grid w-[min(34rem,calc(100vw-2rem))] gap-3 p-4 shadow-lg sm:grid-cols-2`}
+          className={`${card} glass-panel absolute top-11 right-0 z-30 grid w-[min(34rem,calc(100vw-2rem))] gap-3 p-4 shadow-lg sm:grid-cols-2`}
           onSubmit={(event) => {
             event.preventDefault();
             if (!invalid) {

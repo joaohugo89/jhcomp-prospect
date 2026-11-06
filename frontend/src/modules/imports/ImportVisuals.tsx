@@ -70,7 +70,7 @@ export function ImportResultBar({ batch }: { readonly batch: ImportBatch }): Rea
         {segments.map((segment) => (
           <span
             key={segment.label[1]}
-            className={`${segment.tone} border-r-2 border-white last:border-r-0`}
+            className={`${segment.tone} border-r-2 border-chart-gap last:border-r-0`}
             style={{ width: `${(segment.value / total) * 100}%` }}
           />
         ))}

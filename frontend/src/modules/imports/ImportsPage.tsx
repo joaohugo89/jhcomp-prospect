@@ -59,7 +59,7 @@ export function ImportsPage(): React.JSX.Element {
         <UploadForm />
         <aside aria-labelledby="como-importar" className={`${card} space-y-3 p-4 text-sm`}>
           <h2 id="como-importar" className="flex items-center gap-2 font-semibold text-stone-900">
-            <ShieldCheck aria-hidden="true" className="size-4 text-emerald-600" />
+            <ShieldCheck aria-hidden="true" className="size-4 text-emerald-700" />
             Como a importação protege a base
           </h2>
           <ul className="space-y-2 text-stone-600">
@@ -138,7 +138,7 @@ function Overview({
           {status !== null && (
             <button
               type="button"
-              className="absolute inset-0 rounded-2xl hover:bg-stone-900/[0.02] focus-visible:outline-2 focus-visible:outline-brand-500"
+              className="absolute inset-0 rounded-2xl hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-brand-500"
               onClick={() => {
                 onFilter(status);
               }}
@@ -154,7 +154,7 @@ function Overview({
 
 function History({ items }: { readonly items: readonly ImportBatch[] }): React.JSX.Element {
   return (
-    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 bg-white">
+    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 glass">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Importações</caption>
         <thead className="border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500">

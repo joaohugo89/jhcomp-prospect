@@ -236,7 +236,7 @@ export function MembersPage({ session }: { readonly session: Session }): React.J
           />
           <section aria-labelledby="papeis" className={`${card} p-4 text-sm`}>
             <h2 id="papeis" className="flex items-center gap-2 font-semibold text-stone-900">
-              <ShieldCheck aria-hidden="true" className="size-4 text-emerald-600" />
+              <ShieldCheck aria-hidden="true" className="size-4 text-emerald-700" />
               Papéis e segurança
             </h2>
             <ul className="mt-3 space-y-2 text-stone-600">
@@ -290,7 +290,7 @@ function MemberTable({
     'inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand-500 disabled:opacity-50';
   return (
     // No celular cada pessoa vira um cartão (linhas em bloco), sem rolagem lateral escondendo papel e ações.
-    <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white sm:overflow-x-auto">
+    <div className="relative overflow-hidden rounded-2xl border border-stone-200 glass sm:overflow-x-auto">
       <table className="block w-full text-sm sm:table">
         <caption className="sr-only">Membros</caption>
         <thead className="hidden border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500 sm:table-header-group">
@@ -330,7 +330,7 @@ function MemberTable({
                     </span>
                     <span className={revoked ? 'text-stone-500 line-through' : ''}>{member.displayName}</span>
                     {self && (
-                      <span className="rounded-full bg-stone-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      <span className="rounded-full bg-oxblood-lift px-1.5 py-0.5 text-[10px] font-semibold text-white">
                         Você
                       </span>
                     )}

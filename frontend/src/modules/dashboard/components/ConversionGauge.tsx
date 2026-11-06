@@ -34,7 +34,7 @@ export function ConversionGauge({ conversao }: { readonly conversao: Conversao |
             <path
               d="M 10 50 A 40 40 0 0 1 90 50"
               fill="none"
-              className="stroke-brand-600"
+              className="stroke-brand-700"
               strokeWidth={10}
               strokeLinecap="round"
               strokeDasharray={`${ARC * taxa} ${ARC}`}

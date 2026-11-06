@@ -32,7 +32,7 @@ export function ActivityTimeline({
   const [state, reload] = useLoad(`${leadId}:${page}:${refreshKey}`, (signal) => getLeadTimeline(leadId, page, signal));
 
   return (
-    <section aria-labelledby="historico" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
+    <section aria-labelledby="historico" className="rounded-2xl border border-stone-200/70 glass p-4 shadow-sm">
       <h2 id="historico" className="text-base font-semibold">
         Histórico
       </h2>

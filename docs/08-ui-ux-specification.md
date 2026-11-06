@@ -27,7 +27,24 @@ Direção inicial:
 - espaçamento consistente;
 - ícones com rótulos acessíveis.
 
-Não escolher cores finais antes de validar o design system e os logotipos oficiais dos produtos JH.COMP.
+Direção adotada (implementada): a mesma dos sites da JH Comp — joaohugo.com,
+freelancer, tech, portfolio e planner. Vinho (oxblood `#44171b`) e creme
+`#f7f3ee`, vermelho `#e53935` como acento, Fraunces nos títulos, Inter no
+texto, JetBrains Mono nos rótulos curtos em maiúsculo, e acabamento
+glassmorphism: superfícies translúcidas com `backdrop-filter` e linha fina de
+creme a 12%.
+
+São dois modos, com os mesmos tokens:
+
+- **claro** — creme de fundo, vinho na navegação e nos botões;
+- **escuro** — vinho profundo de fundo, superfícies de creme translúcido.
+
+O padrão acompanha a preferência do aparelho; o botão no topo do menu lateral
+alterna claro, escuro e "do sistema", e a escolha fica no `localStorage`. A
+tela de entrada é sempre vinho, nos dois modos. Não há azul na paleta: as
+famílias usadas para informação e etapas do funil são areia, terracota e
+ameixa. Definições em `frontend/src/index.css`; o tema, em
+`frontend/src/app/theme.ts`.
 
 ## 3. Navegação
 

@@ -105,11 +105,11 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
         >
-          <path d={area} className="fill-brand-600/10" />
+          <path d={area} className="fill-brand-700/10" />
           <path
             d={line}
             fill="none"
-            className="stroke-brand-600"
+            className="stroke-brand-700"
             strokeWidth={2}
             strokeLinejoin="round"
             strokeLinecap="round"
@@ -131,7 +131,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
             <span
               key={point.key}
               aria-hidden="true"
-              className={`absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white ${
+              className={`absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-chart-gap ${
                 index === active ? 'bg-brand-700' : 'bg-brand-600'
               }`}
               style={{ left: `${xOf(index)}%`, top: `${yOf(point.value)}%` }}
@@ -164,7 +164,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
         {current !== undefined && active !== null && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute top-0 z-10 rounded-xl border border-stone-200 bg-white px-3 py-2 whitespace-nowrap shadow-md"
+            className="pointer-events-none absolute top-0 z-10 rounded-xl border border-stone-200 glass-panel px-3 py-2 whitespace-nowrap shadow-md"
             style={alongX(xOf(active))}
           >
             <p className="text-sm font-semibold text-stone-900 tabular-nums">{format(current.value)}</p>

@@ -89,7 +89,7 @@ export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element 
               aria-pressed={option.key === metricKey}
               className={`h-8 rounded-full px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
                 option.key === metricKey
-                  ? 'bg-stone-900 text-white'
+                  ? 'bg-brand-600 text-white'
                   : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
               }`}
               onClick={() => {

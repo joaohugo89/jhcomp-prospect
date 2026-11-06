@@ -68,7 +68,7 @@ export function WorklistTable(props: WorklistTableProps): React.JSX.Element {
   return (
     // relative: os textos só para leitor de tela (sr-only, posição absoluta) ficam presos
     // aqui; sem isso escapam da rolagem da tabela e alargam a página no celular.
-    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 bg-white">
+    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 glass">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Leads</caption>
         <thead className="border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500">

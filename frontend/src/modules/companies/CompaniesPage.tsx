@@ -71,7 +71,7 @@ export function CompaniesPage(): React.JSX.Element {
       <form
         role="search"
         aria-label="Filtrar empresas"
-        className="mb-3 rounded-2xl border border-stone-200/70 bg-white p-3 shadow-sm"
+        className="mb-3 rounded-2xl border border-stone-200/70 glass p-3 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           apply(draft);

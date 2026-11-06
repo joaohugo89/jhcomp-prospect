@@ -10,7 +10,10 @@ interface LoginPageProps {
 export function LoginPage({ sessionExpired, onAuthenticated }: LoginPageProps): React.JSX.Element {
   return (
     // Mesma entrada do site da JH Comp: vinho de fundo, título em serifa e o acento em itálico vermelho.
-    <main className="flex min-h-dvh items-center justify-center bg-oxblood px-4 py-10 text-stone-900">
+    <main
+      data-theme="dark"
+      className="brand-backdrop flex min-h-dvh items-center justify-center px-4 py-10 text-stone-900"
+    >
       <div className="w-full max-w-sm">
         <p className="text-center font-mono text-[11px] font-semibold tracking-[0.2em] text-cream/60 uppercase">
           JH Comp · Prospecção
@@ -20,7 +23,7 @@ export function LoginPage({ sessionExpired, onAuthenticated }: LoginPageProps): 
         </h1>
         <p className="mt-2 text-center text-sm text-cream/70">Acesso restrito à equipe.</p>
 
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white p-6 shadow-2xl shadow-black/30">
+        <div className="mt-8 rounded-2xl border border-white/10 glass p-6 shadow-2xl shadow-black/30">
           {sessionExpired && (
             <p role="status" className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
               Sua sessão expirou ou foi encerrada. Entre novamente para continuar.

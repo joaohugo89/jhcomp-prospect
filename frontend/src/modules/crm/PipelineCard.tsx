@@ -63,7 +63,7 @@ export function PipelineCard({
         onDragStart();
       }}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-lg border border-stone-200 bg-white text-sm shadow-sm ${
+      className={`group relative rounded-lg border border-stone-200 glass text-sm shadow-sm ${
         detailed ? 'p-2.5' : 'px-2.5 py-1.5'
       } ${draggable ? 'cursor-grab' : ''}`}
     >

@@ -65,7 +65,7 @@ export function ImportReport({
             type="button"
             aria-pressed={filter === status}
             className={`rounded-full px-3 py-1 text-sm ring-1 ring-inset focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
-              filter === status ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-stone-700 ring-stone-300'
+              filter === status ? 'bg-brand-600 text-white ring-brand-600' : 'glass text-stone-700 ring-stone-300'
             }`}
             onClick={() => {
               setFilter(status);
@@ -80,7 +80,7 @@ export function ImportReport({
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : state.data.content.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-stone-300 bg-white px-6 py-6 text-center text-sm text-stone-600">
+        <p className="rounded-lg border border-dashed border-stone-300 glass px-6 py-6 text-center text-sm text-stone-600">
           Nenhuma linha nesta situação.
         </p>
       ) : (
@@ -139,7 +139,7 @@ function RowCard({
   return (
     <article
       aria-label={`Linha ${row.rowNumber}`}
-      className={`rounded-lg border-l-4 border-y border-r border-stone-200 bg-white px-4 py-3 text-sm ${ROW_TONE[row.status]}`}
+      className={`rounded-lg border-l-4 border-y border-r border-stone-200 glass px-4 py-3 text-sm ${ROW_TONE[row.status]}`}
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-medium text-stone-900">
