@@ -7,6 +7,9 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Monitor,
+  Moon,
+  Sun,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -14,6 +17,7 @@ import { useState } from 'react';
 
 import { initials } from '../app/format';
 import { Link, type Route } from '../app/router';
+import { useTheme, type ThemeChoice } from '../app/theme';
 import type { Session } from '../types/session';
 
 interface AppShellProps {
@@ -111,25 +115,26 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
   }
 
   return (
-    <div className={`min-h-dvh bg-cream text-stone-900 md:flex ${fullScreen ? 'md:h-dvh md:overflow-hidden' : ''}`}>
+    <div className={`min-h-dvh text-stone-900 md:flex ${fullScreen ? 'md:h-dvh md:overflow-hidden' : ''}`}>
       <a
         href="#conteudo"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:glass focus:px-3 focus:py-2 focus:shadow"
       >
         Ir para o conteúdo
       </a>
 
-      <aside className="border-b border-oxblood-deep bg-oxblood text-cream md:sticky md:top-0 md:flex md:h-dvh md:w-56 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:border-oxblood-deep">
-        <div className="flex items-center gap-2 px-4 pt-3 pb-2 md:pt-4">
+      <aside className="border-b border-stone-200 nav-surface text-cream md:sticky md:top-0 md:flex md:h-dvh md:w-56 md:shrink-0 md:flex-col md:border-r md:border-b-0 md:border-stone-200">
+        <div className="flex items-center gap-1.5 px-3 pt-3 pb-2 md:pt-4">
           <span
             aria-hidden="true"
             className="inline-flex size-7 items-center justify-center rounded-lg bg-brand-500 font-mono text-[11px] font-bold text-white"
           >
             JH
           </span>
-          <p className="font-display text-base leading-none font-semibold tracking-tight">
+          <p className="font-display text-[15px] leading-none font-semibold tracking-tight whitespace-nowrap">
             JH.COMP <em className="font-normal text-brand-200">Prospect</em>
           </p>
+          <ThemeToggle />
         </div>
 
         <nav aria-label="Principal" className="px-2 md:flex-1 md:overflow-y-auto md:py-2">
@@ -158,7 +163,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
                             className={`flex items-center gap-2 rounded-lg border-l-2 px-2.5 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream ${
                               active
                                 ? 'border-brand-500 bg-oxblood-lift text-white'
-                                : 'border-transparent text-cream/70 hover:bg-oxblood-lift/60 hover:text-white'
+                                : 'border-transparent text-cream/70 hover:bg-oxblood-lift hover:text-white'
                             }`}
                           >
                             <Icon
@@ -180,7 +185,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
         <div className="flex items-center gap-2 border-t border-white/10 px-3 py-2 md:py-3">
           <span
             aria-hidden="true"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-oxblood-lift text-xs font-bold text-cream"
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-cream"
           >
             {initials(session.displayName)}
           </span>
@@ -224,5 +229,44 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
         {children}
       </main>
     </div>
+  );
+}
+
+const THEME_ORDER: readonly ThemeChoice[] = ['SYSTEM', 'LIGHT', 'DARK'];
+
+const THEME_LABEL: Record<ThemeChoice, string> = {
+  SYSTEM: 'Tema: do sistema',
+  LIGHT: 'Tema: claro',
+  DARK: 'Tema: escuro',
+};
+
+const THEME_ICON: Record<ThemeChoice, LucideIcon> = {
+  SYSTEM: Monitor,
+  LIGHT: Sun,
+  DARK: Moon,
+};
+
+/**
+ * Alterna claro, escuro e o do sistema. O estado vai no rotulo acessivel e no
+ * `title`, e nao so no icone: quem usa leitor de tela precisa ouvir qual esta
+ * valendo, nao apenas qual e o botao.
+ */
+function ThemeToggle(): React.ReactElement {
+  const [choice, setChoice] = useTheme();
+  const Icon = THEME_ICON[choice];
+  const next = THEME_ORDER[(THEME_ORDER.indexOf(choice) + 1) % THEME_ORDER.length] ?? 'SYSTEM';
+
+  return (
+    <button
+      type="button"
+      aria-label={`${THEME_LABEL[choice]}. Mudar para ${THEME_LABEL[next].toLowerCase()}`}
+      title={THEME_LABEL[choice]}
+      className="ml-auto rounded-lg p-1 text-cream/60 hover:bg-oxblood-lift hover:text-white focus-visible:outline-2 focus-visible:outline-cream"
+      onClick={() => {
+        setChoice(next);
+      }}
+    >
+      <Icon aria-hidden="true" className="size-4" />
+    </button>
   );
 }

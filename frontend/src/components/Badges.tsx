@@ -28,14 +28,14 @@ export function StatusBadge({ status }: { readonly status: LeadStatus }): React.
 }
 
 const PRIORITY_TONE: Readonly<Record<LeadPriority, string>> = {
-  LOW: 'bg-white text-stone-700 ring-stone-300',
-  MEDIUM: 'bg-white text-stone-800 ring-stone-400',
+  LOW: 'glass text-stone-700 ring-stone-300',
+  MEDIUM: 'glass text-stone-800 ring-stone-400',
   HIGH: 'bg-amber-50 text-amber-900 ring-amber-400',
   VERY_HIGH: 'bg-red-50 text-red-900 ring-red-400',
 };
 
 const MESSAGE_TONE: Readonly<Record<MessageStatus, string>> = {
-  DRAFT: 'bg-white text-stone-800 ring-stone-400',
+  DRAFT: 'glass text-stone-800 ring-stone-400',
   NEEDS_REVIEW: 'bg-amber-50 text-amber-900 ring-amber-400',
   APPROVED: 'bg-sky-50 text-sky-900 ring-sky-400',
   SENT: 'bg-emerald-50 text-emerald-900 ring-emerald-400',

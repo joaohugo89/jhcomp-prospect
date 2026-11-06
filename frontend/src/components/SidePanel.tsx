@@ -52,14 +52,14 @@ export function SidePanel({
       <div
         aria-hidden="true"
         data-testid={backdropTestId}
-        className="fixed inset-0 z-30 bg-stone-900/30 lg:hidden"
+        className="fixed inset-0 z-30 bg-oxblood-deep/60 lg:hidden"
         onClick={onClose}
       />
       <aside
         id={id}
         aria-label={label}
         // No celular sobra uma faixa à esquerda: é onde se toca para fechar.
-        className="fixed inset-y-0 right-0 z-40 flex w-[calc(100%-3rem)] max-w-md flex-col border-l border-stone-200 bg-white shadow-2xl"
+        className="fixed inset-y-0 right-0 z-40 flex w-[calc(100%-3rem)] max-w-md flex-col border-l border-stone-200 glass-panel shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3">
           <p className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">{label}</p>
