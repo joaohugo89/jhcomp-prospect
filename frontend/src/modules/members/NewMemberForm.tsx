@@ -43,11 +43,11 @@ export function NewMemberForm({
 
   return (
     <section aria-labelledby="novo-membro" className={`${card} p-4`}>
-      <h2 id="novo-membro" className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+      <h2 id="novo-membro" className="flex items-center gap-2 text-sm font-semibold text-stone-900">
         <UserPlus aria-hidden="true" className="size-4 text-brand-600" />
         Adicionar membro
       </h2>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-stone-500">
         A pessoa recebe uma senha temporária, mostrada uma vez só, e troca no primeiro acesso.
       </p>
       <form
@@ -75,7 +75,7 @@ export function NewMemberForm({
           autoComplete="off"
           error={fieldErrors.get('email')}
         />
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-stone-700">
           Papel
           <select
             className={input}
@@ -87,7 +87,7 @@ export function NewMemberForm({
             <option value="OPERATOR">Operador</option>
             <option value="ADMIN">Administrador</option>
           </select>
-          <span className="mt-1 block text-xs font-normal text-slate-500">
+          <span className="mt-1 block text-xs font-normal text-stone-500">
             {role === 'ADMIN'
               ? 'Também gerencia membros, vê a lista de não contato e corrige cadastros feitos por engano.'
               : 'Conduz o trabalho comercial: empresas, leads, pipeline e mensagens.'}

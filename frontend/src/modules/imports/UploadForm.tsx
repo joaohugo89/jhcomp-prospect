@@ -67,7 +67,7 @@ export function UploadForm(): React.JSX.Element {
   return (
     <form
       noValidate
-      className="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm"
+      className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm"
       onSubmit={(event) => {
         void submit(event);
       }}
@@ -80,7 +80,7 @@ export function UploadForm(): React.JSX.Element {
         <label
           htmlFor={inputId}
           className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors focus-within:outline-2 focus-within:outline-brand-500 ${
-            dragging ? 'border-brand-500 bg-brand-50' : 'border-slate-300 bg-slate-50/60 hover:bg-slate-50'
+            dragging ? 'border-brand-500 bg-brand-50' : 'border-stone-300 bg-stone-50/60 hover:bg-stone-50'
           }`}
           onDragOver={(event) => {
             event.preventDefault();
@@ -96,8 +96,8 @@ export function UploadForm(): React.JSX.Element {
           }}
         >
           <UploadCloud aria-hidden="true" className="size-8 text-brand-600" />
-          <span className="text-sm font-semibold text-slate-900">Arraste o CSV aqui ou clique para escolher</span>
-          <span id="csv-file-hint" className="text-xs text-slate-500">
+          <span className="text-sm font-semibold text-stone-900">Arraste o CSV aqui ou clique para escolher</span>
+          <span id="csv-file-hint" className="text-xs text-stone-500">
             UTF-8, até 2 MB e 2.000 linhas. Obrigatórias: nome, cidade e UF. No Excel: “Salvar como” → “CSV UTF-8”.
           </span>
           <input
@@ -114,18 +114,18 @@ export function UploadForm(): React.JSX.Element {
           />
         </label>
       ) : (
-        <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+        <div className="flex items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 ring-1 ring-stone-200">
           <FileSpreadsheet aria-hidden="true" className="size-8 shrink-0 text-emerald-600" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">{file.name}</p>
-            <p className="text-xs text-slate-500">
+            <p className="truncate text-sm font-semibold text-stone-900">{file.name}</p>
+            <p className="text-xs text-stone-500">
               {`${fileSize(file.size)}${headers.length > 0 ? ` · ${headers.length} colunas: ${headers.slice(0, 4).join(', ')}${headers.length > 4 ? '…' : ''}` : ''}`}
             </p>
           </div>
           <button
             type="button"
             aria-label="Trocar arquivo"
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-brand-500"
+            className="rounded-lg p-1.5 text-stone-500 hover:bg-white hover:text-stone-800 focus-visible:outline-2 focus-visible:outline-brand-500"
             onClick={() => {
               void chooseFile(null);
               setInputKey((value) => value + 1);
@@ -166,13 +166,13 @@ export function UploadForm(): React.JSX.Element {
       )}
 
       {showMapping && headers.length > 0 && (
-        <fieldset className="grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-3">
-          <legend className="text-sm font-medium text-slate-800">Colunas do arquivo</legend>
-          <p className="text-xs text-slate-500 md:col-span-3">
+        <fieldset className="grid gap-3 border-t border-stone-200 pt-4 md:grid-cols-3">
+          <legend className="text-sm font-medium text-stone-800">Colunas do arquivo</legend>
+          <p className="text-xs text-stone-500 md:col-span-3">
             Indique a coluna de cada campo. Campos sem coluna ficam em branco; colunas não usadas são ignoradas.
           </p>
           {IMPORT_FIELDS.map((field) => (
-            <label key={field} className="text-sm font-medium text-slate-700">
+            <label key={field} className="text-sm font-medium text-stone-700">
               {IMPORT_FIELD_LABEL[field]}
               {REQUIRED_IMPORT_FIELDS.has(field) && <span aria-hidden="true"> *</span>}
               <select

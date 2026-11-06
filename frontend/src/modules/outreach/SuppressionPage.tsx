@@ -79,7 +79,7 @@ export function SuppressionPage({ session }: { readonly session: Session }): Rea
           ) : (
             <>
               <CheckCard />
-              <p className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
+              <p className="rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-600">
                 Somente administradores consultam a lista de bloqueios. Para saber se um contato está bloqueado, use a
                 conferência acima.
               </p>
@@ -112,13 +112,13 @@ function TypeChoice({
   const name = useId();
   return (
     <fieldset>
-      <legend className="text-sm font-medium text-slate-700">{legend}</legend>
-      <div className="mt-1 grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
+      <legend className="text-sm font-medium text-stone-700">{legend}</legend>
+      <div className="mt-1 grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1">
         {IDENTIFIER_TYPES.map((type) => (
           <label
             key={type}
             className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold focus-within:outline-2 focus-within:outline-brand-500 ${
-              value === type ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              value === type ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <input
@@ -163,10 +163,10 @@ function CheckCard(): React.JSX.Element {
   return (
     <section aria-labelledby="conferir-contato" className={`${card} space-y-3 p-4`}>
       <div>
-        <h2 id="conferir-contato" className="text-sm font-semibold text-slate-900">
+        <h2 id="conferir-contato" className="text-sm font-semibold text-stone-900">
           Conferir um contato
         </h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-stone-500">
           Antes de ligar ou escrever por fora do sistema. Mostra só se há bloqueio, sem o motivo.
         </p>
       </div>
@@ -291,10 +291,10 @@ function RegisterForm({ onRegistered }: { readonly onRegistered: () => void }): 
 
   return (
     <section aria-labelledby="registrar-bloqueio" className={`${card} p-4`}>
-      <h2 id="registrar-bloqueio" className="text-sm font-semibold text-slate-900">
+      <h2 id="registrar-bloqueio" className="text-sm font-semibold text-stone-900">
         Registrar pedido de não contato
       </h2>
-      <p className="mt-1 text-xs text-slate-500">Vale na hora, para toda a equipe. Não há como remover depois.</p>
+      <p className="mt-1 text-xs text-stone-500">Vale na hora, para toda a equipe. Não há como remover depois.</p>
       <form
         className="mt-4 space-y-3"
         onSubmit={(event) => {
@@ -312,7 +312,7 @@ function RegisterForm({ onRegistered }: { readonly onRegistered: () => void }): 
           hint={IDENTIFIER_HINT[identifierType]}
           error={fieldErrors.get('identifier')}
         />
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-stone-700">
           Vale para
           <select
             className={input}
@@ -342,7 +342,7 @@ function RegisterForm({ onRegistered }: { readonly onRegistered: () => void }): 
             <button
               key={text}
               type="button"
-              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-brand-500"
+              className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-200 focus-visible:outline-2 focus-visible:outline-brand-500"
               onClick={() => {
                 setReason(text);
               }}
@@ -407,7 +407,7 @@ function SuppressionList({ refresh }: { readonly refresh: number }): React.JSX.E
           setPage(0);
         }}
       >
-        <label className="min-w-[12rem] flex-1 text-sm font-medium text-slate-700">
+        <label className="min-w-[12rem] flex-1 text-sm font-medium text-stone-700">
           Buscar contato
           <input
             type="search"
@@ -419,7 +419,7 @@ function SuppressionList({ refresh }: { readonly refresh: number }): React.JSX.E
             }}
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-stone-700">
           Tipo
           <select
             className={input}
@@ -460,10 +460,10 @@ function SuppressionList({ refresh }: { readonly refresh: number }): React.JSX.E
 
 function Table({ entries }: { readonly entries: readonly SuppressionEntry[] }): React.JSX.Element {
   return (
-    <div className="relative overflow-x-auto rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+    <div className="relative overflow-x-auto rounded-2xl border border-stone-200 bg-white">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Pedidos de não contato</caption>
-        <thead className="border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500">
+        <thead className="border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500">
           <tr>
             <th scope="col" className="px-4 py-2 font-medium">
               Contato
@@ -479,33 +479,33 @@ function Table({ entries }: { readonly entries: readonly SuppressionEntry[] }): 
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-stone-100">
           {entries.map((entry) => (
             <tr key={entry.id}>
               <td className="px-4 py-2">
-                <p className="flex items-center gap-2 font-mono text-[13px] break-all text-slate-900">
-                  <span aria-hidden="true" className="shrink-0 text-slate-400">
+                <p className="flex items-center gap-2 font-mono text-[13px] break-all text-stone-900">
+                  <span aria-hidden="true" className="shrink-0 text-stone-400">
                     {TYPE_ICON[entry.identifierType]}
                   </span>
                   {readable(entry)}
                 </p>
-                <p className="pl-6 text-xs text-slate-500">{IDENTIFIER_TYPE_LABEL[entry.identifierType]}</p>
+                <p className="pl-6 text-xs text-stone-500">{IDENTIFIER_TYPE_LABEL[entry.identifierType]}</p>
               </td>
               <td className="px-4 py-2">
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ${
                     entry.channel === undefined
                       ? 'bg-red-50 text-red-800 ring-red-200'
-                      : 'bg-slate-100 text-slate-700 ring-slate-200'
+                      : 'bg-stone-100 text-stone-700 ring-stone-200'
                   }`}
                 >
                   {entry.channel === undefined ? 'Todos' : OUTREACH_CHANNEL_LABEL[entry.channel]}
                 </span>
               </td>
-              <td className="hidden max-w-[22rem] px-4 py-2 text-slate-600 md:table-cell">
+              <td className="hidden max-w-[22rem] px-4 py-2 text-stone-600 md:table-cell">
                 <span className="line-clamp-2">{entry.reason}</span>
               </td>
-              <td className="hidden px-4 py-2 whitespace-nowrap text-slate-600 sm:table-cell">
+              <td className="hidden px-4 py-2 whitespace-nowrap text-stone-600 sm:table-cell">
                 {formatDateTime(entry.requestedAt)}
               </td>
             </tr>

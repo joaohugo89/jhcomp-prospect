@@ -54,12 +54,12 @@ export function ImportReview({
       <h2 id="revisao" className="text-base font-semibold">
         Revisar e importar
       </h2>
-      <p className="mt-1 text-sm text-slate-700">
+      <p className="mt-1 text-sm text-stone-700">
         Serão importadas as linhas válidas e as possíveis duplicatas em que você escolher o que fazer. Completar uma
         empresa existente só preenche os campos vazios dela; nada que já está cadastrado é alterado. Rejeitadas nunca
         são importadas.
       </p>
-      <label className="mt-3 flex items-center gap-2 text-sm text-slate-800">
+      <label className="mt-3 flex items-center gap-2 text-sm text-stone-800">
         <input
           type="checkbox"
           checked={createLeads}

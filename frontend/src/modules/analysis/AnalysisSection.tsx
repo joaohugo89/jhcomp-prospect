@@ -89,13 +89,13 @@ export function AnalysisSection({
   const doNotContact = lead.status === 'DO_NOT_CONTACT';
 
   return (
-    <section aria-labelledby="presenca" className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+    <section aria-labelledby="presenca" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="presenca" className="text-base font-semibold">
             Presença digital
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-stone-500">
             Verifica o site cadastrado: HTTPS, adaptação a celular e links de contato da página inicial.
           </p>
         </div>
@@ -111,7 +111,7 @@ export function AnalysisSection({
         </button>
       </div>
 
-      {doNotContact && <p className="mt-3 text-sm text-slate-600">Lead marcado como não contatar: não é analisado.</p>}
+      {doNotContact && <p className="mt-3 text-sm text-stone-600">Lead marcado como não contatar: não é analisado.</p>}
       {error !== null && (
         <p role="alert" className="mt-3 text-sm text-red-700">
           {error}
@@ -121,7 +121,7 @@ export function AnalysisSection({
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : latest === undefined ? (
-        <p className="mt-4 text-sm text-slate-600">Nenhuma análise ainda. Sem análise, o lead não tem score.</p>
+        <p className="mt-4 text-sm text-stone-600">Nenhuma análise ainda. Sem análise, o lead não tem score.</p>
       ) : (
         <LatestAnalysis summary={latest} onScoreChanged={onScoreChanged} />
       )}
@@ -138,7 +138,7 @@ function LatestAnalysis({
 }): React.JSX.Element {
   if (isActive(summary)) {
     return (
-      <p role="status" className="mt-4 text-sm text-slate-700">
+      <p role="status" className="mt-4 text-sm text-stone-700">
         {ANALYSIS_STATUS_LABEL[summary.status]} desde {formatDateTime(summary.createdAt)}. A página atualiza sozinha.
       </p>
     );
@@ -172,16 +172,16 @@ function CompletedAnalysis({
 
   return (
     <div className="mt-4">
-      <p className="text-sm text-slate-700">
-        <span className="text-2xl font-semibold tabular-nums text-slate-900">{score}</span>
-        <span className="text-slate-500"> / 100</span> · fórmula {detail.analysis.scoreVersion} · concluída em{' '}
+      <p className="text-sm text-stone-700">
+        <span className="text-2xl font-semibold tabular-nums text-stone-900">{score}</span>
+        <span className="text-stone-500"> / 100</span> · fórmula {detail.analysis.scoreVersion} · concluída em{' '}
         {detail.analysis.completedAt === undefined ? '—' : formatDateTime(detail.analysis.completedAt)}
       </p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-stone-500">
         Prioridade sugerida pelas faixas do score: {PRIORITY_LABEL[suggestedPriority(score)]}. O score indica
         oportunidade de serviço, não probabilidade de compra. Só achados confirmados pontuam.
       </p>
-      <ol className="mt-3 divide-y divide-slate-100">
+      <ol className="mt-3 divide-y divide-stone-100">
         {detail.findings.map((finding) => (
           <FindingRow
             key={finding.id}

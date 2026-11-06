@@ -11,7 +11,7 @@ export function PasswordPage({ onChanged }: { readonly onChanged: (session: Sess
   return (
     <>
       <PageHeader title="Minha senha" description="Troque a senha usada para entrar no JH.COMP Prospect." />
-      <section className="max-w-md rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
+      <section className="max-w-md rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm">
         {done ? (
           <p role="status" className="text-sm text-emerald-800">
             Senha trocada. As sessões abertas em outros navegadores foram encerradas.
@@ -44,15 +44,15 @@ export function ForcedPasswordChange({
   readonly onSignOut: () => void;
 }): React.JSX.Element {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-10">
+    <main className="flex min-h-dvh items-center justify-center bg-stone-50 px-4 py-10">
       <section
         aria-labelledby="troca-obrigatoria"
-        className="w-full max-w-md rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm"
+        className="w-full max-w-md rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm"
       >
-        <h1 id="troca-obrigatoria" className="text-xl font-semibold text-slate-900">
+        <h1 id="troca-obrigatoria" className="font-display text-2xl font-semibold text-stone-900">
           Defina sua senha
         </h1>
-        <p className="mt-2 text-sm text-slate-700">
+        <p className="mt-2 text-sm text-stone-700">
           {`Olá, ${session.displayName}. Você entrou com uma senha temporária, criada pelo administrador. Defina uma senha sua para continuar.`}
         </p>
         <div className="mt-4">

@@ -134,14 +134,14 @@ export function MembersPage({ session }: { readonly session: Session }): React.J
       <dl className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {(
           [
-            ['Ativos', counts?.active, 'text-slate-900'],
-            ['Administradores', counts?.admins, 'text-slate-900'],
+            ['Ativos', counts?.active, 'text-stone-900'],
+            ['Administradores', counts?.admins, 'text-stone-900'],
             [
               'Aguardando 1º acesso',
               counts?.awaitingFirstAccess,
-              (counts?.awaitingFirstAccess ?? 0) > 0 ? 'text-amber-700' : 'text-slate-900',
+              (counts?.awaitingFirstAccess ?? 0) > 0 ? 'text-amber-700' : 'text-stone-900',
             ],
-            ['Removidos', counts?.revoked, 'text-slate-900'],
+            ['Removidos', counts?.revoked, 'text-stone-900'],
           ] as const
         ).map(([label, value, tone]) => (
           <StatTile key={label} label={label} value={value} tone={tone} />
@@ -235,16 +235,16 @@ export function MembersPage({ session }: { readonly session: Session }): React.J
             }}
           />
           <section aria-labelledby="papeis" className={`${card} p-4 text-sm`}>
-            <h2 id="papeis" className="flex items-center gap-2 font-semibold text-slate-900">
+            <h2 id="papeis" className="flex items-center gap-2 font-semibold text-stone-900">
               <ShieldCheck aria-hidden="true" className="size-4 text-emerald-600" />
               Papéis e segurança
             </h2>
-            <ul className="mt-3 space-y-2 text-slate-600">
+            <ul className="mt-3 space-y-2 text-stone-600">
               <li>
-                <strong className="font-semibold text-slate-800">Operador</strong> conduz o trabalho comercial.
+                <strong className="font-semibold text-stone-800">Operador</strong> conduz o trabalho comercial.
               </li>
               <li>
-                <strong className="font-semibold text-slate-800">Administrador</strong> também gerencia membros, vê a
+                <strong className="font-semibold text-stone-800">Administrador</strong> também gerencia membros, vê a
                 lista de não contato e corrige cadastros feitos por engano.
               </li>
               <li>Remover acesso ou redefinir a senha encerra as sessões abertas da pessoa na hora.</li>
@@ -290,10 +290,10 @@ function MemberTable({
     'inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand-500 disabled:opacity-50';
   return (
     // No celular cada pessoa vira um cartão (linhas em bloco), sem rolagem lateral escondendo papel e ações.
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm sm:overflow-x-auto">
+    <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white sm:overflow-x-auto">
       <table className="block w-full text-sm sm:table">
         <caption className="sr-only">Membros</caption>
-        <thead className="hidden border-b border-slate-200 bg-slate-50/70 text-left text-xs text-slate-500 sm:table-header-group">
+        <thead className="hidden border-b border-stone-200 bg-stone-50/70 text-left text-xs text-stone-500 sm:table-header-group">
           <tr>
             <th scope="col" className="px-4 py-2 font-medium">
               Pessoa
@@ -309,33 +309,33 @@ function MemberTable({
             </th>
           </tr>
         </thead>
-        <tbody className="block divide-y divide-slate-100 sm:table-row-group">
+        <tbody className="block divide-y divide-stone-100 sm:table-row-group">
           {members.map((member) => {
             const self = member.userId === session.userId;
             const revoked = member.status === 'REVOKED';
             return (
               <tr
                 key={member.memberId}
-                className={`block py-2 sm:table-row sm:py-0 ${revoked ? 'bg-slate-50/60' : ''}`}
+                className={`block py-2 sm:table-row sm:py-0 ${revoked ? 'bg-stone-50/60' : ''}`}
               >
                 <td className="block px-4 py-2 sm:table-cell sm:max-w-[18rem] sm:py-2">
-                  <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 font-semibold text-slate-900">
+                  <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 font-semibold text-stone-900">
                     <span
                       aria-hidden="true"
                       className={`mr-1.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        revoked ? 'bg-slate-200 text-slate-500' : 'bg-brand-50 text-brand-700 ring-1 ring-brand-100'
+                        revoked ? 'bg-stone-200 text-stone-500' : 'bg-brand-50 text-brand-700 ring-1 ring-brand-100'
                       }`}
                     >
                       {initials(member.displayName)}
                     </span>
-                    <span className={revoked ? 'text-slate-500 line-through' : ''}>{member.displayName}</span>
+                    <span className={revoked ? 'text-stone-500 line-through' : ''}>{member.displayName}</span>
                     {self && (
-                      <span className="rounded-full bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      <span className="rounded-full bg-stone-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                         Você
                       </span>
                     )}
                     {revoked && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-stone-200 px-1.5 py-0.5 text-[10px] font-semibold text-stone-700">
                         <UserX aria-hidden="true" className="size-3" />
                         Acesso removido
                       </span>
@@ -347,11 +347,11 @@ function MemberTable({
                       </span>
                     )}
                   </p>
-                  <p className="-mt-2 truncate pl-12 text-xs text-slate-500">{member.email}</p>
+                  <p className="-mt-2 truncate pl-12 text-xs text-stone-500">{member.email}</p>
                 </td>
                 <td className="inline-block px-4 py-1 align-middle sm:table-cell sm:py-2">
                   {self || revoked ? (
-                    <span className="text-slate-700">{ROLE_LABEL[member.role]}</span>
+                    <span className="text-stone-700">{ROLE_LABEL[member.role]}</span>
                   ) : (
                     <select
                       aria-label={`Papel de ${member.displayName}`}
@@ -371,10 +371,10 @@ function MemberTable({
                   )}
                 </td>
                 <td className="inline-block px-4 py-1 align-middle whitespace-nowrap sm:table-cell sm:py-2">
-                  <span className={member.lastLoginAt === undefined ? 'text-slate-400' : 'text-slate-700'}>
+                  <span className={member.lastLoginAt === undefined ? 'text-stone-400' : 'text-stone-700'}>
                     {lastAccess(member, now)}
                   </span>
-                  <span className="block text-xs text-slate-400">{`Desde ${formatDateTime(member.createdAt)}`}</span>
+                  <span className="block text-xs text-stone-400">{`Desde ${formatDateTime(member.createdAt)}`}</span>
                 </td>
                 <td className="block px-3 py-1 sm:table-cell sm:py-2">
                   {self ? null : (
@@ -399,7 +399,7 @@ function MemberTable({
                             aria-label="Redefinir senha"
                             title="Redefinir senha"
                             type="button"
-                            className={`${action} text-slate-700 hover:bg-slate-100`}
+                            className={`${action} text-stone-700 hover:bg-stone-100`}
                             disabled={busy}
                             onClick={() => {
                               onAction({ kind: 'reset', member });

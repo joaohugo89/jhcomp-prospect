@@ -90,7 +90,7 @@ export function ChangePasswordForm({
         autoComplete="new-password"
         error={mismatch ? 'As senhas não conferem.' : undefined}
       />
-      <p className="text-xs text-slate-500">Trocar a senha encerra suas sessões abertas em outros navegadores.</p>
+      <p className="text-xs text-stone-500">Trocar a senha encerra suas sessões abertas em outros navegadores.</p>
       {error !== null && (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}

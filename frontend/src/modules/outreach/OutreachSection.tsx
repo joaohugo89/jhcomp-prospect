@@ -48,7 +48,7 @@ export function OutreachSection({
 
   if (state.kind !== 'ready') {
     return (
-      <section aria-labelledby="mensagens" className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+      <section aria-labelledby="mensagens" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
         <h2 id="mensagens" className="mb-3 text-base font-semibold">
           Mensagens
         </h2>
@@ -76,11 +76,11 @@ export function OutreachSection({
   }
 
   return (
-    <section aria-labelledby="mensagens" className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+    <section aria-labelledby="mensagens" className="rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm">
       <h2 id="mensagens" className="text-base font-semibold">
         Mensagens
       </h2>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-stone-500">
         A IA só prepara rascunhos. Nenhuma mensagem é enviada pelo sistema: envie pelo seu aplicativo e registre o envio
         aqui.
       </p>
@@ -100,7 +100,7 @@ export function OutreachSection({
           void generate();
         }}
       >
-        <label className="min-w-64 flex-1 text-sm font-medium text-slate-700">
+        <label className="min-w-64 flex-1 text-sm font-medium text-stone-700">
           Canal e destinatário
           <select
             className={input}
@@ -125,7 +125,7 @@ export function OutreachSection({
       </p>
 
       {messages.content.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">Nenhuma mensagem preparada para este lead.</p>
+        <p className="mt-4 text-sm text-stone-600">Nenhuma mensagem preparada para este lead.</p>
       ) : (
         <ul className="mt-4 space-y-4">
           {messages.content.map((message) => {
@@ -157,14 +157,14 @@ export function OutreachSection({
 function ContextSummary({ context }: { readonly context: ComposeContext }): React.JSX.Element {
   const place = `${context.city}/${context.state}`;
   return (
-    <details className="mt-4 rounded-md border border-slate-200 p-3 text-sm">
-      <summary className="cursor-pointer font-medium text-slate-800">Contexto usado na geração</summary>
+    <details className="mt-4 rounded-md border border-stone-200 p-3 text-sm">
+      <summary className="cursor-pointer font-medium text-stone-800">Contexto usado na geração</summary>
       <dl className="mt-2 grid grid-cols-[8rem_1fr] gap-y-1">
-        <dt className="text-slate-500">Remetente</dt>
+        <dt className="text-stone-500">Remetente</dt>
         <dd>{`${context.senderName} · ${context.senderOrganization}`}</dd>
-        <dt className="text-slate-500">Empresa</dt>
+        <dt className="text-stone-500">Empresa</dt>
         <dd>{[context.companyName, context.segment, place].filter((part) => part !== undefined).join(' · ')}</dd>
-        <dt className="text-slate-500">Achados</dt>
+        <dt className="text-stone-500">Achados</dt>
         <dd>
           {context.confirmedFindings.length === 0 ? (
             'Nenhum achado confirmado. O rascunho falará em termos gerais e precisará de revisão.'
@@ -177,7 +177,7 @@ function ContextSummary({ context }: { readonly context: ComposeContext }): Reac
           )}
         </dd>
       </dl>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-stone-500">
         Telefone, e-mail, Instagram e anotações não são enviados ao provedor de IA.
       </p>
     </details>

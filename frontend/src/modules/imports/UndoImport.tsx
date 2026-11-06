@@ -30,7 +30,7 @@ export function UndoImport({
 
   if (batch.undoneAt !== undefined) {
     return (
-      <p className="mb-6 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
+      <p className="mb-6 rounded-md bg-stone-100 px-4 py-3 text-sm text-stone-700">
         {`Importação desfeita em ${formatDateTime(batch.undoneAt)}. As linhas cujas empresas foram excluídas aparecem como "Excluídas depois".`}
       </p>
     );

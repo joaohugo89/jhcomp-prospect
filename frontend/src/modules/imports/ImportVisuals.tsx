@@ -11,8 +11,8 @@ const STATUS_STYLE = {
   ANALYZED: { label: 'Aguardando revisão', icon: Clock, tone: 'bg-amber-50 text-amber-800 ring-amber-200' },
   IMPORTING: { label: 'Importando', icon: Loader2, tone: 'bg-sky-50 text-sky-800 ring-sky-200' },
   COMPLETED: { label: 'Importada', icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  DISCARDED: { label: 'Descartada', icon: XCircle, tone: 'bg-slate-100 text-slate-600 ring-slate-200' },
-  UNDONE: { label: 'Desfeita', icon: Undo2, tone: 'bg-slate-100 text-slate-700 ring-slate-300' },
+  DISCARDED: { label: 'Descartada', icon: XCircle, tone: 'bg-stone-100 text-stone-600 ring-stone-200' },
+  UNDONE: { label: 'Desfeita', icon: Undo2, tone: 'bg-stone-100 text-stone-700 ring-stone-300' },
 } as const;
 
 export function ImportStatusBadge({ batch }: { readonly batch: ImportBatch }): React.JSX.Element {
@@ -52,7 +52,7 @@ function segmentsOf(batch: ImportBatch): readonly Segment[] {
     {
       label: ['não importada', 'não importadas'],
       value: Math.max(0, batch.totalRows - used - batch.rejectedRows),
-      tone: 'bg-slate-300',
+      tone: 'bg-stone-300',
     },
   ];
 }
@@ -60,13 +60,13 @@ function segmentsOf(batch: ImportBatch): readonly Segment[] {
 /** Barra de proporção com o texto ao lado: a cor só reforça o que está escrito. */
 export function ImportResultBar({ batch }: { readonly batch: ImportBatch }): React.JSX.Element {
   if (batch.status === 'DISCARDED') {
-    return <span className="text-xs text-slate-500">{`${batch.totalRows} lidas, nada gravado`}</span>;
+    return <span className="text-xs text-stone-500">{`${batch.totalRows} lidas, nada gravado`}</span>;
   }
   const segments = segmentsOf(batch).filter((segment) => segment.value > 0);
   const total = Math.max(1, batch.totalRows);
   return (
     <div className="min-w-[10rem]">
-      <div aria-hidden="true" className="flex h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div aria-hidden="true" className="flex h-1.5 overflow-hidden rounded-full bg-stone-100">
         {segments.map((segment) => (
           <span
             key={segment.label[1]}
@@ -75,8 +75,10 @@ export function ImportResultBar({ batch }: { readonly batch: ImportBatch }): Rea
           />
         ))}
       </div>
-      <p className="mt-1 text-xs text-slate-600">
-        {segments.length === 0 ? 'Nenhuma linha' : segments.map((s) => `${s.value} ${s.value === 1 ? s.label[0] : s.label[1]}`).join(' · ')}
+      <p className="mt-1 text-xs text-stone-600">
+        {segments.length === 0
+          ? 'Nenhuma linha'
+          : segments.map((s) => `${s.value} ${s.value === 1 ? s.label[0] : s.label[1]}`).join(' · ')}
       </p>
     </div>
   );
@@ -105,7 +107,7 @@ export function ImportSteps({
             <span
               {...(active ? { 'aria-current': 'step' as const } : {})}
               className={`inline-flex items-center gap-1.5 font-semibold ${
-                active ? 'text-brand-700' : complete ? 'text-slate-700' : 'text-slate-400'
+                active ? 'text-brand-700' : complete ? 'text-stone-700' : 'text-stone-400'
               }`}
             >
               <span
@@ -115,7 +117,7 @@ export function ImportSteps({
                     ? 'bg-emerald-600 text-white'
                     : active
                       ? 'bg-brand-600 text-white'
-                      : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
+                      : 'bg-stone-100 text-stone-500 ring-1 ring-stone-200'
                 }`}
               >
                 {complete ? <Check className="size-3" /> : index + 1}
@@ -123,7 +125,7 @@ export function ImportSteps({
               {label}
               {complete && <span className="sr-only">{' (concluída)'}</span>}
             </span>
-            {index < STEPS.length - 1 && <span aria-hidden="true" className="h-px w-6 bg-slate-200" />}
+            {index < STEPS.length - 1 && <span aria-hidden="true" className="h-px w-6 bg-stone-200" />}
           </li>
         );
       })}

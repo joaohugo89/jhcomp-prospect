@@ -71,14 +71,14 @@ export function MessageCard({
   return (
     <article
       aria-label={`Mensagem por ${OUTREACH_CHANNEL_LABEL[message.channel]}`}
-      className="rounded-md border border-slate-200 p-4"
+      className="rounded-md border border-stone-200 p-4"
     >
       <header className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">{OUTREACH_CHANNEL_LABEL[message.channel]}</span>
         <MessageStatusBadge status={message.status} />
-        <span className="text-slate-500">{formatDateTime(message.createdAt)}</span>
+        <span className="text-stone-500">{formatDateTime(message.createdAt)}</span>
       </header>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-stone-500">
         {`Destinatário: ${recipient ?? 'sem contato cadastrado'}`}
         {message.generatedBy !== undefined && ` · Gerada por ${message.generatedBy} (${message.promptVersion ?? '—'})`}
       </p>
@@ -86,9 +86,9 @@ export function MessageCard({
       {final ? (
         <div className="mt-3 text-sm">
           {message.subject !== undefined && <p className="font-medium">{message.subject}</p>}
-          <p className="mt-1 whitespace-pre-wrap text-slate-800">{message.body}</p>
+          <p className="mt-1 whitespace-pre-wrap text-stone-800">{message.body}</p>
           {message.sentAt !== undefined && (
-            <p className="mt-2 text-xs text-slate-500">{`Envio registrado para ${formatDateTime(message.sentAt)}`}</p>
+            <p className="mt-2 text-xs text-stone-500">{`Envio registrado para ${formatDateTime(message.sentAt)}`}</p>
           )}
         </div>
       ) : (
@@ -111,7 +111,7 @@ export function MessageCard({
               error={fieldErrors.get('subject')}
             />
           )}
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-sm font-medium text-stone-700">
             Texto
             <textarea
               className={input}
@@ -124,7 +124,7 @@ export function MessageCard({
                 setBody(event.target.value);
               }}
             />
-            <span className="mt-1 block text-xs font-normal text-slate-500">{`${body.length}/${maxLength} caracteres`}</span>
+            <span className="mt-1 block text-xs font-normal text-stone-500">{`${body.length}/${maxLength} caracteres`}</span>
           </label>
           {dirty && (
             <button type="submit" className={buttonSecondary} disabled={busy || body.trim() === ''}>
@@ -192,10 +192,10 @@ export function MessageCard({
         </div>
       )}
       {awaitingApproval && dirty && (
-        <p className="mt-2 text-xs text-slate-500">Salve as alterações antes de aprovar.</p>
+        <p className="mt-2 text-xs text-stone-500">Salve as alterações antes de aprovar.</p>
       )}
 
-      <p aria-live="polite" className="mt-2 text-sm text-slate-700">
+      <p aria-live="polite" className="mt-2 text-sm text-stone-700">
         {feedback}
       </p>
 

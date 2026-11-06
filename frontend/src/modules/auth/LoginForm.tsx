@@ -55,7 +55,7 @@ export function LoginForm({ onAuthenticated }: LoginFormProps): React.JSX.Elemen
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="email" className="block text-sm font-medium text-stone-700">
           E-mail
         </label>
         <input
@@ -68,7 +68,7 @@ export function LoginForm({ onAuthenticated }: LoginFormProps): React.JSX.Elemen
           onChange={(event) => setEmail(event.target.value)}
           aria-invalid={emailError !== undefined}
           aria-describedby={emailError === undefined ? undefined : 'email-error'}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand-500 focus:outline-2 focus:outline-offset-2 focus:outline-brand-500"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-stone-900 focus:border-brand-500 focus:outline-2 focus:outline-offset-2 focus:outline-brand-500"
         />
         {emailError !== undefined && (
           <p id="email-error" className="mt-1 text-sm text-red-700">
@@ -78,7 +78,7 @@ export function LoginForm({ onAuthenticated }: LoginFormProps): React.JSX.Elemen
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="password" className="block text-sm font-medium text-stone-700">
           Senha
         </label>
         <input
@@ -91,7 +91,7 @@ export function LoginForm({ onAuthenticated }: LoginFormProps): React.JSX.Elemen
           onChange={(event) => setPassword(event.target.value)}
           aria-invalid={passwordError !== undefined}
           aria-describedby={passwordError === undefined ? undefined : 'password-error'}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand-500 focus:outline-2 focus:outline-offset-2 focus:outline-brand-500"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-stone-900 focus:border-brand-500 focus:outline-2 focus:outline-offset-2 focus:outline-brand-500"
         />
         {passwordError !== undefined && (
           <p id="password-error" className="mt-1 text-sm text-red-700">

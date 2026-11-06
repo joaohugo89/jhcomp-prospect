@@ -9,9 +9,9 @@ import { FINDING_STATUSES, type AnalysisDetail, type Finding, type FindingStatus
 
 const STATUS_TONE: Readonly<Record<FindingStatus, string>> = {
   CONFIRMED: 'bg-amber-50 text-amber-900 ring-amber-300',
-  NOT_FOUND: 'bg-slate-100 text-slate-700 ring-slate-300',
-  NOT_VERIFIED: 'bg-slate-100 text-slate-700 ring-slate-300',
-  NOT_APPLICABLE: 'bg-white text-slate-600 ring-slate-300',
+  NOT_FOUND: 'bg-stone-100 text-stone-700 ring-stone-300',
+  NOT_VERIFIED: 'bg-stone-100 text-stone-700 ring-stone-300',
+  NOT_APPLICABLE: 'bg-white text-stone-600 ring-stone-300',
   CONTRADICTED: 'bg-emerald-50 text-emerald-900 ring-emerald-300',
 };
 
@@ -32,21 +32,23 @@ export function FindingRow({ finding, onReviewed }: FindingRowProps): React.JSX.
   return (
     <li className="py-3 text-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-medium text-slate-900">{CRITERION_LABEL[finding.criterion]}</p>
+        <p className="font-medium text-stone-900">{CRITERION_LABEL[finding.criterion]}</p>
         <p className="flex items-center gap-2">
           <span
             className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_TONE[finding.status]}`}
           >
             {FINDING_STATUS_LABEL[finding.status]}
           </span>
-          <span className="font-mono text-xs tabular-nums text-slate-700">
+          <span className="font-mono text-xs tabular-nums text-stone-700">
             {finding.pointsAwarded}/{finding.maxPoints}
           </span>
         </p>
       </div>
-      <p className="mt-1 text-slate-700">{finding.description}</p>
-      <p className="mt-1 text-xs text-slate-500">
-        {finding.confidence === undefined ? 'Sem confiança atribuída' : `Confiança ${CONFIDENCE_LABEL[finding.confidence]}`}
+      <p className="mt-1 text-stone-700">{finding.description}</p>
+      <p className="mt-1 text-xs text-stone-500">
+        {finding.confidence === undefined
+          ? 'Sem confiança atribuída'
+          : `Confiança ${CONFIDENCE_LABEL[finding.confidence]}`}
         {finding.reviewStatus === 'PENDING'
           ? ' · revisão pendente'
           : ` · revisado em ${finding.reviewedAt === undefined ? '—' : formatDateTime(finding.reviewedAt)}`}
@@ -55,7 +57,7 @@ export function FindingRow({ finding, onReviewed }: FindingRowProps): React.JSX.
       </p>
 
       {finding.evidence.length > 0 && (
-        <ul className="mt-2 space-y-1 border-l-2 border-slate-200 pl-3 text-xs text-slate-600">
+        <ul className="mt-2 space-y-1 border-l-2 border-stone-200 pl-3 text-xs text-stone-600">
           {finding.evidence.map((evidence) => {
             const href = safeHref(evidence.referenceUrl);
             return (
@@ -128,12 +130,12 @@ function ReviewForm({
 
   return (
     <form
-      className="mt-2 space-y-2 rounded-md bg-slate-50 p-3"
+      className="mt-2 space-y-2 rounded-md bg-stone-50 p-3"
       onSubmit={(event) => {
         void submit(event);
       }}
     >
-      <label htmlFor={`${id}-status`} className="block text-xs font-medium text-slate-700">
+      <label htmlFor={`${id}-status`} className="block text-xs font-medium text-stone-700">
         Estado após a revisão
       </label>
       <select
@@ -150,7 +152,7 @@ function ReviewForm({
           </option>
         ))}
       </select>
-      <label htmlFor={`${id}-note`} className="block text-xs font-medium text-slate-700">
+      <label htmlFor={`${id}-note`} className="block text-xs font-medium text-stone-700">
         Nota (vira evidência)
       </label>
       <textarea

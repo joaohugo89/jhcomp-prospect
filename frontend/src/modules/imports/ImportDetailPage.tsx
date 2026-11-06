@@ -32,17 +32,19 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
     <>
       <Link
         to="/imports"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900"
+        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-stone-600 hover:text-stone-900"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
         Voltar para importações
       </Link>
       <header className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-bold tracking-tight break-all text-slate-900">{batch.fileName}</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight break-all text-stone-900">
+            {batch.fileName}
+          </h1>
           <ImportStatusBadge batch={batch} />
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-stone-500">
           {`Origem: ${batch.sourceName} · enviada em ${formatDateTime(batch.createdAt)}${
             batch.completedAt === undefined ? '' : ` · concluída em ${formatDateTime(batch.completedAt)}`
           }`}
@@ -77,7 +79,7 @@ export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Ele
         />
       )}
       {batch.status === 'DISCARDED' && (
-        <p className="mb-6 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
+        <p className="mb-6 rounded-md bg-stone-100 px-4 py-3 text-sm text-stone-700">
           Importação descartada. Os dados das linhas foram apagados; ficam só os totais.
         </p>
       )}
@@ -135,18 +137,18 @@ function MappingSummary({ batch }: { readonly batch: ImportBatch }): React.JSX.E
 
   return (
     <section aria-labelledby="colunas" className={`${card} mb-6 p-5 text-sm`}>
-      <h2 id="colunas" className="text-sm font-semibold text-slate-900">
+      <h2 id="colunas" className="text-sm font-semibold text-stone-900">
         Colunas usadas
       </h2>
       <ul className="mt-2 flex flex-wrap gap-2">
         {mapped.map((field) => (
-          <li key={field} className="rounded bg-slate-100 px-2 py-1 text-slate-800">
+          <li key={field} className="rounded bg-stone-100 px-2 py-1 text-stone-800">
             {IMPORT_FIELD_LABEL[field]} ← <span className="font-mono text-xs">{batch.columnMapping[field]}</span>
           </li>
         ))}
       </ul>
       {ignored.length > 0 && (
-        <p className="mt-3 text-slate-600">
+        <p className="mt-3 text-stone-600">
           Ignoradas, sem leitura dos valores: <span className="font-mono text-xs">{ignored.join(', ')}</span>
         </p>
       )}

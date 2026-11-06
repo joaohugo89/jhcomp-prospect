@@ -71,7 +71,7 @@ export function RecordSendForm({
         Aprovada não é enviada. Envie o texto pelo seu aplicativo e registre aqui o que aconteceu.
       </p>
       <fieldset>
-        <legend className="text-sm font-medium text-slate-700">Resultado</legend>
+        <legend className="text-sm font-medium text-stone-700">Resultado</legend>
         <div className="mt-1 flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2">
             <input
@@ -98,7 +98,7 @@ export function RecordSendForm({
           </label>
         </div>
       </fieldset>
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-sm font-medium text-stone-700">
         Quando
         <input
           type="datetime-local"

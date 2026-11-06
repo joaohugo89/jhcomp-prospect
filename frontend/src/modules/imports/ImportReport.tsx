@@ -65,7 +65,7 @@ export function ImportReport({
             type="button"
             aria-pressed={filter === status}
             className={`rounded-full px-3 py-1 text-sm ring-1 ring-inset focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
-              filter === status ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-slate-700 ring-slate-300'
+              filter === status ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-stone-700 ring-stone-300'
             }`}
             onClick={() => {
               setFilter(status);
@@ -80,7 +80,7 @@ export function ImportReport({
       {state.kind !== 'ready' ? (
         <LoadStateView state={state} onRetry={reload} />
       ) : state.data.content.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-6 text-center text-sm text-slate-600">
+        <p className="rounded-lg border border-dashed border-stone-300 bg-white px-6 py-6 text-center text-sm text-stone-600">
           Nenhuma linha nesta situação.
         </p>
       ) : (
@@ -119,8 +119,8 @@ const ROW_TONE: Readonly<Record<ImportRowStatus, string>> = {
   MERGED: 'border-sky-300',
   REJECTED: 'border-red-200',
   DUPLICATE: 'border-amber-300',
-  SKIPPED: 'border-slate-200',
-  REMOVED: 'border-slate-200',
+  SKIPPED: 'border-stone-200',
+  REMOVED: 'border-stone-200',
 };
 
 function RowCard({
@@ -139,17 +139,17 @@ function RowCard({
   return (
     <article
       aria-label={`Linha ${row.rowNumber}`}
-      className={`rounded-lg border-l-4 border-y border-r border-slate-200 bg-white px-4 py-3 text-sm ${ROW_TONE[row.status]}`}
+      className={`rounded-lg border-l-4 border-y border-r border-stone-200 bg-white px-4 py-3 text-sm ${ROW_TONE[row.status]}`}
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-medium text-slate-900">
-          Linha {row.rowNumber}: {row.values.name ?? <span className="text-slate-400">sem nome</span>}
+        <p className="font-medium text-stone-900">
+          Linha {row.rowNumber}: {row.values.name ?? <span className="text-stone-400">sem nome</span>}
         </p>
-        <span className="text-xs font-medium text-slate-600">{IMPORT_ROW_STATUS_LABEL[row.status]}</span>
+        <span className="text-xs font-medium text-stone-600">{IMPORT_ROW_STATUS_LABEL[row.status]}</span>
       </header>
 
       {shown.length > 0 && (
-        <p className="mt-1 text-slate-600">
+        <p className="mt-1 text-stone-600">
           {shown
             .filter((field) => field !== 'name')
             .map((field) => `${IMPORT_FIELD_LABEL[field]}: ${row.values[field] ?? ''}`)
@@ -232,7 +232,7 @@ function DuplicateChoiceControl({
 }): React.JSX.Element {
   if (row.duplicateOfCompanyId === undefined) {
     return (
-      <label className="mt-2 flex items-center gap-2 text-slate-800">
+      <label className="mt-2 flex items-center gap-2 text-stone-800">
         <input
           type="checkbox"
           checked={choice === 'new'}
@@ -256,7 +256,7 @@ function DuplicateChoiceControl({
       <legend className="sr-only">O que fazer com a linha {row.rowNumber}</legend>
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         {options.map(([value, label]) => (
-          <label key={label} className="flex items-center gap-2 text-slate-800">
+          <label key={label} className="flex items-center gap-2 text-stone-800">
             <input
               type="radio"
               name={`linha-${row.rowNumber}`}
