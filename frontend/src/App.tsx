@@ -5,27 +5,48 @@ import { AppShell } from './components/AppShell';
 import { EmptyState, LoadingState } from './components/States';
 import { buttonPrimary } from './components/styles';
 import { LoginPage } from './modules/auth/LoginPage';
-import { ForcedPasswordChange, PasswordPage } from './modules/auth/PasswordPages';
-import { CompaniesPage } from './modules/companies/CompaniesPage';
-import { CompanyDetailPage } from './modules/companies/CompanyDetailPage';
-import { CompanyNewPage } from './modules/companies/CompanyNewPage';
-import { PipelinePage } from './modules/crm/PipelinePage';
+import { ForcedPasswordChange } from './modules/auth/PasswordPages';
 import { DashboardPage } from './modules/dashboard/DashboardPage';
-
-// Só em desenvolvimento: no build de produção a condição é `false`, o import some
-// e o mock não chega ao pacote publicado.
-const DashboardPreviewPage = import.meta.env.DEV
-  ? lazy(async () => ({ default: (await import('./modules/dashboard/DashboardPreviewPage')).DashboardPreviewPage }))
-  : null;
-import { ImportDetailPage } from './modules/imports/ImportDetailPage';
-import { ImportsPage } from './modules/imports/ImportsPage';
-import { LeadDetailPage } from './modules/leads/LeadDetailPage';
 import { LeadsPage } from './modules/leads/LeadsPage';
-import { MembersPage } from './modules/members/MembersPage';
-import { SuppressionPage } from './modules/outreach/SuppressionPage';
 import { fetchSession, logout } from './services/authService';
 import { onSessionExpired } from './services/httpClient';
 import type { Session } from './types/session';
+
+/*
+ * Route-level code splitting.
+ *
+ * Login, the shell, the dashboard and the lead worklist load eagerly: they are
+ * the first screen in almost every session. Everything else is a separate
+ * chunk fetched on first navigation, so opening the app does not pay for the
+ * drag-and-drop board, the CSV import screens or the admin pages.
+ *
+ * All chunks are same-origin and covered by the `script-src 'self'` CSP.
+ */
+const PipelinePage = lazyPage(async () => (await import('./modules/crm/PipelinePage')).PipelinePage);
+const LeadDetailPage = lazyPage(async () => (await import('./modules/leads/LeadDetailPage')).LeadDetailPage);
+const CompaniesPage = lazyPage(async () => (await import('./modules/companies/CompaniesPage')).CompaniesPage);
+const CompanyDetailPage = lazyPage(
+  async () => (await import('./modules/companies/CompanyDetailPage')).CompanyDetailPage,
+);
+const CompanyNewPage = lazyPage(async () => (await import('./modules/companies/CompanyNewPage')).CompanyNewPage);
+const ImportsPage = lazyPage(async () => (await import('./modules/imports/ImportsPage')).ImportsPage);
+const ImportDetailPage = lazyPage(async () => (await import('./modules/imports/ImportDetailPage')).ImportDetailPage);
+const MembersPage = lazyPage(async () => (await import('./modules/members/MembersPage')).MembersPage);
+const SuppressionPage = lazyPage(async () => (await import('./modules/outreach/SuppressionPage')).SuppressionPage);
+const PasswordPage = lazyPage(async () => (await import('./modules/auth/PasswordPages')).PasswordPage);
+
+/**
+ * Development only: in a production build the condition is `false`, the import
+ * is dropped and the mock never reaches the published bundle.
+ */
+const DashboardPreviewPage = import.meta.env.DEV
+  ? lazyPage(async () => (await import('./modules/dashboard/DashboardPreviewPage')).DashboardPreviewPage)
+  : null;
+
+/** `React.lazy` over a named export, which `lazy` does not accept directly. */
+function lazyPage<P>(load: () => Promise<React.ComponentType<P>>): React.LazyExoticComponent<React.ComponentType<P>> {
+  return lazy(async () => ({ default: await load() }));
+}
 
 type AuthState =
   | { readonly kind: 'checking' }
@@ -116,7 +137,10 @@ export function App(): React.JSX.Element {
 
   return (
     <AppShell session={auth.session} route={route} onSignOut={signOut}>
-      <Screen route={route} session={auth.session} onSessionChanged={updateSession} />
+      {/* One boundary for every lazy route: the shell stays on screen while the chunk loads. */}
+      <Suspense fallback={<LoadingState />}>
+        <Screen route={route} session={auth.session} onSessionChanged={updateSession} />
+      </Suspense>
     </AppShell>
   );
 }
@@ -134,13 +158,7 @@ function Screen({
     case 'dashboard':
       return <DashboardPage session={session} />;
     case 'dashboardPreview':
-      return DashboardPreviewPage === null ? (
-        <EmptyState title="Página não encontrada." />
-      ) : (
-        <Suspense fallback={<LoadingState />}>
-          <DashboardPreviewPage />
-        </Suspense>
-      );
+      return DashboardPreviewPage === null ? <EmptyState title="Página não encontrada." /> : <DashboardPreviewPage />;
     case 'pipeline':
       return <PipelinePage />;
     case 'leads':
