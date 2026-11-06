@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    // Fonte nunca vira data: URI: a CSP so aceita fonte servida pelo proprio app (font-src 'self').
+    assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined),
+  },
   server: {
     port: Number(process.env['FRONTEND_PORT'] ?? 5174),
     strictPort: true,
