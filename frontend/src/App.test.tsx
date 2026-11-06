@@ -29,6 +29,28 @@ describe('App', () => {
     expect(screen.getByLabelText('Senha')).toBeInTheDocument();
   });
 
+  it('o botao de tema alterna claro, escuro e o do sistema', async () => {
+    fakeApi({
+      'GET /auth/me': () => json(session),
+      ...leadListRoutes([worklistItem]),
+    });
+
+    render(<App />);
+    await screen.findByRole('heading', { level: 1, name: 'Leads' });
+
+    // Comeca em "do sistema"; o jsdom responde que o aparelho nao prefere escuro.
+    // O atributo so e escrito por `initTheme` na carga ou ao escolher um modo.
+    await userEvent.click(screen.getByRole('button', { name: /Tema: do sistema/ }));
+    expect(document.documentElement.dataset['theme']).toBe('light');
+    expect(window.localStorage.getItem('jh-prospect:theme')).toBe('LIGHT');
+
+    await userEvent.click(screen.getByRole('button', { name: /Tema: claro/ }));
+    expect(document.documentElement.dataset['theme']).toBe('dark');
+    expect(window.localStorage.getItem('jh-prospect:theme')).toBe('DARK');
+
+    expect(screen.getByRole('button', { name: /Tema: escuro/ })).toBeInTheDocument();
+  });
+
   it('autenticado, abre a lista de leads dentro da estrutura da aplicacao', async () => {
     fakeApi({
       'GET /auth/me': () => json(session),

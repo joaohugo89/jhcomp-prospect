@@ -1,44 +1,345 @@
 @import 'tailwindcss';
 
 /*
- * Identidade visual da JH Comp, a mesma de joaohugo.com, freelancer e tech:
- * fundo creme, vinho (oxblood) como cor de marca, vermelho como acento,
- * títulos em serifa editorial, rótulos curtos em mono maiúsculo e cantos
- * quase retos. Fontes servidas pelos pacotes @fontsource (font-src 'self' na CSP).
+ * Identidade visual da JH Comp, a mesma de joaohugo.com, freelancer, tech,
+ * portfolio e planner: vinho (oxblood) e creme, vermelho como acento, títulos
+ * em serifa editorial, rótulos curtos em mono maiúsculo e acabamento
+ * glassmorphism — superfícies não são sólidas, são véus translúcidos com
+ * `backdrop-filter` e uma linha fina (hairline).
+ *
+ * São dois modos. O claro é o creme sobre o qual a ferramenta nasceu; o
+ * escuro é o vinho profundo dos sites. O modo claro é o valor dos tokens aqui
+ * e o escuro os sobrepõe em `data-theme="dark"` no <html>, que `app/theme.ts`
+ * grava já na carga, a partir da escolha guardada ou da preferência do
+ * sistema. Um único bloco escuro, e não `prefers-color-scheme` em CSS mais a
+ * escolha explícita: a mesma lista de cores em dois lugares sai de sincronia
+ * no primeiro ajuste de tom.
+ *
+ * A escala `stone-*` aqui NÃO é a cinza do Tailwind: é a escala de superfície
+ * e tinta deste tema, em que o número baixo é véu/linha fina e o alto é tinta
+ * de texto. Assim o mesmo esqueleto de classes (`text-stone-500`,
+ * `border-stone-200`, `bg-stone-50`) serve aos dois modos, bastando trocar os
+ * valores. As famílias de acento seguem a mesma convenção:
+ *   -50/-100/-200/-300 tingem, -400/-500/-600 preenchem (aceitam texto
+ *   branco) e -700/-800/-900 são texto.
+ *
+ * Não há azul na paleta: `sky`, `indigo` e `violet` foram reescritos como
+ * areia, terracota e ameixa. Azul ao lado do vinho destoa, e as três famílias
+ * já estavam espalhadas pelas telas — redefini-las aqui tira o azul de todas
+ * de uma vez, sem mexer no esqueleto.
+ *
+ * Fontes servidas pelos pacotes @fontsource (font-src 'self' na CSP).
  */
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Fraunces Variable', Georgia, serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Superfícies da marca. */
+  /* Cores da marca, iguais nos dois modos: o vinho é a identidade. */
   --color-cream: #f7f3ee;
   --color-oxblood: #44171b;
+  --color-oxblood-panel: #381216;
   --color-oxblood-deep: #280c10;
   --color-oxblood-lift: #5a2128;
 
-  /* Escala da marca: do rosado ao vinho. 500 é o vermelho de acento; 600 e 700, o vinho dos botões e links. */
+  --blur-glass: 14px;
+
+  /* ---- Modo claro (padrão) ---- */
+
+  /* Vidro: véu branco sobre o creme. */
+  --color-glass: #ffffffb3;
+  --color-glass-lift: #ffffffe6;
+  --color-panel: #fffffff7;
+  --color-hairline: #44171b1f;
+
+  /* Fundo da aplicação e seus brilhos. */
+  --color-canvas: #f7f3ee;
+  --color-bloom-1: #44171b14;
+  --color-bloom-2: #b91c1c0f;
+  --color-bloom-3: #44171b0a;
+
+  /* Barra de navegação: vinho sólido sobre o creme. */
+  --color-nav: #44171b;
+
+  /* Separador entre segmentos de gráfico: some no fundo da página. */
+  --color-chart-gap: #f7f3ee;
+
+  /* Superfície (50–300) → tinta de texto (400–900). */
+  --color-stone-50: #f5f1ec;
+  --color-stone-100: #efe9e1;
+  --color-stone-200: #e3dbd1;
+  --color-stone-300: #d0c6b9;
+  --color-stone-400: #9b9287;
+  --color-stone-500: #6f665d;
+  --color-stone-600: #57504a;
+  --color-stone-700: #403a35;
+  --color-stone-800: #2b2724;
+  --color-stone-900: #1c1917;
+  --color-zinc-100: #efe9e1;
+  --color-zinc-300: #d0c6b9;
+  --color-zinc-700: #403a35;
+
+  /* Marca: do rosado ao vinho. 500 acento, 600 preenchimento, 700+ texto. */
   --color-brand-50: #fbf3f2;
   --color-brand-100: #f5e0dd;
   --color-brand-200: #e9bdb8;
   --color-brand-500: #b91c1c;
   --color-brand-600: #6e1d23;
   --color-brand-700: #44171b;
+  --color-brand-800: #2e1013;
 
-  /* Cantos quase retos, como nos sites: cartão 8px, botão e campo 4px. */
-  --radius-md: 0.1875rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.375rem;
-  --radius-2xl: 0.5rem;
+  /* Perigo. */
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #c81e1e;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+
+  /* Atenção. */
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #f59e0b;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  --color-amber-950: #451a03;
+
+  /* Sucesso. */
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #047f55;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+  --color-emerald-900: #064e3b;
+
+  /* Areia (era `sky`): informação e as primeiras etapas do funil. */
+  --color-sky-50: #fbf4ec;
+  --color-sky-100: #f6e8d7;
+  --color-sky-200: #ecd4b6;
+  --color-sky-300: #dcb98f;
+  --color-sky-400: #c89a63;
+  --color-sky-500: #a9763f;
+  --color-sky-700: #8a5c2c;
+  --color-sky-800: #6f4822;
+  --color-sky-900: #5a3a1c;
+  --color-sky-950: #3c2612;
+
+  /* Terracota (era `indigo`). */
+  --color-indigo-50: #fdf1ec;
+  --color-indigo-300: #e0a48f;
+  --color-indigo-700: #9c4b2f;
+  --color-indigo-900: #6d3320;
+
+  /* Ameixa (era `violet`). */
+  --color-violet-50: #fbf0f4;
+  --color-violet-100: #f6dde6;
+  --color-violet-200: #eec3d2;
+  --color-violet-300: #dc9ab4;
+  --color-violet-500: #b65c82;
+  --color-violet-700: #8c3f60;
+  --color-violet-900: #5f2741;
+
+  /* Laranja. */
+  --color-orange-50: #fff7ed;
+  --color-orange-300: #fdba74;
+  --color-orange-900: #7c2d12;
+
+  /* Cantos: o vidro pede canto um pouco mais macio. */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.875rem;
+}
+
+/*
+ * ---- Modo escuro ----
+ *
+ * Mesmas variáveis, valores do vinho. Sobre fundo escuro a superfície vira
+ * creme translúcido (o hairline é o `#f7f3ee1f` dos sites) e cada família de
+ * acento inverte: os tons baixos viram tinta translúcida da própria cor e os
+ * altos, texto claro.
+ */
+@layer theme {
+  /*
+   * Seletor em qualquer elemento, e nao so no <html>: a tela de entrada e um
+   * trecho sempre escuro dentro de uma pagina que pode estar clara, e marcar
+   * `data-theme="dark"` nela troca o conjunto inteiro de tokens ali dentro.
+   */
+  [data-theme='dark'] {
+    color-scheme: dark;
+
+    --color-glass: #f7f3ee0f;
+    --color-glass-lift: #f7f3ee1a;
+    --color-panel: #381216f0;
+    --color-hairline: #f7f3ee1f;
+
+    --color-canvas: #280c10;
+    --color-bloom-1: #5a212899;
+    --color-bloom-2: #e5393524;
+    --color-bloom-3: #44171bcc;
+
+    --color-nav: #f7f3ee0f;
+    --color-chart-gap: #280c10;
+
+    --color-stone-50: #f7f3ee08;
+    --color-stone-100: #f7f3ee0f;
+    --color-stone-200: #f7f3ee1f;
+    --color-stone-300: #f7f3ee33;
+    --color-stone-400: #f7f3ee80;
+    --color-stone-500: #f7f3eeab;
+    --color-stone-600: #f7f3eec7;
+    --color-stone-700: #f7f3eee3;
+    --color-stone-800: #f7f3eef5;
+    --color-stone-900: #f7f3ee;
+    --color-zinc-100: #f7f3ee0f;
+    --color-zinc-300: #f7f3ee33;
+    --color-zinc-700: #f7f3eee3;
+
+    --color-brand-50: #e5393524;
+    --color-brand-100: #e5393540;
+    --color-brand-200: #f9b4af;
+    --color-brand-500: #e53935;
+    --color-brand-600: #c62828;
+    --color-brand-700: #f58d87;
+    --color-brand-800: #f9b4af;
+
+    --color-red-50: #ef444424;
+    --color-red-100: #ef444440;
+    --color-red-200: #fca5a5;
+    --color-red-300: #ef444459;
+    --color-red-400: #f87171;
+    --color-red-500: #ef4444;
+    --color-red-600: #d12626;
+    --color-red-700: #fda4a0;
+    --color-red-800: #fcbcb9;
+    --color-red-900: #fed7d5;
+
+    --color-amber-50: #f59e0b24;
+    --color-amber-100: #f59e0b40;
+    --color-amber-200: #f59e0b4d;
+    --color-amber-300: #f59e0b59;
+    --color-amber-400: #fbbf24;
+    --color-amber-700: #fcd34d;
+    --color-amber-800: #fde68a;
+    --color-amber-900: #fde68a;
+    --color-amber-950: #fef3c7;
+
+    --color-emerald-50: #10b98124;
+    --color-emerald-100: #10b98140;
+    --color-emerald-200: #10b9814d;
+    --color-emerald-300: #10b98159;
+    --color-emerald-400: #34d399;
+    --color-emerald-500: #2dd48f;
+    --color-emerald-600: #0e9b68;
+    --color-emerald-700: #6ee7b7;
+    --color-emerald-800: #a7f3d0;
+    --color-emerald-900: #c6f7de;
+
+    --color-sky-50: #d9a87724;
+    --color-sky-100: #d9a87740;
+    --color-sky-200: #d9a8774d;
+    --color-sky-300: #e5bb8d;
+    --color-sky-400: #d9a877;
+    --color-sky-500: #c08c57;
+    --color-sky-700: #f0ceab;
+    --color-sky-800: #f6e2cb;
+    --color-sky-900: #f6e2cb;
+    --color-sky-950: #fbf1e5;
+
+    --color-indigo-50: #d97b5424;
+    --color-indigo-300: #d97b5459;
+    --color-indigo-700: #f0ab8e;
+    --color-indigo-900: #f7d2c2;
+
+    --color-violet-50: #d98aa824;
+    --color-violet-100: #d98aa840;
+    --color-violet-200: #d98aa84d;
+    --color-violet-300: #d98aa859;
+    --color-violet-500: #e0a0b8;
+    --color-violet-700: #efc3d2;
+    --color-violet-900: #f7dde6;
+
+    --color-orange-50: #f9731624;
+    --color-orange-300: #f9731659;
+    --color-orange-900: #fed7aa;
+  }
+}
+
+/*
+ * Superfície de vidro. Fica em `@utility` (e não só num token de cor) porque
+ * o efeito exige `backdrop-filter` junto do fundo translúcido.
+ */
+@utility glass {
+  background-color: var(--color-glass);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+  backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+}
+
+/* Variante mais presente, para o que precisa sobressair sobre vidro. */
+@utility glass-lift {
+  background-color: var(--color-glass-lift);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+  backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+}
+
+/*
+ * Vidro flutuante: diálogo, gaveta, popover e tooltip. Precisa de base quase
+ * opaca — vidro fino sobre conteúdo deixa o texto de trás atravessar.
+ */
+@utility glass-panel {
+  background-color: var(--color-panel);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* Barra de navegação: vinho sólido no claro, vidro no escuro. */
+@utility nav-surface {
+  background-color: var(--color-nav);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+  backdrop-filter: blur(var(--blur-glass)) saturate(140%);
+}
+
+/* Fundo vinho da marca, igual nos dois modos: a tela de entrada é vitrine. */
+@utility brand-backdrop {
+  background-color: var(--color-oxblood-deep);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -10%, #5a212899 0%, transparent 70%),
+    radial-gradient(45rem 35rem at 95% 0%, #e5393524 0%, transparent 65%),
+    radial-gradient(50rem 50rem at 80% 110%, #44171bcc 0%, transparent 70%);
 }
 
 @layer base {
   body {
-    background-color: var(--color-cream);
+    color: var(--color-stone-900);
+    background-color: var(--color-canvas);
+    /* Brilhos fixos: é o que dá o que difratar ao `backdrop-filter`. */
+    background-image:
+      radial-gradient(60rem 40rem at 12% -10%, var(--color-bloom-1) 0%, transparent 70%),
+      radial-gradient(45rem 35rem at 95% 0%, var(--color-bloom-2) 0%, transparent 65%),
+      radial-gradient(50rem 50rem at 80% 110%, var(--color-bloom-3) 0%, transparent 70%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 
   ::selection {
-    background-color: var(--color-brand-100);
-    color: var(--color-oxblood);
+    background-color: var(--color-brand-500);
+    color: var(--color-cream);
+  }
+
+  /* O seletor nativo abre a lista com fundo do sistema: mantê-la legível. */
+  option {
+    background-color: var(--color-canvas);
+    color: var(--color-stone-900);
   }
 }

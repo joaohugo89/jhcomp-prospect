@@ -5,7 +5,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
+import { initTheme } from './app/theme';
 import './index.css';
+
+// Antes do primeiro render: sem isto a tela pisca no modo claro ate o React montar.
+initTheme();
 
 const container = document.getElementById('root');
 
