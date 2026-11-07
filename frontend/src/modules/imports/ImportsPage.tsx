@@ -14,11 +14,11 @@ import type { ImportBatch, ImportStatus, ImportSummary } from '../../types/impor
 import { ImportResultBar, ImportStatusBadge } from './ImportVisuals';
 import { UploadForm } from './UploadForm';
 
-/** Cabeçalhos que o backend reconhece sozinho (ImportField). Só cabeçalho: nenhum dado no modelo. */
+/** Headers the backend recognises on its own (ImportField). Header only: no data in the template. */
 const TEMPLATE_HEADER = 'nome;nome fantasia;segmento;cidade;uf;site;instagram;telefone;email;endereco;observacoes';
 
 function downloadTemplate(): void {
-  // BOM: o Excel abre como UTF-8 e mantém os acentos.
+  // A BOM makes Excel open the file as UTF-8 and keep the accents.
   const blob = new Blob([`﻿${TEMPLATE_HEADER}\n`], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -35,7 +35,7 @@ const FILTERS: readonly [ImportStatus | '', string][] = [
   ['DISCARDED', 'Descartadas'],
 ];
 
-/** Importação CSV (RF-015, D23): enviar, acompanhar o que falta revisar e consultar o histórico. */
+/** CSV import (RF-015, D23): upload, track what is left to review, and browse the history. */
 export function ImportsPage(): React.JSX.Element {
   const [filter, setFilter] = useState<ImportStatus | ''>('');
   const [page, setPage] = useState(0);

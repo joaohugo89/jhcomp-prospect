@@ -56,7 +56,7 @@ const FILTERS: readonly [MemberStatus | '', string][] = [
   ['REVOKED', 'Removidos'],
 ];
 
-/** "hoje", "ontem", "há 5 dias", ou a data quando passa de um mês. */
+/** "today", "yesterday", "5 days ago", or the date once it is over a month. */
 function lastAccess(member: Member, now: number): string {
   if (member.lastLoginAt === undefined) {
     return 'Nunca entrou';
@@ -69,11 +69,13 @@ function lastAccess(member: Member, now: number): string {
 }
 
 /**
- * Membros da organização (RF-003, D28). Só administradores chegam aqui pelo
- * menu; quem digitar o endereço sem permissão vê o estado de acesso negado.
+ * Organisation members (RF-003, D28). Only administrators reach this from the
+ * menu; anyone typing the address without permission sees the no-permission
+ * state.
  *
- * A própria linha do administrador não tem ações: o servidor recusa que
- * alguém mude o próprio papel ou acesso, o que impede ficar sem administrador.
+ * The administrator's own row has no actions: the server refuses to let anyone
+ * change their own role or access, which is what stops an organisation losing
+ * its last administrator.
  */
 export function MembersPage({ session }: { readonly session: Session }): React.JSX.Element {
   const [page, setPage] = useState(0);
@@ -289,7 +291,7 @@ function MemberTable({
   const action =
     'inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand-500 disabled:opacity-50';
   return (
-    // No celular cada pessoa vira um cartão (linhas em bloco), sem rolagem lateral escondendo papel e ações.
+    // On a phone each person becomes a card (rows as blocks), so no sideways scroll hides role and actions.
     <div className="relative overflow-hidden rounded-2xl border border-stone-200 glass sm:overflow-x-auto">
       <table className="block w-full text-sm sm:table">
         <caption className="sr-only">Membros</caption>

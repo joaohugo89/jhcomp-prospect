@@ -6,10 +6,10 @@ interface LoginPageProps {
   readonly onAuthenticated: (session: Session) => void;
 }
 
-/** Entrada na aplicação (RF-001). */
+/** The way into the application (RF-001). */
 export function LoginPage({ sessionExpired, onAuthenticated }: LoginPageProps): React.JSX.Element {
   return (
-    // Mesma entrada do site da JH Comp: vinho de fundo, título em serifa e o acento em itálico vermelho.
+    // The same entrance as the JH Comp site: oxblood background, serif title, red italic accent.
     <main
       data-theme="dark"
       className="brand-backdrop flex min-h-dvh items-center justify-center px-4 py-10 text-stone-900"

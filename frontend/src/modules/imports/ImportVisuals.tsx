@@ -3,8 +3,8 @@ import { Check, CheckCircle2, Clock, Loader2, Undo2, XCircle } from 'lucide-reac
 import type { ImportBatch } from '../../types/import';
 
 /**
- * Peças visuais da importação: situação com ícone e texto (nunca só cor),
- * barra do resultado por linha e as três etapas do fluxo (D23).
+ * The import's visual pieces: status with icon and text (never colour
+ * alone), the per-row result bar, and the three steps of the flow (D23).
  */
 
 const STATUS_STYLE = {
@@ -29,13 +29,13 @@ export function ImportStatusBadge({ batch }: { readonly batch: ImportBatch }): R
 }
 
 interface Segment {
-  /** Singular e plural: "1 importada", "2 importadas". */
+  /** Singular and plural, which Portuguese inflects: "1 importada", "2 importadas". */
   readonly label: readonly [string, string];
   readonly value: number;
   readonly tone: string;
 }
 
-/** Segmentos do resultado: na revisão, o que o arquivo trouxe; depois, o que virou empresa. */
+/** Result segments: during review, what the file brought; afterwards, what became a company. */
 function segmentsOf(batch: ImportBatch): readonly Segment[] {
   if (batch.status === 'ANALYZED' || batch.status === 'IMPORTING') {
     return [
@@ -57,7 +57,7 @@ function segmentsOf(batch: ImportBatch): readonly Segment[] {
   ];
 }
 
-/** Barra de proporção com o texto ao lado: a cor só reforça o que está escrito. */
+/** A proportion bar with the text beside it: colour only reinforces what is written. */
 export function ImportResultBar({ batch }: { readonly batch: ImportBatch }): React.JSX.Element {
   if (batch.status === 'DISCARDED') {
     return <span className="text-xs text-stone-500">{`${batch.totalRows} lidas, nada gravado`}</span>;
@@ -87,8 +87,8 @@ export function ImportResultBar({ batch }: { readonly batch: ImportBatch }): Rea
 const STEPS = ['Enviar arquivo', 'Revisar linhas', 'Importar'] as const;
 
 /**
- * As três etapas da importação. `current` é a etapa em andamento (0 a 2);
- * `done` marca a última como concluída.
+ * The three steps of an import. `current` is the step in progress (0 to 2);
+ * `done` marks the last one as finished.
  */
 export function ImportSteps({
   current,

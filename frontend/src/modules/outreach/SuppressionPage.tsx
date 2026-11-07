@@ -46,22 +46,22 @@ const IDENTIFIER_HINT: Readonly<Record<IdentifierType, string>> = {
   INSTAGRAM: 'Perfil (@perfil) ou endereço do perfil.',
 };
 
-/** Telefone normalizado (+55DDNNNNNNNNN) mostrado como se lê; outro formato fica como está. */
+/** A normalised phone (+55DDNNNNNNNNN) shown as it reads; any other format is left as is. */
 function readable(entry: SuppressionEntry): string {
   const match = entry.identifierType === 'PHONE' ? /^\+55(\d{2})(\d{4,5})(\d{4})$/.exec(entry.identifier) : null;
   return match === null ? entry.identifier : `+55 (${match[1] ?? ''}) ${match[2] ?? ''}-${match[3] ?? ''}`;
 }
 
-/** Motivos frequentes: um clique preenche, e o texto continua editável. */
+/** Frequent reasons: one click fills the field, and the text stays editable. */
 const QUICK_REASONS = ['Pediu por telefone', 'Respondeu pedindo para parar', 'Pedido por e-mail'] as const;
 
 /**
- * Lista de não contato (RF-053, doc 07 §10, D26).
+ * The do-not-contact list (RF-053, doc 07 §10, D26).
  *
- * Qualquer membro registra (o pedido precisa valer na hora) e confere se um
- * contato está bloqueado antes de abordar por fora do sistema. Só
- * administradores consultam a lista, que reúne contatos de quem pediu para
- * não ser contatado. Não há remoção no MVP.
+ * Any member can record a request — it has to take effect immediately — and
+ * check whether a contact is blocked before approaching from outside the
+ * system. Only administrators can browse the list, which holds the contacts of
+ * people who asked not to be contacted. There is no removal in the MVP.
  */
 export function SuppressionPage({ session }: { readonly session: Session }): React.JSX.Element {
   const [refresh, setRefresh] = useState(0);
@@ -99,7 +99,7 @@ export function SuppressionPage({ session }: { readonly session: Session }): Rea
   );
 }
 
-/** Escolha do tipo de contato como botões de rádio, com ícone e texto. */
+/** The contact type as radio buttons, with icon and text. */
 function TypeChoice({
   value,
   onChange,
@@ -276,7 +276,7 @@ function RegisterForm({ onRegistered }: { readonly onRegistered: () => void }): 
     } catch (cause: unknown) {
       const errors = fieldErrorsOf(cause);
       setFieldErrors(errors);
-      // Identificador que não normaliza volta como 400 sem campo: o servidor não adivinha o formato.
+      // An identifier that does not normalise comes back as a 400 with no field: the server does not guess the format.
       const unrecognized = cause instanceof HttpError && cause.type === 'VALIDATION_ERROR' && errors.size === 0;
       setFeedback({
         ok: false,

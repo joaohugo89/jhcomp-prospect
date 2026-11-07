@@ -11,9 +11,10 @@ import { listDuplicates, mergeCompanies } from '../../services/companyService';
 import type { Company, DuplicateCandidate, MergeResult } from '../../types/company';
 
 /**
- * Possíveis duplicatas (RF-014) e mesclagem (D32). A sugestão não muda nada;
- * mesclar é decisão do operador, confirmada: a outra empresa passa leads e
- * origens para esta, completa campos vazios e fica arquivada.
+ * Possible duplicates (RF-014) and merging (D32). The suggestion changes
+ * nothing; merging is the operator's confirmed decision: the other company
+ * hands its leads and sources to this one, fills the empty fields and is
+ * archived.
  */
 export function DuplicatesSection({
   company,

@@ -2,10 +2,10 @@ import { actionErrorMessage } from '../../app/errors';
 import { HttpError } from '../../services/httpClient';
 
 /**
- * Mensagens de recusa do arquivo, com o que fazer em seguida.
+ * Messages for a rejected file, with what to do next.
  *
- * O detalhe da API vem em inglês e não é exibido como está; cada caso
- * conhecido vira uma orientação prática para quem exportou a planilha.
+ * The API detail is never shown as it is; each known case becomes practical
+ * guidance for whoever exported the spreadsheet.
  */
 const UPLOAD_MESSAGES: readonly [RegExp, string][] = [
   [/UTF-8/, 'O arquivo precisa estar em UTF-8. No Excel, use “Salvar como” e escolha “CSV UTF-8”.'],
@@ -18,10 +18,13 @@ const UPLOAD_MESSAGES: readonly [RegExp, string][] = [
   [/duplicated column/, 'O cabeçalho tem colunas com o mesmo nome. Renomeie uma delas.'],
   [/empty column name/, 'O cabeçalho tem uma coluna sem nome.'],
   [/not a valid CSV/, 'Não foi possível ler o CSV. Verifique se há aspas abertas sem fechamento.'],
-  [/Column not found|more than one field|Unknown import field|mapping must be/, 'Revise o mapeamento: escolha uma coluna diferente para cada campo.'],
+  [
+    /Column not found|more than one field|Unknown import field|mapping must be/,
+    'Revise o mapeamento: escolha uma coluna diferente para cada campo.',
+  ],
 ];
 
-/** Campos obrigatórios que o backend não encontrou no cabeçalho, ou vazio. */
+/** Required fields the backend did not find in the header, or empty. */
 export function missingRequiredFields(cause: unknown): readonly string[] {
   if (!(cause instanceof HttpError) || cause.detail === undefined) {
     return [];

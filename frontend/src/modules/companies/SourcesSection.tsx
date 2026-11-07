@@ -8,7 +8,7 @@ import { LoadStateView } from '../../components/States';
 import { card, link } from '../../components/styles';
 import { listCompanySources } from '../../services/companyService';
 
-/** De onde vieram os dados da empresa e quando (RF-022). */
+/** Where the company's data came from, and when (RF-022). */
 export function SourcesSection({ companyId }: { readonly companyId: string }): React.JSX.Element {
   const [page, setPage] = useState(0);
   const [state, reload] = useLoad(`${companyId}:${page}`, (signal) => listCompanySources(companyId, page, signal));

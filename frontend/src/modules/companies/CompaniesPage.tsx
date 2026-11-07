@@ -22,9 +22,9 @@ import { CompanyTable } from './CompanyTable';
 import { CompanyBulkBar, CompanyQuickFilters } from './CompanyWorklistControls';
 
 /**
- * Empresas como ferramenta de trabalho (RF-012, D32): lead atual, contato,
- * origem, atividade e possível duplicata em cada linha; prévia ao lado,
- * recortes de um clique e correção de segmento ou cidade em lote.
+ * Companies as a working tool (RF-012, D32): current lead, contact, origin,
+ * activity and possible duplicate on every row; a preview beside the list,
+ * one-click filters, and bulk correction of segment or city.
  */
 export function CompaniesPage(): React.JSX.Element {
   const [applied, setApplied] = useState<CompanyWorklistFilters>(() => companyFiltersFromQuery(window.location.search));

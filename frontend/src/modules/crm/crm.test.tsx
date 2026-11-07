@@ -55,7 +55,7 @@ function drag(target: string): void {
   fireEvent.drop(column(target), { dataTransfer });
 }
 
-/** Kanban: mover card é mudar status do lead (D2). */
+/** Kanban: moving a card is changing the lead's status (D2). */
 describe('Pipeline', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -72,13 +72,13 @@ describe('Pipeline', () => {
       'href',
       `/leads/${LEAD_ID}`,
     );
-    // Cabeçalho: contagem e valor da etapa inteira, não só do card mostrado.
+    // Header: the count and value of the whole stage, not only of the cards shown.
     expect(within(approved).getByLabelText('60 leads')).toBeInTheDocument();
     expect(within(approved).getByText(/4\.200,00/)).toBeInTheDocument();
     expect(within(approved).getByText(/1\.500,00/)).toBeInTheDocument();
     expect(within(approved).getByText('10 dias na etapa')).toBeInTheDocument();
     expect(within(approved).getByText(/Mostrando 1 de 60/)).toBeInTheDocument();
-    // Compacto: prioridade e próxima tarefa ficam para o detalhado; "Sem análise" não aparece.
+    // Compact: priority and next task are left to the detailed density, and "no analysis" is not shown.
     expect(within(approved).queryByText('Alta')).not.toBeInTheDocument();
     expect(within(approved).queryByText(/Sem análise/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('region')).toHaveLength(STAGES.length);
@@ -262,7 +262,7 @@ function leadRoutes(overrides: Record<string, () => Response> = {}) {
   });
 }
 
-/** Negócio, interações e tarefas no detalhe do lead (D25). */
+/** Deal, interactions and tasks in the lead detail (D25). */
 describe('CRM no detalhe do lead', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -292,7 +292,7 @@ describe('CRM no detalhe do lead', () => {
       estimatedValue: 1500.5,
       lossReason: '',
     });
-    // Sem resultado no negócio: ganho ou perdido é o status do lead (D2).
+    // No outcome on the deal: won or lost is the lead's status (D2).
     expect(screen.queryByLabelText('Motivo da perda')).not.toBeInTheDocument();
   });
 
@@ -326,7 +326,7 @@ describe('CRM no detalhe do lead', () => {
     });
     expect(post?.body).toHaveProperty('occurredAt', expect.any(String));
     expect(calls.some((call) => call.method === 'PATCH')).toBe(false);
-    // O histórico é relido para mostrar a interação.
+    // The history is re-read so the interaction shows up.
     expect(calls.filter((call) => call.path.endsWith('/timeline'))).toHaveLength(2);
   });
 
@@ -418,7 +418,7 @@ describe('CRM no detalhe do lead', () => {
 
     render(<LeadDetailPage id={LEAD_ID} />);
 
-    // Atraso indicado por texto, não só por cor.
+    // The delay is shown as text, not colour alone.
     expect(await screen.findByText(/Atrasada/)).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText(/Nova tarefa/), 'Ligar amanhã');

@@ -11,7 +11,7 @@ import { readHeaders } from './csvHeaders';
 import { ImportSteps } from './ImportVisuals';
 import { missingRequiredFields, uploadErrorMessage } from './importMessages';
 
-/** Tamanho legível: "18 KB", "1,2 MB". */
+/** A readable size: "18 KB", "1,2 MB". */
 function fileSize(bytes: number): string {
   if (bytes < 1024 * 1024) {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -19,11 +19,11 @@ function fileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
 }
 
-/** Primeira etapa: escolher o arquivo (clicando ou arrastando) e dizer de onde ele veio. */
+/** First step: choose the file, by click or drag, and say where it came from. */
 export function UploadForm(): React.JSX.Element {
   const inputId = useId();
   const [dragging, setDragging] = useState(false);
-  // Trocar a chave recria o campo de arquivo: limpar a escolha sem mexer no DOM.
+  // Changing the key recreates the file input: clearing the choice without touching the DOM.
   const [inputKey, setInputKey] = useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [sourceName, setSourceName] = useState('');
@@ -75,7 +75,7 @@ export function UploadForm(): React.JSX.Element {
       <ImportSteps current={0} />
 
       {file === null ? (
-        // Soltar arquivo não tem equivalente de teclado; o mesmo campo abre pelo clique ou pelo Enter.
+        // Dropping a file has no keyboard equivalent; the same input opens by click or Enter.
         // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <label
           htmlFor={inputId}

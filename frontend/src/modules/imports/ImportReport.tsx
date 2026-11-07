@@ -104,7 +104,7 @@ export function ImportReport({
   );
 }
 
-/** Rótulo do campo de um erro; "row" é a linha inteira. */
+/** Label for the field an error belongs to; "row" means the whole line. */
 function errorFieldLabel(field: string): string {
   if (field === 'row') {
     return 'Linha';
@@ -216,10 +216,11 @@ function RowCard({
 }
 
 /**
- * O que fazer com uma possível duplicata.
+ * What to do with a possible duplicate.
  *
- * Completar só existe quando a duplicata é de empresa já cadastrada: duplicata
- * de outra linha do arquivo não tem empresa a completar.
+ * Completing only exists when the duplicate is of an already registered
+ * company: a duplicate of another row in the file has no company to
+ * complete.
  */
 function DuplicateChoiceControl({
   row,

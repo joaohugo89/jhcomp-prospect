@@ -4,7 +4,7 @@ import { safeHref } from '../../app/format';
 import { useLoad } from '../../app/useLoad';
 import { getCompany } from '../../services/companyService';
 
-/** Contato comercial da empresa. Abrir telefone ou e-mail não é envio (regra 5). */
+/** The company's business contact. Opening a phone or e-mail link is not a send (rule 5). */
 export function CompanyContact({ companyId }: { readonly companyId: string }): React.JSX.Element | null {
   const [company] = useLoad(companyId, (signal) => getCompany(companyId, signal));
   if (company.kind !== 'ready') {

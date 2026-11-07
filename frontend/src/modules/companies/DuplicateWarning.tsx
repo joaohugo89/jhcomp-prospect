@@ -7,10 +7,10 @@ import { link } from '../../components/styles';
 import { checkDuplicates } from '../../services/companyService';
 import type { CompanyInput, DuplicateCandidate, DuplicateProbe } from '../../types/company';
 
-/** Espera a pessoa parar de digitar antes de perguntar ao servidor. */
+/** Waits for typing to stop before asking the server. */
 const DEBOUNCE_MS = 400;
 
-/** Só pergunta quando há sinal possível: telefone, site, ou nome com cidade e UF. */
+/** Only asks when there is a possible signal: a phone, a site, or a name with city and state. */
 function probeOf(values: CompanyInput, excludeCompanyId: string | undefined): DuplicateProbe | null {
   const phoneDigits = values.phone.replace(/\D/g, '');
   const hasName = values.name.trim().length >= 3 && values.city.trim() !== '' && values.state.trim().length === 2;
@@ -41,20 +41,21 @@ function useDebounced<T>(value: T, delay: number): T {
 }
 
 /**
- * Aviso de possível duplicata enquanto o cadastro é digitado (RF-014). Só
- * sugere: não impede salvar, porque mesmo telefone pode ser outra filial.
+ * A possible-duplicate warning while the form is typed (RF-014). It only
+ * suggests and never blocks saving, because the same phone can belong to
+ * another branch.
  */
 export function DuplicateWarning({
   values,
   excludeCompanyId,
 }: {
   readonly values: CompanyInput;
-  /** A própria empresa, na edição. */
+  /** The company itself, when editing. */
   readonly excludeCompanyId?: string;
 }): React.JSX.Element | null {
   const probe = probeOf(values, excludeCompanyId);
   const current = probe === null ? '' : JSON.stringify(probe);
-  // Quando a chave assenta, o formulário parou de mudar: o probe desta renderização é o dela.
+  // Once the key settles the form has stopped changing, so this render's probe is the one for it.
   const settled = useDebounced(current, DEBOUNCE_MS);
   const [state] = useLoad(`duplicatas|${settled}`, (signal): Promise<readonly DuplicateCandidate[]> =>
     probe === null || settled !== current ? Promise.resolve([]) : checkDuplicates(probe, signal),

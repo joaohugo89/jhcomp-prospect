@@ -41,7 +41,7 @@ async function selectStatus(label: string): Promise<void> {
   await userEvent.selectOptions(await screen.findByLabelText('Novo status'), label);
 }
 
-/** Mudança de status na tela (doc 06 §2). */
+/** Status change on screen (doc 06 §2). */
 describe('Detalhe do lead', () => {
   afterEach(() => {
     vi.unstubAllGlobals();

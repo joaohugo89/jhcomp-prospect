@@ -5,7 +5,7 @@ import { buttonSecondary, chip, input } from '../../components/styles';
 import { bulkUpdateCompanies, type CompanyBulkChange } from '../../services/companyService';
 import type { CompanyWorklistFilters } from '../../types/company';
 
-/** Recortes de um clique. "Sem segmento" é o mesmo filtro do seletor de segmento. */
+/** One-click filters. "No segment" is the same filter as in the segment select. */
 type Quick = 'all' | 'withoutLead' | 'withoutContact' | 'withoutSegment' | 'duplicate' | 'archived';
 
 const QUICK: readonly [Quick, string][] = [
@@ -72,8 +72,8 @@ export function CompanyQuickFilters({
 }
 
 /**
- * Qualidade de dado em lote: segmento (na grafia que já existe, D31) e cidade
- * com UF. Arquivadas não mudam e são contadas à parte.
+ * Bulk data quality: segment (in the spelling that already exists, D31) and
+ * city with state. Archived companies are untouched and counted separately.
  */
 export function CompanyBulkBar({
   selected,

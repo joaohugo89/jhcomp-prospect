@@ -16,10 +16,10 @@ const BLOCKED_MESSAGE = 'Esta empresa tem pedido de não contato: a mensagem nã
 const FINAL: ReadonlySet<MessageStatus> = new Set(['SENT', 'FAILED', 'CANCELLED']);
 
 /**
- * Uma mensagem: revisão, edição, aprovação e registro de envio (RF-051, RF-052).
+ * One message: review, edit, approve and record a send (RF-051, RF-052).
  *
- * Aprovar exige o texto salvo e, quando a IA marcou afirmações não
- * verificadas, a confirmação de que o operador revisou cada uma.
+ * Approving requires the text to be saved and, when the AI flagged unverified
+ * claims, confirmation that the operator reviewed each one.
  */
 export function MessageCard({
   message,

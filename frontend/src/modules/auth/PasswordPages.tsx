@@ -5,7 +5,7 @@ import { buttonSecondary } from '../../components/styles';
 import type { Session } from '../../types/session';
 import { ChangePasswordForm } from './ChangePasswordForm';
 
-/** Troca voluntária, dentro da aplicação (/settings/password). */
+/** A voluntary change, inside the application (/settings/password). */
 export function PasswordPage({ onChanged }: { readonly onChanged: (session: Session) => void }): React.JSX.Element {
   const [done, setDone] = useState(false);
   return (
@@ -30,9 +30,9 @@ export function PasswordPage({ onChanged }: { readonly onChanged: (session: Sess
 }
 
 /**
- * Primeiro acesso com senha temporária (D28). Fora da estrutura da aplicação:
- * o servidor recusa qualquer outra tela até a troca, então mostrar o menu só
- * levaria a erros.
+ * First access with a temporary password (D28). Outside the application
+ * shell: the server refuses every other screen until the change, so showing
+ * the menu would only lead to errors.
  */
 export function ForcedPasswordChange({
   session,

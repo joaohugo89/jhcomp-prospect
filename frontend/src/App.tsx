@@ -53,15 +53,15 @@ type AuthState =
   | { readonly kind: 'anonymous'; readonly expired: boolean }
   | { readonly kind: 'authenticated'; readonly session: Session };
 
-/** Raiz da aplicação: sessão, roteamento e estrutura comum. */
+/** The application root: session, routing and the shared shell. */
 export function App(): React.JSX.Element {
   const [auth, setAuth] = useState<AuthState>({ kind: 'checking' });
   const route = useRoute();
 
-  // A sessão é verificada no servidor, e não a partir de algo guardado no
-  // navegador: o cookie é HttpOnly e o cliente não tem como inspecioná-lo.
-  // Este GET também faz o backend emitir o cookie com o token CSRF, de que o
-  // POST de login depende.
+  // The session is verified on the server, not from anything stored in the
+  // browser: the cookie is HttpOnly and the client cannot inspect it. This GET
+  // also makes the backend issue the CSRF token cookie, which the login POST
+  // depends on.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -80,8 +80,8 @@ export function App(): React.JSX.Element {
     };
   }, []);
 
-  // Sessão revogada ou expirada no meio do uso (D21): volta ao login com o
-  // motivo, em vez de cada tela mostrar um erro genérico.
+  // A session revoked or expired mid-use (D21): return to login with the
+  // reason, instead of every screen showing a generic error.
   useEffect(
     () =>
       onSessionExpired(() => {
@@ -113,8 +113,8 @@ export function App(): React.JSX.Element {
     try {
       await logout();
     } finally {
-      // Mesmo que a chamada falhe, a interface volta ao login: insistir em
-      // mostrar uma sessão que talvez não exista mais seria pior.
+      // Even if the call fails the interface returns to login: insisting on
+      // showing a session that may no longer exist would be worse.
       setAuth({ kind: 'anonymous', expired: false });
     }
   }
@@ -162,10 +162,10 @@ function Screen({
     case 'pipeline':
       return <PipelinePage />;
     case 'leads':
-      // key: outro filtro na URL (drill-down do dashboard) é outra lista.
+      // key: a different filter in the URL (a dashboard drill-down) is a different list.
       return <LeadsPage key={window.location.search} session={session} />;
     case 'lead':
-      // key: trocar de lead recria a tela, sem herdar estado do anterior.
+      // key: switching lead recreates the screen, inheriting no state from the previous one.
       return <LeadDetailPage key={route.id} id={route.id} />;
     case 'companies':
       return <CompaniesPage key={window.location.search} />;

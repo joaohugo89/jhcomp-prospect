@@ -13,9 +13,9 @@ function plural(count: number, one: string, many: string): string {
 }
 
 /**
- * Desfazer importação (D32): exclui as empresas que o lote criou e que
- * continuam sem atividade. Antes de confirmar, mostra a prévia do que sai e
- * do que fica. Quem importou, por 7 dias, ou o administrador.
+ * Undoing an import (D32): deletes the companies the batch created that still
+ * have no activity. Before confirming it shows a preview of what goes and what
+ * stays. Whoever imported, for 7 days, or an administrator.
  */
 export function UndoImport({
   batch,

@@ -8,7 +8,7 @@ import { fakeApi, json, lead, page, session, leadListRoutes, worklistItem } from
 const unauthenticated = (): Response => json({ type: 'AUTHENTICATION_REQUIRED', status: 401 }, 401);
 
 /**
- * Fluxo de autenticação, estrutura da aplicação e estados globais (doc 08 §11).
+ * Authentication flow, application shell and global states (doc 08 §11).
  */
 describe('App', () => {
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('App', () => {
     render(<App />);
     await screen.findByRole('heading', { level: 1, name: 'Leads' });
 
-    // O jsdom responde que o aparelho nao prefere escuro, entao comeca no claro.
+    // jsdom reports that the device does not prefer dark, so it starts light.
     await userEvent.click(screen.getByRole('button', { name: /Tema claro/ }));
     expect(document.documentElement.dataset['theme']).toBe('dark');
     expect(window.localStorage.getItem('jh-prospect:theme')).toBe('DARK');
@@ -62,7 +62,7 @@ describe('App', () => {
     expect(nav).toHaveTextContent('Empresas');
     expect(nav).toHaveTextContent('Membros');
     expect(screen.getByRole('link', { name: 'Leads' })).toHaveAttribute('aria-current', 'page');
-    // Status com texto, não só cor (doc 08 §12).
+    // Status as text, not colour alone (doc 08 §12).
     expect(within(screen.getByRole('table')).getByText('Contato aprovado')).toBeInTheDocument();
   });
 
@@ -159,11 +159,11 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText('Senha'), 'senha-errada-123');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    // A mensagem não diz se o e-mail existe: distinguir permitiria enumerar contas.
+    // The message does not say whether the e-mail exists: telling them apart would allow enumeration.
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('E-mail ou senha inválidos.');
     expect(alert.textContent).not.toContain('não encontrado');
-    // Falha de login não é "sessão expirada".
+    // A login failure is not an expired session.
     expect(screen.queryByText(/sessão expirou/)).not.toBeInTheDocument();
   });
 

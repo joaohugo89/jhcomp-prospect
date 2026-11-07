@@ -49,7 +49,7 @@ function renderSection(onRecorded = vi.fn<() => void>()) {
   return onRecorded;
 }
 
-/** Outreach no lead (doc 08 §9, doc 10 §6). */
+/** Outreach on the lead (doc 08 §9, doc 10 §6). */
 describe('Mensagens do lead', () => {
   afterEach(() => {
     vi.unstubAllGlobals();

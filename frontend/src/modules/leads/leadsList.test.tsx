@@ -191,7 +191,7 @@ describe('Lista de leads', () => {
     const summaries = (): number => calls.filter((call) => call.path.endsWith('/summary')).length;
     const before = summaries();
 
-    // O fundo cobre a lista: o toque fecha o resumo e não chega à linha embaixo.
+    // The backdrop covers the list: the tap closes the summary and never reaches the row beneath.
     await userEvent.click(screen.getByTestId('fundo-resumo'));
     expect(screen.queryByRole('complementary', { name: 'Resumo do lead' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('fundo-resumo')).not.toBeInTheDocument();
@@ -367,7 +367,7 @@ describe('Detalhe do lead: topo, abas e navegacao', () => {
     await userEvent.keyboard('n');
     expect(screen.getByRole('tab', { name: 'Histórico' })).toHaveAttribute('aria-selected', 'true');
 
-    // Com o foco num campo, a letra é texto: o atalho não dispara.
+    // With focus in a field the letter is text, so the shortcut does not fire.
     await waitFor(() => {
       expect(document.activeElement?.tagName).toMatch(/SELECT|INPUT/);
     });

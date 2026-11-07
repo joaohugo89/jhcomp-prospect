@@ -15,10 +15,10 @@ import { ImportReview } from './ImportReview';
 import { ImportStatusBadge, ImportSteps } from './ImportVisuals';
 import { UndoImport } from './UndoImport';
 
-/** Revisão e resultado de uma importação (RF-015, D23). */
+/** Review and outcome of one import (RF-015, D23). */
 export function ImportDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [state, reload] = useLoad(id, (signal) => getImport(id, signal));
-  // Escolha do operador por possível duplicata. Mantida entre páginas do relatório.
+  // The operator's choice per possible duplicate, kept across report pages.
   const [choices, setChoices] = useState<ReadonlyMap<number, DuplicateChoice>>(new Map());
 
   if (state.kind !== 'ready') {

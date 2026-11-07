@@ -8,10 +8,11 @@ import { recordSend } from '../../services/outreachService';
 import type { Message } from '../../types/outreach';
 
 /**
- * Registro de um envio que o operador já fez (RF-052, regra 5).
+ * Recording a send the operator has already made (RF-052, rule 5).
  *
- * Abrir o aplicativo de mensagens não é envio, e por isso não há botão que
- * abra um. O lead só vai para "Contatado" se o operador marcar (regra 6).
+ * Opening a messaging app is not a send, which is why there is no button that
+ * opens one. The lead only moves to `CONTACTED` if the operator ticks it
+ * (rule 6).
  */
 export function RecordSendForm({
   message,

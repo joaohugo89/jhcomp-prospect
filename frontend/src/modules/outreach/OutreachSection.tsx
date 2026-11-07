@@ -25,20 +25,20 @@ function usable(option: ChannelOption | undefined): boolean {
 }
 
 /**
- * Mensagens do lead (RF-050 a RF-052, doc 08 §9).
+ * The lead's messages (RF-050 to RF-052, doc 08 §9).
  *
- * A IA só prepara rascunhos com o contexto exibido aqui. Nada é enviado pelo
- * sistema: o operador envia pelo próprio aplicativo e registra o envio.
+ * The AI only drafts, using the context shown here. Nothing is sent by the
+ * system: the operator sends from their own app and records the send.
  */
 export function OutreachSection({
   lead,
   onRecorded,
 }: {
   readonly lead: Lead;
-  /** Envio registrado: a timeline e, se pedido, o status do lead mudaram no servidor. */
+  /** A send was recorded: the timeline and, if asked, the lead status changed on the server. */
   readonly onRecorded: () => void;
 }): React.JSX.Element {
-  // Mudança de status (ex.: pedido de não contato) altera bloqueios: recarrega.
+  // A status change (a do-not-contact request, say) changes the blocks: reload.
   const [state, reload] = useLoad(`${lead.id}:${lead.status}:${lead.updatedAt}`, (signal) =>
     Promise.all([getComposeContext(lead.id, signal), listMessages(lead.id, signal)]),
   );
@@ -131,7 +131,7 @@ export function OutreachSection({
           {messages.content.map((message) => {
             const option = context.channels.find((item) => item.channel === message.channel);
             return (
-              // A chave inclui a versão: texto salvo (já saneado pelo servidor) reinicia o editor.
+              // The key includes the version: saved text, already sanitised by the server, resets the editor.
               <li key={`${message.id}:${message.updatedAt}`}>
                 <MessageCard
                   message={message}
@@ -153,7 +153,7 @@ export function OutreachSection({
   );
 }
 
-/** O que a IA recebe e quem assina (doc 08 §9: origem/contexto e identidade do remetente). */
+/** What the AI receives and who signs (doc 08 §9: origin, context and sender identity). */
 function ContextSummary({ context }: { readonly context: ComposeContext }): React.JSX.Element {
   const place = `${context.city}/${context.state}`;
   return (

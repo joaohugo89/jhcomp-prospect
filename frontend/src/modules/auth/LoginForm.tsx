@@ -9,10 +9,10 @@ interface LoginFormProps {
 }
 
 /**
- * Formulário de login (RF-001).
+ * The login form (RF-001).
  *
- * A mensagem de falha é a mesma para qualquer credencial inválida: distinguir
- * "e-mail inexistente" de "senha errada" permitiria enumerar contas.
+ * The failure message is the same for any invalid credential: distinguishing
+ * "no such e-mail" from "wrong password" would allow account enumeration.
  */
 export function LoginForm({ onAuthenticated }: LoginFormProps): React.JSX.Element {
   const [email, setEmail] = useState('');
@@ -32,8 +32,9 @@ export function LoginForm({ onAuthenticated }: LoginFormProps): React.JSX.Elemen
     } catch (cause: unknown) {
       if (cause instanceof HttpError) {
         setFieldErrors(cause.fieldErrors);
-        // A API devolve a mesma mensagem para qualquer falha de credencial, de
-        // propósito: distinguir os casos permitiria enumerar contas (RF-001).
+        // The API returns the same message for any credential failure, on
+        // purpose: telling the cases apart would allow account enumeration
+        // (RF-001).
         setFormError(
           cause.status === 429
             ? 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'

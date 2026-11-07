@@ -14,9 +14,9 @@ import type { CompanyWorklistItem } from '../../types/company';
 import { CompanyContact } from './CompanyContact';
 
 /**
- * Prévia da empresa ao lado da lista, no mesmo padrão do resumo do lead:
- * painel não modal no desktop; no celular cobre a lista e tocar fora fecha.
- * Esc fecha e devolve o foco a quem abriu.
+ * The company preview beside the list, in the same pattern as the lead
+ * summary: a non-modal panel on desktop; on mobile it covers the list and
+ * tapping outside closes it. Esc closes and returns focus to the opener.
  */
 export function CompanyPreview({
   companyId,

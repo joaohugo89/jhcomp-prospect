@@ -71,7 +71,7 @@ const team = page([
   { userId: 'u-2', displayName: 'Operadora Ficticia' },
 ]);
 
-/** Período anterior: base da variação (2.000 → 2.500 = +25%). */
+/** The previous period: the base for the change (2,000 → 2,500 = +25%). */
 const previousSummary = {
   ...summary,
   summary: { ...summary.summary, wonValue: 2000, companiesAdded: 0 },
@@ -130,11 +130,11 @@ function routes(overrides: Partial<Record<string, (call: RecordedCall) => Respon
 function pick(call: RecordedCall): unknown {
   const today = new Date();
   const from = call.query.get('from') ?? '';
-  // Início mais de 30 dias atrás: é o período anterior.
+  // A start more than 30 days back: this is the previous period.
   return Date.parse(`${from}T00:00:00`) < today.getTime() - 31 * 86_400_000 ? previousSummary : summary;
 }
 
-/** Promessa liberada pelo teste: simula uma resposta que ainda não chegou. */
+/** A promise the test releases: simulates a response that has not arrived yet. */
 function deferred(): { readonly promise: Promise<void>; readonly resolve: () => void } {
   let done: (() => void) | undefined;
   const promise = new Promise<void>((resolve) => {
@@ -230,7 +230,7 @@ describe('Dashboard', () => {
     // Ticket médio = value ganho / negócios ganhos.
     expect(within(hero).getByText('Ticket médio').nextElementSibling).toHaveTextContent(/R\$\s?2,5\s?mil/);
 
-    // 3 ganhos em 24 leads, amostra suficiente: há percentual.
+    // 3 won out of 24 leads, a sufficient sample, so there is a percentage.
     const gauge = screen.getByRole('region', { name: 'Taxa de conversão' });
     expect(within(gauge).getByText('12,5%')).toBeInTheDocument();
     expect(within(gauge).getByText('3 de 24 leads')).toBeInTheDocument();
@@ -279,7 +279,7 @@ describe('Dashboard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Empresas adicionadas' }));
     const hero = screen.getByRole('region', { name: 'Empresas adicionadas' });
     expect(within(hero).getByRole('row', { name: /Semana a partir de 19\/10\/2026/ })).toHaveTextContent('3');
-    // Sem base no período anterior (0 empresas), não há percentual.
+    // With no base in the previous period (0 companies) there is no percentage.
     expect(within(hero).getByText('sem registro no período anterior')).toBeInTheDocument();
 
     const chart = within(hero).getByRole('slider', { name: /Empresas adicionadas por semana/ });
@@ -386,7 +386,7 @@ describe('Dashboard', () => {
               totalElements: 7,
             }),
     });
-    // Segura a resposta da página 2 até o teste liberar, como numa rede lenta.
+    // Holds page 2's response until the test releases it, as on a slow network.
     const { promise: held, resolve: release } = deferred();
     const fakeFetch = globalThis.fetch;
     vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
@@ -402,7 +402,7 @@ describe('Dashboard', () => {
     const proxima = within(atividades).getByRole('button', { name: 'Próxima' });
     await userEvent.click(proxima);
 
-    // Enquanto a página 2 carrega, a 1 continua na tela e o botão segue com o foco.
+    // While page 2 loads, page 1 stays on screen and the button keeps focus.
     expect(atividades).toHaveAttribute('aria-busy', 'true');
     expect(within(atividades).getByText('Loja Pagina Um')).toBeInTheDocument();
     expect(proxima).toHaveFocus();
@@ -427,7 +427,7 @@ describe('Dashboard', () => {
     expect(tarefas).toHaveTextContent(/Enviar orçamento · venceu/);
     expect(within(tarefas).getByText(/Mais 6 no/)).toBeInTheDocument();
     expect(painel).toHaveTextContent('7 pendentes');
-    // Seção sem pendência não ocupa um cartão: vira uma pílula na linha "em dia".
+    // A section with nothing outstanding takes no card: it becomes a pill on the "all clear" line.
     expect(within(painel).queryByRole('region', { name: 'Parados há 7 dias ou mais' })).not.toBeInTheDocument();
     expect(within(painel).getByRole('list', { name: 'Em dia' })).toHaveTextContent('Parados há 7 dias ou mais: nenhum');
   });
@@ -439,10 +439,10 @@ describe('Dashboard', () => {
     const funil = await screen.findByRole('region', { name: 'Funil de conversão' });
     expect(funil).toHaveTextContent('Dos 20 leads abertos no período');
     const qualificado = within(funil).getByRole('link', { name: 'Qualificado' }).closest('li');
-    // 15 de 20 passaram (amostra 20); 3,25 dias de média com 12 saídas.
+    // 15 of 20 passed through (sample 20); an average of 3.25 days over 12 exits.
     expect(qualificado).toHaveTextContent('75% passaram');
     expect(qualificado).toHaveTextContent('~3,3 dias');
-    // Contatado: a etapa anterior tem 9 (< 10): sem percentual; 0 saídas: sem média.
+    // Contacted: the previous stage has 9 (< 10), so no percentage; 0 exits, so no average.
     const contatado = within(funil).getByRole('link', { name: 'Contatado' }).closest('li');
     expect(contatado).not.toHaveTextContent('%');
     expect(within(funil).getByRole('link', { name: 'Contato aprovado' }).closest('li')).toHaveTextContent(
@@ -528,7 +528,7 @@ describe('Dashboard', () => {
     const metrica = screen.getByRole('button', { name: 'Empresas adicionadas' });
     const pressedBefore = metrica.getAttribute('aria-pressed');
 
-    // O fundo cobre a tela: o toque fecha o painel e não chega ao botão embaixo dele.
+    // The backdrop covers the screen: the tap closes the panel and never reaches the button beneath it.
     await userEvent.click(screen.getByTestId('fundo-filtros'));
     expect(screen.queryByRole('form', { name: 'Filtros' })).not.toBeInTheDocument();
     expect(metrica).toHaveAttribute('aria-pressed', pressedBefore ?? 'false');

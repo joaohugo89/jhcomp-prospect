@@ -10,7 +10,7 @@ import { buttonSecondary, input } from '../../components/styles';
 import { archiveCompany, deleteCompany, getRemovalEligibility } from '../../services/companyService';
 import type { Company, RemovalEligibility } from '../../types/company';
 
-/** Mesma comparação do servidor: sem caixa e sem espaço nas pontas. */
+/** The same comparison the server makes: case-insensitive, trimmed. */
 function sameName(typed: string, name: string): boolean {
   return typed.trim().toLowerCase() === name.trim().toLowerCase();
 }
@@ -23,10 +23,10 @@ function blockedReason(eligibility: RemovalEligibility, company: Company): strin
 }
 
 /**
- * Excluir de verdade a empresa cadastrada por engano (D32). O botão está
- * sempre à vista: quando o servidor aceitaria (sem atividade comercial; quem
- * cadastrou em até 7 dias, ou o administrador), confirma digitando o nome;
- * quando não, explica o motivo e oferece arquivar.
+ * Really deleting a company registered by mistake (D32). The button is always
+ * visible: when the server would accept it — no commercial activity, by
+ * whoever registered it within 7 days, or by an admin — it confirms by having
+ * the name typed; when it would not, it explains why and offers archiving.
  */
 export function DeleteCompanyAction({
   company,

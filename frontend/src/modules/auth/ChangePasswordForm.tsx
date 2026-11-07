@@ -7,7 +7,7 @@ import { changePassword } from '../../services/authService';
 import { HttpError } from '../../services/httpClient';
 import type { Session } from '../../types/session';
 
-/** Mesmo mínimo do servidor (PasswordPolicy, D28): comprimento, não regra de composição. */
+/** The same minimum as the server (PasswordPolicy, D28): length, not a composition rule. */
 const MIN_LENGTH = 12;
 
 function failureMessage(cause: unknown): string {
@@ -21,8 +21,9 @@ function failureMessage(cause: unknown): string {
 }
 
 /**
- * Troca da própria senha (D28). Pede a senha atual também quando ela é
- * temporária: quem só tem a sessão aberta não consegue tomar a conta.
+ * Changing your own password (D28). It asks for the current password even
+ * when that password is temporary: holding the open session alone must not be
+ * enough to take over the account.
  */
 export function ChangePasswordForm({
   onChanged,

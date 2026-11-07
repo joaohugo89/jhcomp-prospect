@@ -38,7 +38,7 @@ async function fillPasswordForm(current: string, next: string, confirmation = ne
   await userEvent.type(screen.getByLabelText(/^Repita a nova senha/), confirmation);
 }
 
-/** Senha temporária e troca de senha (D28). */
+/** Temporary password and password change (D28). */
 describe('Troca de senha', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/leads');
@@ -97,7 +97,7 @@ describe('Troca de senha', () => {
   });
 });
 
-/** Gestão de membros (RF-003, D28). */
+/** Member management (RF-003, D28). */
 describe('Membros', () => {
   afterEach(() => {
     vi.unstubAllGlobals();

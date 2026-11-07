@@ -75,7 +75,7 @@ describe('Presença digital', () => {
 
     expect(await screen.findByText(/Na fila desde/)).toBeInTheDocument();
     expect(calls.some((call) => call.method === 'POST' && call.path.endsWith('/analyses'))).toBe(true);
-    // Em andamento, nao da para pedir outra.
+    // While one is running, another cannot be requested.
     expect(screen.getByRole('button', { name: 'Analisar de novo' })).toBeDisabled();
   });
 
@@ -109,12 +109,15 @@ describe('Presença digital', () => {
     render(<AnalysisSection lead={sampleLead} onScoreChanged={() => undefined} />);
 
     expect(await screen.findByText('35')).toBeInTheDocument();
-    // Nao verificado nunca aparece como fato confirmado (RF-031).
+    // Not verified is never presented as a confirmed fact (RF-031).
     expect(screen.getByText('Não verificado')).toBeInTheDocument();
     expect(screen.getByText('0/25')).toBeInTheDocument();
     expect(screen.getByText(/Prioridade sugerida pelas faixas do score: Média/)).toBeInTheDocument();
     expect(screen.getByText(/não probabilidade de compra/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'http://loja.example.test/' })).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByRole('link', { name: 'http://loja.example.test/' })).toHaveAttribute(
+      'rel',
+      'noopener noreferrer',
+    );
   });
 
   it('revisao envia o estado e a nota, e atualiza o score', async () => {
@@ -126,7 +129,13 @@ describe('Presença digital', () => {
           analysis: { ...completed, score: 60 },
           findings: detail.findings.map((item) =>
             item.criterion === 'SITE_ABSENT'
-              ? { ...item, status: 'CONFIRMED', pointsAwarded: 25, reviewStatus: 'CORRECTED', reviewedAt: '2026-11-05T13:00:00Z' }
+              ? {
+                  ...item,
+                  status: 'CONFIRMED',
+                  pointsAwarded: 25,
+                  reviewStatus: 'CORRECTED',
+                  reviewedAt: '2026-11-05T13:00:00Z',
+                }
               : item,
           ),
         }),
@@ -153,7 +162,8 @@ describe('Presença digital', () => {
 
   it('analise com falha explica e permite tentar de novo', async () => {
     fakeApi({
-      'GET /leads/': () => json(page([{ ...pending, status: 'FAILED', failureReason: 'A verificação não pôde ser concluída.' }])),
+      'GET /leads/': () =>
+        json(page([{ ...pending, status: 'FAILED', failureReason: 'A verificação não pôde ser concluída.' }])),
     });
 
     render(<AnalysisSection lead={sampleLead} onScoreChanged={() => undefined} />);

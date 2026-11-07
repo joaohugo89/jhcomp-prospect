@@ -9,7 +9,7 @@ import { LoadStateView } from '../../components/States';
 import { card, link } from '../../components/styles';
 import { listCompanyLeads } from '../../services/companyService';
 
-/** Todos os ciclos comerciais da empresa, do mais recente ao mais antigo. */
+/** Every commercial cycle of the company, newest first. */
 export function LeadCyclesSection({
   companyId,
   refreshKey,

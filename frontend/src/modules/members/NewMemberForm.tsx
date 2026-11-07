@@ -9,8 +9,9 @@ import type { MemberWithPassword } from '../../types/member';
 import type { OrganizationRole } from '../../types/session';
 
 /**
- * Cadastro de membro (D28). Não há envio de convite: o sistema gera uma senha
- * temporária, que o administrador entrega por um canal seguro.
+ * Registering a member (D28). There is no invitation e-mail: the system
+ * generates a temporary password, which the administrator hands over through
+ * a secure channel.
  */
 export function NewMemberForm({
   onCreated,

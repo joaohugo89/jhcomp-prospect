@@ -19,7 +19,7 @@ import { DuplicatesSection } from './DuplicatesSection';
 import { LeadCyclesSection } from './LeadCyclesSection';
 import { SourcesSection } from './SourcesSection';
 
-/** Nome dos campos que a mesclagem completou, para o aviso. */
+/** Names of the fields the merge filled in, for the notice. */
 const FIELD_LABEL: Readonly<Record<string, string>> = {
   tradeName: 'nome comercial',
   segment: 'segmento',
@@ -32,9 +32,10 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
 };
 
 /**
- * Detalhe da empresa (RF-010, RF-014, RF-022, D32), no padrão do detalhe do
- * lead: o essencial no topo (lead atual, contato, origem, atividade) com as
- * ações; dados e ciclos comerciais no centro; oportunidade e duplicatas ao lado.
+ * Company detail (RF-010, RF-014, RF-022, D32), following the pattern of the
+ * lead detail: the essentials at the top (current lead, contact, origin,
+ * activity) with the actions; data and commercial cycles in the centre;
+ * opportunity and duplicates in the sidebar.
  */
 export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [version, setVersion] = useState(0);
@@ -46,7 +47,7 @@ export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.El
     setVersion((value) => value + 1);
   };
 
-  // Depois de editar ou mesclar, a tela anterior fica até a nova chegar, sem piscar.
+  // After an edit or a merge the previous screen stays until the new one arrives, without flashing.
   const shown = useLastReady(state);
   if (shown === null || (state.kind !== 'ready' && state.kind !== 'loading')) {
     return <LoadStateView state={state} onRetry={reload} notFoundMessage="Empresa não encontrada." />;
@@ -164,7 +165,7 @@ export function CompanyDetailPage({ id }: { readonly id: string }): React.JSX.El
   );
 }
 
-/** O essencial da empresa num relance. */
+/** The company's essentials at a glance. */
 function SummaryStrip({ item }: { readonly item: CompanyWorklistItem | null }): React.JSX.Element {
   const lead = item?.currentLead;
   return (

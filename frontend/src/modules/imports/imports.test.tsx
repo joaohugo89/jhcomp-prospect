@@ -117,7 +117,7 @@ describe('Importações', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent('Não encontramos as colunas obrigatórias');
       const submit = screen.getByRole('button', { name: 'Analisar arquivo' });
-      // Sem os três obrigatórios, nem envia.
+      // Without the three required columns it does not even upload.
       expect(submit).toBeDisabled();
 
       await userEvent.selectOptions(screen.getByLabelText(/^Nome\b(?! comercial)/), 'Cliente');
@@ -253,7 +253,7 @@ describe('Importações', () => {
       const ofExisting = await screen.findByRole('article', { name: 'Linha 6' });
       await userEvent.click(within(ofExisting).getByLabelText('Completar os campos vazios da empresa existente'));
 
-      // Duplicata de outra linha do arquivo não tem empresa a completar.
+      // A duplicate of another row in the file has no company to complete.
       const ofFile = screen.getByRole('article', { name: 'Linha 7' });
       expect(within(ofFile).queryByLabelText(/Completar/)).not.toBeInTheDocument();
       await userEvent.click(within(ofFile).getByLabelText(/Importar mesmo assim/));

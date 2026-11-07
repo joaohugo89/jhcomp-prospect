@@ -8,7 +8,7 @@ import { App } from './App';
 import { initTheme } from './app/theme';
 import './index.css';
 
-// Antes do primeiro render: sem isto a tela pisca no modo claro ate o React montar.
+// Before the first render: without this the screen flashes in light mode until React mounts.
 initTheme();
 
 const container = document.getElementById('root');

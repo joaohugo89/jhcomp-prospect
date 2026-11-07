@@ -42,16 +42,16 @@ export function toInput(company: Company): CompanyInput {
 
 interface CompanyFormProps {
   readonly initial: CompanyInput;
-  /** Origem só é pedida no cadastro: ela descreve de onde a empresa veio (RF-020). */
+  /** The origin is only asked on creation: it describes where the company came from (RF-020). */
   readonly withSource: boolean;
   readonly submitLabel: string;
   readonly onSubmit: (input: CompanyInput, source: SourceInput) => Promise<void>;
   readonly onCancel: () => void;
-  /** Na edição, a própria empresa não conta como duplicata. */
+  /** When editing, the company itself does not count as a duplicate. */
   readonly companyId?: string;
 }
 
-/** Formulário de empresa (RF-010), usado no cadastro e na edição. */
+/** The company form (RF-010), used both to create and to edit. */
 export function CompanyForm({
   initial,
   withSource,
@@ -60,7 +60,7 @@ export function CompanyForm({
   onCancel,
   companyId,
 }: CompanyFormProps): React.JSX.Element {
-  // Segmentos já usados viram sugestões: evita "Barbearia" e "Barbearias" como dois segmentos.
+  // Segments already in use become suggestions, which stops "Barbearia" and "Barbearias" becoming two segments.
   const [segments] = useLoad('segments', (signal) => getSegments(signal));
   const [values, setValues] = useState<CompanyInput>(initial);
   const [source, setSource] = useState<SourceInput>(EMPTY_SOURCE);

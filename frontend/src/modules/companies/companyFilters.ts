@@ -1,8 +1,8 @@
 import { COMPANY_FOCUS, COMPANY_SORT, SOURCE_TYPES, type CompanyWorklistFilters } from '../../types/company';
 
 /**
- * Filtros da lista de empresas e sua forma na URL: voltar, recarregar e
- * favoritar mantêm o recorte.
+ * The company list's filters and their shape in the URL: back, reload and
+ * bookmarking all keep the current slice.
  */
 
 export const EMPTY_COMPANY_FILTERS: CompanyWorklistFilters = {
@@ -20,7 +20,7 @@ function pick<T extends string>(options: readonly T[], value: string | null): T 
   return options.find((option) => option === value) ?? '';
 }
 
-/** Lê a query string; valor desconhecido é ignorado, nunca vira erro. */
+/** Reads the query string; an unknown value is ignored, never an error. */
 export function companyFiltersFromQuery(query: string): CompanyWorklistFilters {
   const params = new URLSearchParams(query);
   const text = (key: string): string => params.get(key)?.trim() ?? '';
@@ -48,7 +48,7 @@ const FIELDS: readonly (keyof CompanyWorklistFilters)[] = [
   'direction',
 ];
 
-/** Query string só com o que difere do padrão. */
+/** A query string holding only what differs from the default. */
 export function companyFiltersToQuery(filters: CompanyWorklistFilters): string {
   const params = new URLSearchParams();
   for (const field of FIELDS) {
@@ -65,7 +65,7 @@ export function companyFiltersToQuery(filters: CompanyWorklistFilters): string {
   return params.toString();
 }
 
-/** Algum filtro além da ordenação: distingue "nada cadastrado" de "nada encontrado". */
+/** Any filter beyond sorting: distinguishes "nothing registered" from "nothing found". */
 export function isCompanyFiltered(filters: CompanyWorklistFilters): boolean {
   return (
     companyFiltersToQuery({

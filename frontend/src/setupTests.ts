@@ -1,12 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 
-// O jsdom não implementa rolagem; as ações do detalhe do lead rolam até o campo antes de focar.
+// jsdom does not implement scrolling; the lead detail's actions scroll to the field before focusing.
 if (typeof Element.prototype.scrollIntoView !== 'function') {
   Element.prototype.scrollIntoView = (): void => undefined;
 }
 
-// O jsdom não implementa matchMedia; o seletor de tema consulta
-// `prefers-color-scheme` para resolver o modo "do sistema".
+// jsdom does not implement matchMedia; the theme reads `prefers-color-scheme`
+// to resolve the device's preferred mode.
 if (typeof window.matchMedia !== 'function') {
   window.matchMedia = (query: string): MediaQueryList =>
     ({

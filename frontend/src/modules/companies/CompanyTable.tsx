@@ -22,7 +22,7 @@ interface CompanyTableProps {
 interface SortableColumn {
   readonly sort: CompanySort;
   readonly label: string;
-  /** Primeiro clique: nome de A a Z, data mais recente primeiro. */
+  /** First click: name from A to Z, most recent date first. */
   readonly firstDirection: Direction;
   readonly className?: string;
 }
@@ -40,9 +40,10 @@ const COLUMNS: Readonly<Record<'name' | 'city' | 'activity' | 'created', Sortabl
 };
 
 /**
- * Lista de empresas como ferramenta (D32): cada linha diz se a empresa tem
- * lead, como contatá-la, de onde veio e se parece duplicata. Clicar abre a
- * prévia ao lado; a seleção alimenta a edição em lote.
+ * The company list as a tool (D32): each row says whether the company has a
+ * lead, how to reach it, where it came from and whether it looks like a
+ * duplicate. Clicking opens the preview beside it; the selection feeds the
+ * bulk edit.
  */
 export function CompanyTable(props: CompanyTableProps): React.JSX.Element {
   const { items, selected, onSelect, previewId, onPreview } = props;
@@ -59,7 +60,7 @@ export function CompanyTable(props: CompanyTableProps): React.JSX.Element {
   }
 
   return (
-    // relative: prende os textos sr-only (posição absoluta) dentro da rolagem da tabela.
+    // relative: keeps the sr-only text (absolutely positioned) inside the table's scroll area.
     <div className="relative overflow-x-auto rounded-2xl border border-stone-200 glass">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Empresas</caption>
@@ -144,7 +145,7 @@ function SortHeader({
   );
 }
 
-/** Ícones de contato: presente em cor, ausente apagado, e sempre com texto para leitor de tela. */
+/** Contact icons: present in colour, absent dimmed, always with text for a screen reader. */
 export function ContactIcons({ item }: { readonly item: CompanyWorklistItem }): React.JSX.Element {
   const channels: readonly [boolean, string, React.ReactNode][] = [
     [item.hasPhone, 'telefone', <Phone key="p" className="size-3.5" />],

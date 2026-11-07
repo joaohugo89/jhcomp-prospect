@@ -238,7 +238,7 @@ describe('Empresas', () => {
       const link = await screen.findByRole('link', { name: 'Padaria Existente' }, { timeout: 2000 });
       expect(link).toHaveAttribute('href', '/companies/c-9');
       expect(link.closest('li')).toHaveTextContent('Padaria Existente · Cidade Exemplo/MG · mesmo telefone');
-      // Uma consulta só, depois de parar de digitar.
+      // A single query, after typing stops.
       expect(calls.filter((call) => call.path === '/companies/duplicate-check')).toHaveLength(1);
       expect(screen.getByRole('button', { name: 'Cadastrar' })).toBeEnabled();
     });
@@ -255,7 +255,7 @@ describe('Empresas', () => {
       expect(site).toHaveAttribute('rel', 'noopener noreferrer');
       expect(await screen.findByText('Mesmo domínio')).toBeInTheDocument();
       expect(await screen.findByText('Cadastro manual')).toBeInTheDocument();
-      // Ausente é "não informado", não "não existe" (doc 06 §5).
+      // Absent means "not recorded", not "does not exist" (doc 06 §5).
       expect(screen.getByText(/^Não informado: /)).toBeInTheDocument();
       const summary = await screen.findByLabelText('Resumo da empresa');
       expect(await within(summary).findByText('Sem lead')).toBeInTheDocument();
@@ -279,7 +279,7 @@ describe('Empresas', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Arquivar' }));
 
       const dialog = screen.getByRole('alertdialog', { name: 'Arquivar empresa?' });
-      // Foco começa na escolha segura.
+      // Focus starts on the safe choice.
       expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus();
       await userEvent.keyboard('{Escape}');
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();

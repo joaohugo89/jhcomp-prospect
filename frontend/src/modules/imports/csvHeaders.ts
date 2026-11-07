@@ -1,10 +1,9 @@
 /**
- * Cabeçalhos de um CSV, lidos no navegador para o mapeamento manual de
- * colunas.
+ * A CSV's headers, read in the browser for manual column mapping.
  *
- * Só a primeira linha é interpretada, com a mesma detecção de delimitador do
- * backend (`;`, `,` ou tabulação). A validação do arquivo continua no
- * servidor; aqui basta oferecer as colunas para o operador escolher.
+ * Only the first line is interpreted, with the same delimiter detection as the
+ * backend (`;`, `,` or tab). File validation stays on the server; here it is
+ * enough to offer the columns for the operator to choose from.
  */
 export function parseHeaderLine(text: string): readonly string[] {
   const withoutBom = text.startsWith('﻿') ? text.slice(1) : text;
@@ -52,7 +51,7 @@ function detectDelimiter(line: string): string {
   return best;
 }
 
-/** Lê só o começo do arquivo: o cabeçalho cabe com folga em 64 KB. */
+/** Reads only the start of the file: a header fits comfortably in 64 KB. */
 export async function readHeaders(file: File): Promise<readonly string[]> {
   return parseHeaderLine(await file.slice(0, 64 * 1024).text());
 }

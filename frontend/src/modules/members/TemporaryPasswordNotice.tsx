@@ -4,8 +4,9 @@ import { buttonPrimary, buttonSecondary } from '../../components/styles';
 import type { MemberWithPassword } from '../../types/member';
 
 /**
- * Senha temporária recém-gerada (D28). Aparece uma única vez: o servidor não
- * a guarda em texto e não há como consultá-la de novo.
+ * A freshly generated temporary password (D28). It appears exactly once: the
+ * server does not keep it in clear text and there is no way to read it
+ * again.
  */
 export function TemporaryPasswordNotice({
   issued,
@@ -22,7 +23,7 @@ export function TemporaryPasswordNotice({
       await navigator.clipboard.writeText(temporaryPassword);
       setCopied(true);
     } catch {
-      // Sem permissão de área de transferência: a senha continua visível para copiar à mão.
+      // No clipboard permission: the password stays visible to be copied by hand.
       setCopied(false);
     }
   }
