@@ -30,7 +30,7 @@ jobs:
       backend: ${{ steps.check.outputs.backend }}
       frontend: ${{ steps.check.outputs.frontend }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - id: check
         run: |
           if [ -f backend/pom.xml ]; then echo "backend=true" >> "$GITHUB_OUTPUT"; else echo "backend=false" >> "$GITHUB_OUTPUT"; fi
@@ -41,7 +41,7 @@ jobs:
     name: Higiene do repositório
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Nenhum arquivo .env versionado
         run: |
@@ -78,7 +78,7 @@ jobs:
     if: needs.detect.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Configurar JDK 21
         uses: actions/setup-java@v5
@@ -108,7 +108,7 @@ jobs:
     if: needs.detect.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Configurar Node 24
         uses: actions/setup-node@v5
@@ -150,7 +150,7 @@ jobs:
     needs: [backend, frontend]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Configurar ambiente com senhas descartáveis
         run: |
@@ -206,7 +206,7 @@ jobs:
     name: Compose de produção válido
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Validar docker-compose.prod.yml
         env:
           APP_DOMAIN: prospect.example.test
