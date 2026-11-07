@@ -1,163 +1,167 @@
-# 12 — Operação em produção
+# 12 — Production operations
 
-Como colocar o JH.COMP Prospect no ar em uma VPS Linux, mantê-lo, fazer
-backup, restaurar e monitorar. As decisões por trás deste roteiro estão na
-D27 (`docs/11-decisions.md`).
+How to put JH.COMP Prospect online on a Linux VPS, keep it running, back it
+up, restore it and monitor it. The reasoning behind this runbook is in D27
+(`docs/11-decisions.md`).
 
-Tudo aqui foi ensaiado localmente com o `docker-compose.prod.yml` (Caddy com
-certificado próprio para `localhost`): deploy, criação do primeiro
-administrador, login por HTTPS, testes E2E, backup, verificação e restauração.
+Everything here was rehearsed locally with `docker-compose.prod.yml` (Caddy
+with a self-signed certificate for `localhost`): deployment, creating the first
+administrator, logging in over HTTPS, the end-to-end tests, backup,
+verification and restore.
 
-## 1. Arquitetura de produção
+## 1. Production architecture
 
 ```
-Internet ──443/80──▶ Caddy (TLS, HSTS) ──▶ nginx (SPA, CSP, proxy /api/v1) ──▶ API Spring (perfil prod) ──▶ PostgreSQL
+Internet ──443/80──▶ Caddy (TLS, HSTS) ──▶ nginx (SPA, CSP, proxy /api/v1) ──▶ Spring API (prod profile) ──▶ PostgreSQL
 ```
 
-- Só o Caddy publica porta. Banco, API e nginx ficam na rede interna do
-  Docker, sem porta no host.
-- O Caddy emite e renova o certificado (Let's Encrypt) sozinho.
-- O perfil `prod` fixa o cookie `Secure`, desliga a documentação interativa
-  da API (`/api/v1/docs`, `/api/v1/openapi`) e aceita `X-Forwarded-For` só de
-  proxy interno, para que o limite de login (D20) e a auditoria vejam o IP
-  real do cliente.
+- Only Caddy publishes a port. The database, the API and nginx stay on
+  Docker's internal network with no host port.
+- Caddy issues and renews the certificate (Let's Encrypt) by itself.
+- The `prod` profile fixes the `Secure` cookie, disables the interactive API
+  documentation (`/api/v1/docs`, `/api/v1/openapi`) and accepts
+  `X-Forwarded-For` only from an internal proxy, so that the login limiter
+  (D20) and the audit trail see the client's real IP.
 
-## 2. Requisitos do servidor
+## 2. Server requirements
 
-- Linux com Docker Engine e o plugin `docker compose` (v2).
-- 2 GB de RAM e 20 GB de disco são suficientes para o MVP.
-- Domínio com registro A (e AAAA, se houver IPv6) apontando para o servidor
-  **antes** do primeiro start; sem isso o Caddy não obtém o certificado.
-- Firewall liberando só 22 (SSH), 80 e 443. Exemplo com `ufw`:
+- Linux with Docker Engine and the `docker compose` plugin (v2).
+- 2 GB of RAM and 20 GB of disk are enough for the MVP.
+- A domain with an A record (and AAAA if IPv6 exists) pointing at the server
+  **before** the first start; without it Caddy cannot obtain a certificate.
+- A firewall allowing only 22 (SSH), 80 and 443:
   `ufw default deny incoming && ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw enable`.
-  O Docker publica portas por fora do `ufw`; por isso nenhum serviço além do
-  Caddy publica porta no compose de produção.
-- SSH só por chave e atualizações automáticas de segurança do sistema
-  (`unattended-upgrades` no Debian/Ubuntu).
+  Docker publishes ports around `ufw`, which is why nothing but Caddy publishes
+  a port in the production compose file.
+- SSH by key only, and automatic security updates (`unattended-upgrades` on
+  Debian/Ubuntu).
 
-## 3. Primeiro deploy
+## 3. First deployment
 
 ```bash
-sudo git clone <repositório> /opt/jhcomp-prospect
+sudo git clone <repository> /opt/jhcomp-prospect
 cd /opt/jhcomp-prospect
 cp .env.prod.example .env && chmod 600 .env
-# Preencher APP_DOMAIN, ACME_EMAIL e POSTGRES_PASSWORD (openssl rand -base64 32).
-# Guardar POSTGRES_PASSWORD também fora do servidor (gerenciador de senhas).
+# Fill in APP_DOMAIN, ACME_EMAIL and POSTGRES_PASSWORD (openssl rand -base64 32).
+# Keep POSTGRES_PASSWORD off the server too, in a password manager.
 
-docker compose up -d --build        # COMPOSE_FILE no .env aponta para o compose de produção
-docker compose ps                   # postgres, backend e frontend "healthy"; caddy "running"
-docker compose logs backend | grep "Successfully applied"   # migrations aplicadas
+docker compose up -d --build        # COMPOSE_FILE in .env points at the production file
+docker compose ps                   # postgres, backend, frontend "healthy"; caddy "running"
+docker compose logs backend | grep "Successfully applied"   # migrations applied
 
-scripts/create-admin.sh             # uma única vez: e-mail, organização e senha (mín. 12)
+scripts/create-admin.sh             # once only: e-mail, organisation, password (min. 12)
 ```
 
-Abra `https://APP_DOMAIN`, entre com o administrador criado e confira o
-cadeado do navegador.
+Open `https://APP_DOMAIN`, sign in as the administrator you created and check
+the padlock.
 
-O `create-admin.sh` sobe a API no perfil `bootstrap`, cria organização e
-administrador e encerra. Ele recusa rodar de novo depois que existe uma
-organização. Os demais membros são cadastrados pela própria aplicação, em
-**Membros** (D28): o sistema gera uma senha temporária, mostrada uma única vez
-ao administrador, que a entrega à pessoa por um canal seguro; no primeiro
-acesso ela precisa trocá-la. Se alguém esquecer a senha, o administrador usa
-**Redefinir senha** na mesma tela.
+`create-admin.sh` starts the API under the `bootstrap` profile, creates the
+organisation and the administrator, and exits. It refuses to run once an
+organisation exists. Further members are registered inside the application,
+under **Membros** (D28): the system generates a temporary password, shown to
+the administrator once, who passes it on through a secure channel; the person
+must change it on first access. If someone forgets their password, the
+administrator uses **Redefinir senha** on the same screen.
 
-## 4. Atualizar para uma nova versão
+## 4. Updating to a new version
 
 ```bash
 cd /opt/jhcomp-prospect
-scripts/backup.sh                   # sempre antes de atualizar
+scripts/backup.sh                   # always, before updating
 git pull
 docker compose up -d --build
 docker compose ps && docker compose logs --tail=50 backend
 ```
 
-As migrations Flyway rodam sozinhas na subida da API. Elas só avançam: não
-existe "desfazer migration".
+Flyway migrations run on API startup. They only go forward: there is no
+"undo migration".
 
-**Voltar uma versão:** se a versão nova não aplicou migration, basta
-`git checkout <versão anterior> && docker compose up -d --build`. Se aplicou,
-volte o código **e** restaure o backup feito antes da atualização (§6).
-Código antigo com schema novo não é suportado; o Hibernate valida o schema e
-recusa subir.
+**Rolling back:** if the new version applied no migration, `git checkout
+<previous version> && docker compose up -d --build` is enough. If it did, roll
+back the code **and** restore the backup taken before the update (§6). Old code
+against a new schema is not supported — Hibernate validates the schema and
+refuses to start.
 
 ## 5. Backup
 
-`scripts/backup.sh` gera `jhcomp-prospect-AAAAMMDDTHHMMSSZ.dump` (formato
-custom do `pg_dump`) em `BACKUP_DIR`. O script confere que o dump é legível,
-grava o SHA-256 ao lado e apaga dumps mais antigos que
-`BACKUP_RETENTION_DAYS`. Os arquivos ficam legíveis só pelo dono (`umask 077`),
-porque contêm dados de contato.
+`scripts/backup.sh` writes `jhcomp-prospect-YYYYMMDDTHHMMSSZ.dump` (`pg_dump`
+custom format) into `BACKUP_DIR`. The script verifies the dump is readable,
+stores the SHA-256 beside it and deletes dumps older than
+`BACKUP_RETENTION_DAYS`. Files are readable only by their owner (`umask 077`),
+because they contain contact data.
 
-Cron do root (`crontab -e`):
+Root's crontab (`crontab -e`):
 
 ```
 15 3 * * *   /opt/jhcomp-prospect/scripts/backup.sh >> /var/log/jhcomp-backup.log 2>&1
 */5 * * * *  /opt/jhcomp-prospect/scripts/healthcheck.sh > /dev/null
 ```
 
-**Cópia fora do servidor é obrigatória:** um backup no mesmo disco some junto
-com o servidor. Copie `BACKUP_DIR` para outro lugar (outro provedor,
-armazenamento de objetos), por exemplo com `rclone sync` ou `rsync` no mesmo
-cron, depois do backup. O dump não é criptografado pelo script: se o destino
-não for confiável, criptografe antes de enviar (`age`, `gpg`).
+**A copy off the server is mandatory:** a backup on the same disk disappears
+with the server. Copy `BACKUP_DIR` elsewhere — another provider, object
+storage — with `rclone sync` or `rsync` in the same cron job, after the backup.
+The script does not encrypt the dump: if the destination is not trusted,
+encrypt before sending (`age`, `gpg`).
 
-Também mantenha fora do servidor: o `.env` (sem ele não se sabe a senha do
-banco) e, se quiser evitar reemitir certificado, o volume `caddy_data`.
+Also keep off the server: the `.env` (without it nobody knows the database
+password) and, to avoid reissuing the certificate, the `caddy_data` volume.
 
-## 6. Verificar e restaurar
+## 6. Verifying and restoring
 
-**Verificar** um backup sem tocar no banco em uso (sobe um PostgreSQL
-descartável, restaura, mostra a versão do schema e as contagens):
+**Verify** a backup without touching the live database — it starts a
+disposable PostgreSQL, restores into it, and prints the schema version and the
+row counts:
 
 ```bash
-scripts/verify-backup.sh /var/backups/jhcomp-prospect/jhcomp-prospect-<data>.dump
-scripts/verify-backup.sh <dump> --compare   # logo após o backup: compara com o banco em uso
+scripts/verify-backup.sh /var/backups/jhcomp-prospect/jhcomp-prospect-<date>.dump
+scripts/verify-backup.sh <dump> --compare   # right after a backup: compares with the live database
 ```
 
-Rode a verificação **todo mês**. Backup nunca restaurado não é backup.
+Run the verification **every month. A backup that has never been restored is
+not a backup.**
 
-**Restaurar** no banco em uso. Isso apaga os dados atuais:
+**Restore** into the live database. This erases the current data:
 
 ```bash
 scripts/restore.sh <dump> --yes
 ```
 
-O script confere o SHA-256 e a legibilidade do dump, faz um backup de
-segurança do estado atual, para a API, recria o banco, restaura e sobe a API
-de novo, esperando ela ficar saudável. Se o banco atual estiver corrompido a
-ponto de o backup de segurança falhar, use `--no-safety-backup`
-conscientemente.
+The script checks the SHA-256 and the readability of the dump, takes a safety
+backup of the current state, stops the API, recreates the database, restores
+and brings the API back up, waiting for it to become healthy. If the current
+database is corrupted to the point where the safety backup fails, use
+`--no-safety-backup` deliberately.
 
-Restauração em servidor novo: faça o §3 até `docker compose up -d --build`,
-pule o `create-admin.sh` e rode `scripts/restore.sh <dump> --yes`.
+Restoring onto a new server: follow §3 up to `docker compose up -d --build`,
+skip `create-admin.sh`, and run `scripts/restore.sh <dump> --yes`.
 
-## 7. Monitoramento
+## 7. Monitoring
 
-- **Monitor externo** (UptimeRobot, Better Stack, Healthchecks.io ou similar)
-  em `https://APP_DOMAIN/api/v1/health`, a cada 5 minutos, alertando por
-  e-mail ou celular. O endpoint confere o banco: responde `503` com
-  `"status": "DOWN"` se a conexão falhar. É o único alerta que funciona se o
-  servidor cair inteiro.
-- **`scripts/healthcheck.sh`** no cron (§5): containers saudáveis, health
-  público, backup com menos de 26 h e disco abaixo de 85%. Com
-  `ALERT_WEBHOOK_URL` no `.env`, envia o alerta por POST; sem isso, o cron
-  manda a saída por e-mail se o servidor tiver MTA.
-- **Containers** reiniciam sozinhos (`restart: unless-stopped`) e têm health
-  check próprio.
-- **Logs:** `docker compose logs -f backend` (ou `caddy`, `frontend`). Rotação
-  em 5 arquivos de 10 MB por serviço. Cada linha da API traz o `requestId`,
-  que também volta ao navegador no cabeçalho `X-Request-Id`: é o que liga um
-  erro relatado pelo operador ao log.
+- **External monitor** (UptimeRobot, Better Stack, Healthchecks.io or
+  similar) on `https://APP_DOMAIN/api/v1/health`, every 5 minutes, alerting by
+  e-mail or phone. The endpoint checks the database and answers `503` with
+  `"status": "DOWN"` if the connection fails. It is the only alert that still
+  works when the whole server goes down.
+- **`scripts/healthcheck.sh`** on cron (§5): healthy containers, public health
+  endpoint, a backup less than 26 h old, and disk below 85%. With
+  `ALERT_WEBHOOK_URL` in `.env` it POSTs the alert; without it, cron mails the
+  output if the server has an MTA.
+- **Containers** restart on their own (`restart: unless-stopped`) and have
+  their own health checks.
+- **Logs:** `docker compose logs -f backend` (or `caddy`, `frontend`).
+  Rotation at 5 files of 10 MB per service. Every API line carries the
+  `requestId`, which also returns to the browser in the `X-Request-Id` header:
+  that is what links an error the operator reports to the log that recorded it.
 
-## 8. Checklist de segurança do deploy
+## 8. Deployment security checklist
 
-- [ ] `.env` com `chmod 600`, fora do Git, com cópia da senha do banco em
-      local seguro.
-- [ ] `docker compose ps` mostra porta publicada só no `caddy`.
-- [ ] `https://APP_DOMAIN` com certificado válido; `http://` redireciona.
-- [ ] `https://APP_DOMAIN/api/v1/docs` responde 404.
-- [ ] Firewall só com 22, 80 e 443; SSH só por chave.
-- [ ] Backup no cron, cópia fora do servidor e uma verificação feita.
-- [ ] Monitor externo configurado e alerta testado (pare a API com
-      `docker compose stop backend`, confira o alerta, `docker compose start backend`).
+- [ ] `.env` with `chmod 600`, outside Git, with the database password copied
+      somewhere safe.
+- [ ] `docker compose ps` shows a published port only on `caddy`.
+- [ ] `https://APP_DOMAIN` has a valid certificate; `http://` redirects.
+- [ ] `https://APP_DOMAIN/api/v1/docs` answers 404.
+- [ ] Firewall allows only 22, 80 and 443; SSH by key only.
+- [ ] Backup in cron, a copy off the server, and one verification done.
+- [ ] External monitor configured and its alert **tested** — stop the API with
+      `docker compose stop backend`, confirm the alert arrives, then
+      `docker compose start backend`.

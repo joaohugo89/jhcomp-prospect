@@ -1,406 +1,445 @@
 # CLAUDE.md — JH.COMP Prospect
 
-Ferramenta interna de prospecção comercial da JH.COMP (Poços de Caldas/MG).
-Monólito modular Java 21 + Spring Boot, frontend React + TypeScript, PostgreSQL.
+Internal sales prospecting tool for JH.COMP (Poços de Caldas, Brazil).
+Modular monolith: Java 21 + Spring Boot, React + TypeScript frontend,
+PostgreSQL.
 
-## Antes de implementar
+**Language rule:** code, comments, documentation and commit messages are in
+**English**. Everything the user reads on screen is in **Portuguese** — this is
+an internal tool for a Brazilian operator. Do not translate UI strings.
 
-A especificação está em `docs/`. Leia **apenas os documentos relevantes à etapa
-atual**, não todos a cada sessão.
+## Before implementing
 
-| Preciso de… | Leia |
+The specification lives in `docs/`. Read **only the documents relevant to the
+current task**, not all of them every session.
+
+| I need… | Read |
 |---|---|
-| Requisito e critério de aceite | `docs/02-functional-requirements.md` |
-| Camadas, módulos, adaptadores | `docs/03-architecture.md` |
-| Entidades e índices | `docs/04-database-design.md` |
-| Contrato de endpoint | `docs/05-api-specification.md` |
-| Regra de negócio, score, dedup | `docs/06-business-rules.md` |
-| Controle de segurança/LGPD | `docs/07-security-and-lgpd.md` |
-| Tela, componente, estado de UI | `docs/08-ui-ux-specification.md` |
-| Escopo da etapa | `docs/09-mvp-roadmap.md` |
-| O que testar | `docs/10-testing-strategy.md` |
-| **Decisões que sobrepõem os docs** | **`docs/11-decisions.md`** |
+| A requirement and its acceptance criteria | `docs/02-functional-requirements.md` |
+| Layers, modules, adapters | `docs/03-architecture.md` |
+| Entities and indexes | `docs/04-database-design.md` |
+| An endpoint contract | `docs/05-api-specification.md` |
+| A business rule, the score, deduplication | `docs/06-business-rules.md` |
+| A security or LGPD control | `docs/07-security-and-lgpd.md` |
+| A screen, component or UI state | `docs/08-ui-ux-specification.md` |
+| The scope of a stage | `docs/09-mvp-roadmap.md` |
+| What to test | `docs/10-testing-strategy.md` |
+| **Decisions that override the documents** | **`docs/11-decisions.md`** |
+| Deployment and operations | `docs/12-operations.md` |
 
-`docs/11-decisions.md` prevalece sobre os demais. Consulte-o antes de seguir
-qualquer ponto que os docs 01–10 deixem em aberto — as ambiguidades conhecidas
-já foram resolvidas lá (D1 a D17). Não reabra decisões marcadas `Aprovada`.
+`docs/11-decisions.md` prevails over the rest. Consult it before following any
+point documents 01–10 leave open — the known ambiguities are resolved there
+(D1 to D32). Do not reopen a decision marked `Approved`.
 
-## Decisões em vigor (resumo; detalhe em `docs/11-decisions.md`)
+## Decisions in force (summary; detail in `docs/11-decisions.md`)
 
-- **D1** Autenticação por sessão: cookie `HttpOnly`/`Secure`/`SameSite=Lax` +
-  CSRF. Sem JWT, sem refresh token. `/auth/refresh` não existe.
-- **D2** `Lead.status` é a fonte única do estado comercial. Colunas do Kanban são
-  `PipelineStage` com `stage_key` 1:1 para `Lead.status`. Mover card é
-  `PATCH /leads/{leadId}/status`. `PATCH /deals/{dealId}/stage` não existe.
-  `Deal` guarda só valor, serviço, resultado e motivo de perda.
-- **D13** Website Studio está fora do MVP. Não criar `WebsiteTemplate`,
-  `WebsiteProject` nem `WebsiteDeployment`.
-- **D23** Importação CSV em duas fases: analisar não cria empresa; confirmar
-  importa válidas, duplicatas escolhidas e completa empresas existentes só nos
-  campos vazios. Limites da D14: 2 MB, 2.000 linhas.
-- **D24** Score v1: cada critério só pontua quando `CONFIRMED`; ausência de
-  site nunca é confirmada automaticamente. Verificação de site só pelo
-  `SafeHttpFetcher` (SSRF, prazo, limites, robots.txt). Análise roda em job
-  (D15); o lead recebe o score da última análise concluída (D3).
-- **D26** Outreach: a IA só devolve texto (`AIProvider.generateMessage`, sem
-  ferramenta de escrita; teste estrutural). No MVP só existe o provedor fake.
-  Geração síncrona sem transação durante a chamada; saída validada antes de
-  virar rascunho. Bloqueio de não contato por identificador normalizado,
-  conferido ao gerar, aprovar e registrar envio; sem remoção no MVP.
-- **D27** Produção: VPS com `docker-compose.prod.yml`, só o Caddy publica
-  porta. Perfil `prod` confia em `X-Forwarded-For` só de proxy interno (sem
-  isso o limite de login por IP vale para todos juntos). Primeiro admin por
-  `scripts/create-admin.sh` (perfil `bootstrap`). Operação em `docs/12`.
-- **D28** Membros: o admin cadastra e recebe senha temporária (uma vez só);
-  com ela a sessão só acessa `/auth/me`, `/auth/logout` e `/auth/password`.
-  Troca/redefinição de senha encerra as outras sessões (`credentials_changed_at`
-  na revalidação D21). Ninguém altera a própria associação.
-- **D29** Dashboard: origem da empresa é a primeira proveniência; taxa só
-  com amostra mínima de 10. **D30** Atenção: parado 7 dias, proposta sem
-  contato 7, sem interação 14 (iguais no Kanban, lista e dashboard); lead em
-  `DO_NOT_CONTACT` nunca entra; `/team` só id e nome. **D31** Lista de leads é
-  fila de trabalho (`/leads/worklist`, módulo CRM); lote só responsável e
-  prioridade; visões privadas e compartilhadas (só admin publica/apaga);
-  segmento gravado na grafia já existente e comparado sem caixa.
-- **D32** Empresa só é excluída sem atividade comercial (no máximo o
-  lead `NEW` aberto com ela): quem cadastrou por 7 dias ou o admin; senão
-  arquivar. Desfazer importação usa a mesma regra; `MERGED` não muda. Mesclar
-  move leads/origens e arquiva a origem; dois leads abertos → 409.
-- **D16** 8 módulos, não 12: `enrichment` dentro de `company`, `organization`
-  dentro de `identity`. As 4 camadas completas só em `company`, `lead`,
-  `analysis` e `outreach`; `discovery` e `dashboard` são planos.
+- **D1** Session authentication: `HttpOnly`/`Secure`/`SameSite=Lax` cookie plus
+  CSRF. No JWT, no refresh token. `/auth/refresh` does not exist.
+- **D2** `Lead.status` is the single source of commercial state. Kanban columns
+  map 1:1 to it. Moving a card is `PATCH /leads/{leadId}/status`. `PATCH
+  /deals/{dealId}/stage` does not exist. `Deal` holds only value, service,
+  outcome and loss reason.
+- **D13** Website Studio is out of the MVP. Do not create `WebsiteTemplate`,
+  `WebsiteProject` or `WebsiteDeployment`.
+- **D23** Two-phase CSV import: analysing creates no company; confirming
+  imports the valid rows and the chosen duplicates, and completes existing
+  companies only in their empty fields. D14 limits: 2 MB, 2,000 rows.
+- **D24** Score v1: a criterion scores only when `CONFIRMED`; the absence of a
+  website is never confirmed automatically. Website checks go through
+  `SafeHttpFetcher` only (SSRF, deadlines, limits, robots.txt). Analysis runs
+  as a job (D15); the lead takes the score of the latest completed analysis
+  (D3).
+- **D26** Outreach: the AI returns text only (`AIProvider.generateMessage`, no
+  write tool; structural test). The MVP has only the fake provider. Generation
+  is synchronous with no transaction held during the call, and the output is
+  validated before becoming a draft. Do-not-contact is checked by normalised
+  identifier when generating, approving and recording a send; no removal in the
+  MVP.
+- **D27** Production: VPS with `docker-compose.prod.yml`, only Caddy publishes
+  a port. The `prod` profile trusts `X-Forwarded-For` only from an internal
+  proxy (without it the per-IP login limit applies to everyone at once). First
+  admin via `scripts/create-admin.sh` (`bootstrap` profile). Operations in
+  `docs/12`.
+- **D28** Members: the admin registers a member and receives a temporary
+  password, shown once; with it the session reaches only `/auth/me`,
+  `/auth/logout` and `/auth/password`. Changing or resetting a password ends
+  the other sessions (`credentials_changed_at`, checked during D21
+  revalidation). Nobody changes their own membership.
+- **D29** Dashboard: a company's origin is its first provenance; a rate needs a
+  minimum sample of 10. **D30** Attention: idle 7 days, proposal without
+  contact 7, no interaction 14 (identical in the Kanban, the list and the
+  dashboard); a lead in `DO_NOT_CONTACT` never appears; `/team` returns id and
+  name only. **D31** The lead list is a work queue (`/leads/worklist`, CRM
+  module); bulk changes cover owner and priority only; private and shared
+  views (only an admin publishes or deletes); a segment is stored in the
+  spelling that already exists and compared case-insensitively.
+- **D32** A company is deleted only without commercial activity (at most the
+  `NEW` lead opened with it): by whoever registered it, within 7 days, or by an
+  admin; otherwise archive. Undoing an import uses the same rule; `MERGED` rows
+  do not change. Merging moves leads and sources and archives the origin; two
+  open leads → 409.
+- **D16** Eight modules, not twelve: `enrichment` inside `company`,
+  `organization` inside `identity`. All four layers only in `company`, `lead`,
+  `analysis` and `outreach`; `discovery` and `dashboard` are flat.
 
-## Comandos
+## Commands
 
-### Ambiente completo em container (forma recomendada de testar)
+### Full containerised environment (the recommended way to test)
 
 ```bash
-cp .env.example .env                  # uma vez; defina LOCAL_ADMIN_PASSWORD
+cp .env.example .env                  # once; set LOCAL_ADMIN_PASSWORD
 docker compose up -d --build          # postgres + backend + frontend
 docker compose logs -f backend
-docker compose ps                     # conferir health de cada serviço
-docker compose down                   # para, preservando dados
-docker compose down -v                # apaga o volume do banco
+docker compose ps                     # check each service's health
+docker compose down                   # stop, keeping the data
+docker compose down -v                # drop the database volume
 ```
 
-Aplicação em **http://localhost:8090**. O nginx do frontend faz proxy de
-`/api/v1` para o backend, mantendo os dois na **mesma origem** — é o que a
-decisão D1 exige para o cookie `SameSite=Lax` funcionar sem CORS com
-credenciais. A porta 8081 fica publicada só para depuração com `curl`; em
-produção não deve ser exposta.
+The application is at **http://localhost:8090**. The frontend's nginx proxies
+`/api/v1` to the backend, keeping both on the **same origin** — which is what
+D1 requires for the `SameSite=Lax` cookie to work without CORS credentials.
+Port 8081 is published only for debugging with `curl`; it must not be exposed
+in production.
 
-Após mudar código do backend ou do frontend: `docker compose up -d --build`.
+After changing backend or frontend code: `docker compose up -d --build`.
 
-### Desenvolvimento sem container (iteração mais rápida)
+### Without containers (faster iteration)
 
 ```bash
-docker compose up -d postgres         # só o banco
+docker compose up -d postgres         # database only
 
-# Backend (requer POSTGRES_PASSWORD no ambiente para spring-boot:run)
-cd backend  && mvn verify                 # compila + testes (sobe Postgres via Testcontainers)
-cd backend  && mvn spring-boot:run        # API em :8081, base path /api/v1
-cd frontend && npm run dev                # UI em :5174
+# Backend (spring-boot:run needs POSTGRES_PASSWORD in the environment)
+cd backend  && mvn verify                 # compile + tests (PostgreSQL via Testcontainers)
+cd backend  && mvn spring-boot:run        # API on :8081, base path /api/v1
+cd frontend && npm run dev                # UI on :5174
 cd frontend && npm run typecheck && npm run lint && npm test -- --run && npm run build
 ```
 
-Conferência rápida: `curl http://localhost:8081/api/v1/health` (confere o
-banco; 503 se ele estiver fora).
+Quick check: `curl http://localhost:8081/api/v1/health` (verifies the database;
+503 when it is down).
 
-### E2E e operação
+### End-to-end and operations
 
 ```bash
-cd frontend && E2E_ADMIN_PASSWORD=... npm run e2e   # 2 fluxos (D17), ambiente em container no ar
-scripts/backup.sh                                    # dump + SHA-256 + retenção
-scripts/verify-backup.sh <dump> --compare            # restaura em banco descartável e compara
-scripts/restore.sh <dump> --yes                      # APAGA o banco atual
+cd frontend && E2E_ADMIN_PASSWORD=... npm run e2e   # 2 flows (D17), containerised environment up
+scripts/backup.sh                                    # dump + SHA-256 + retention
+scripts/verify-backup.sh <dump> --compare            # restore into a disposable database and compare
+scripts/restore.sh <dump> --yes                      # ERASES the current database
 ```
 
-Ensaio do compose de produção nesta máquina: `APP_DOMAIN=localhost`,
+**The end-to-end suite writes to the database it runs against.** Once the
+environment holds real prospecting data, give the suite its own environment.
+
+Rehearsing the production compose on this machine: `APP_DOMAIN=localhost`,
 `HTTP_PORT=8180`, `HTTPS_PORT=8443`, `docker compose -p jhcomp-rehearsal -f
-docker-compose.prod.yml --env-file <arquivo fora do repo>` e Playwright com
-`E2E_IGNORE_HTTPS_ERRORS=true`. Derrubar com `down -v` no mesmo projeto.
-OpenAPI em `/api/v1/openapi`, Swagger UI em `/api/v1/docs`.
+docker-compose.prod.yml --env-file <file outside the repository>`, and
+Playwright with `E2E_IGNORE_HTTPS_ERRORS=true`. Tear down with `down -v` in the
+same project.
 
-Skills do projeto não são versionadas (só `skills-lock.json`, com hash de cada
-uma). Em um clone novo: `npx skills install`. Instaladas:
-`spring-boot-rest-api-standards`, `spring-boot-test-patterns`, `react-patterns`,
-`kpi-dashboard-design`.
+OpenAPI at `/api/v1/openapi`, Swagger UI at `/api/v1/docs`.
 
-## Armadilhas desta stack já encontradas
+Project skills are not versioned (only `skills-lock.json`, with each one's
+hash). In a fresh clone: `npx skills install`. Installed:
+`spring-boot-rest-api-standards`, `spring-boot-test-patterns`,
+`react-patterns`, `kpi-dashboard-design`.
 
-Cada uma custou tempo real. Não reintroduzir.
+## Pitfalls already hit in this stack
 
-- **Spring Boot 4 usa Jackson 3** (pacote `tools.jackson`). Propriedades do
-  Jackson 2 como `spring.jackson.serialization.write-dates-as-timestamps`
-  **não existem mais** e fazem o contexto falhar ao subir. Datas já saem como
-  ISO-8601 por padrão.
-- **Flyway exige `spring-boot-starter-flyway`** no Spring Boot 4. Declarar só
-  `flyway-core`, como no Boot 3, coloca a biblioteca no classpath sem ativar a
-  autoconfiguração: a aplicação sobe e **nenhuma migration é aplicada, em
-  silêncio**. Sempre confirmar a linha `Successfully applied N migration`.
-- **Testcontainers 2.x prefixa os artefatos** com `testcontainers-`
-  (`testcontainers-postgresql`, não `postgresql`) e o BOM do Spring Boot 4 não
-  gerencia mais suas versões: importar o `testcontainers-bom`.
-- **Container de teste deve ser singleton**, iniciado em bloco estático sem
-  `@Testcontainers`/`@Container`. Com essa extensão o container para ao fim de
-  cada classe, enquanto o Spring reaproveita o contexto em cache, e as classes
-  seguintes falham com "Failed to obtain JDBC Connection".
-- **PostgreSQL 18+ exige o volume em `/var/lib/postgresql`**, não em
-  `/var/lib/postgresql/data`; com o caminho antigo a imagem recusa iniciar.
-- **Não testar o fuso do banco por `pg_settings`**: o driver JDBC envia
-  `TimeZone` no pacote de inicialização, então tanto `setting` quanto
-  `reset_val` passam a refletir a JVM. Testar fidelidade de instante em
-  `timestamptz`. Os testes rodam com `-Duser.timezone=UTC`.
-- **`defineConfig` do Vitest vem de `vitest/config`**, não de `vite`: só essa
-  versão aceita a chave `test`.
-- **`@AutoConfigureMockMvc` mudou de módulo e de pacote** no Spring Boot 4:
-  exige `spring-boot-starter-webmvc-test` e fica em
-  `org.springframework.boot.webmvc.test.autoconfigure`. O antigo
-  `...boot.test.autoconfigure.web.servlet` não existe mais.
-- **`@MockBean` foi removido** no Spring Boot 4; usar `@MockitoBean`.
-- **Classe com dois construtores com argumentos** falha ao virar bean ("No
-  default constructor found"). Anotar um deles com `@Autowired`.
-- **MockMvc não aplica o `context-path`**, então `instance` sai como
-  `/auth/login`, sem `/api/v1`. No servidor real o prefixo aparece. Não
-  "corrigir" o código por causa disso.
-- **`char(n)` no SQL vira `bpchar` e quebra a validação de schema** do
-  Hibernate, que espera `varchar(n)` para um campo `String`. Usar `varchar`
-  sempre. O `ddl-auto: validate` pega isso no primeiro teste de contexto.
-- **`inet` não aceita parâmetro do driver JDBC** (chega como `varchar` e não há
-  conversão implícita). Ver D18.
-- **Jackson 3 recusa primitivo ausente no JSON** (`FAIL_ON_NULL_FOR_PRIMITIVES`
-  agora é `true`). Um `boolean` opcional num record de request faz a rota
-  responder 400 quando o campo não vem. Usar `Boolean` e tratar `null`.
-- **`created_at` com `insertable = false` volta nulo após o `save`**: o valor
-  vem do `DEFAULT now()` do banco e não é relido. A resposta do POST sai sem a
-  data. As entidades preenchem `createdAt` pelo `Clock` no construtor.
-- **Validar URL por regex é frágil.** A primeira versão aceitava
-  `javascript:1,alert(1)`. Usar `@WebUrl` (parsing com `java.net.URI`) no
-  backend e `safeHref` no frontend antes de montar qualquer `href`.
-- **Teste de integração que faz login deve usar `TestSessions.login`.** O
-  limitador é bean do contexto compartilhado entre classes; logins todos de
-  127.0.0.1 esgotam a cota por rede conforme a suíte cresce, e os testes
-  passam a falhar com 429 em ordem imprevisível.
-- **`typescript-eslint` não suporta TypeScript 7** (peer `<6.1.0` em
-  2026-11-05). O lint é o `oxlint` (`npm run lint`, avisos tratados como
-  erro), que não depende do compilador. Não forçar ESLint com
+Each one cost real time. Do not reintroduce them.
+
+- **Spring Boot 4 uses Jackson 3** (package `tools.jackson`). Jackson 2
+  properties such as `spring.jackson.serialization.write-dates-as-timestamps`
+  **no longer exist** and make the context fail to start. Dates already
+  serialise as ISO-8601 by default.
+- **Flyway needs `spring-boot-starter-flyway`** on Spring Boot 4. Declaring
+  only `flyway-core`, as on Boot 3, puts the library on the classpath without
+  enabling the autoconfiguration: the application starts and **no migration is
+  applied, silently**. Always confirm the `Successfully applied N migrations`
+  line.
+- **Testcontainers 2.x prefixes its artifacts** with `testcontainers-`
+  (`testcontainers-postgresql`, not `postgresql`), and the Spring Boot 4 BOM no
+  longer manages their versions: import `testcontainers-bom`.
+- **The test container must be a singleton**, started in a static block without
+  `@Testcontainers`/`@Container`. With that extension the container stops at
+  the end of each class while Spring reuses the cached context, and the
+  following classes fail with "Failed to obtain JDBC Connection".
+- **PostgreSQL 18+ needs the volume at `/var/lib/postgresql`**, not
+  `/var/lib/postgresql/data`; with the old path the image refuses to start.
+- **Do not test the database time zone through `pg_settings`**: the JDBC driver
+  sends `TimeZone` in the startup packet, so both `setting` and `reset_val`
+  reflect the JVM. Test instant fidelity in `timestamptz` instead. Tests run
+  with `-Duser.timezone=UTC`.
+- **Vitest's `defineConfig` comes from `vitest/config`**, not from `vite`: only
+  that version accepts the `test` key.
+- **`@AutoConfigureMockMvc` changed module and package** in Spring Boot 4: it
+  needs `spring-boot-starter-webmvc-test` and lives in
+  `org.springframework.boot.webmvc.test.autoconfigure`. The old
+  `...boot.test.autoconfigure.web.servlet` is gone.
+- **`@MockBean` was removed** in Spring Boot 4; use `@MockitoBean`.
+- **A class with two argument-taking constructors** fails to become a bean ("No
+  default constructor found"). Annotate one with `@Autowired`.
+- **MockMvc does not apply the `context-path`**, so `instance` comes out as
+  `/auth/login` without `/api/v1`. On the real server the prefix appears. Do
+  not "fix" the code because of this.
+- **`char(n)` in SQL becomes `bpchar` and breaks Hibernate's schema
+  validation**, which expects `varchar(n)` for a `String` field. Always use
+  `varchar`. `ddl-auto: validate` catches it in the first context test.
+- **`inet` does not accept a JDBC driver parameter** (it arrives as `varchar`
+  with no implicit conversion). See D18.
+- **Jackson 3 refuses a missing primitive in JSON**
+  (`FAIL_ON_NULL_FOR_PRIMITIVES` is now `true`). An optional `boolean` in a
+  request record makes the route answer 400 when the field is absent. Use
+  `Boolean` and handle `null`.
+- **`created_at` with `insertable = false` comes back null after `save`**: the
+  value comes from the database `DEFAULT now()` and is not re-read, so the POST
+  response has no date. Entities set `createdAt` from the `Clock` in the
+  constructor.
+- **Validating a URL with a regular expression is fragile.** The first version
+  accepted `javascript:1,alert(1)`. Use `@WebUrl` (parsing with
+  `java.net.URI`) in the backend and `safeHref` in the frontend before building
+  any `href`.
+- **An integration test that logs in must use `TestSessions.login`.** The
+  limiter is a bean in the shared context; logins all from 127.0.0.1 exhaust
+  the per-network quota as the suite grows, and tests start failing with 429 in
+  an unpredictable order.
+- **`typescript-eslint` does not support TypeScript 7** (peer `<6.1.0` as of
+  2026-11-05). Linting is `oxlint` (`npm run lint`, warnings as errors), which
+  does not depend on the compiler. Do not force ESLint with
   `--legacy-peer-deps`.
-- **nginx corta corpo acima de 1 MB por padrão** (`client_max_body_size`), com
-  413 antes de chegar ao backend. A importação aceita 2 MB (D14); o limite está
-  em `frontend/nginx.conf`. Teste de upload só pelo MockMvc não pega isso.
-- **Spring Data ignora repositório declarado como interface aninhada**
-  (`considerNestedRepositories = false`). Um arquivo por repositório.
-- **JSX descarta espaço no fim de linha seguido de quebra.** `{a}: ` numa linha
-  e `{b}` na seguinte renderiza `a:b`. Montar o texto numa template string.
-- **O editor compila em `backend/target` junto com o Maven.** O servidor Java
-  do VS Code/Eclipse grava classes ali; o sintoma é `NoClassDefFoundError` de
-  classe sintética (`Classe$1`) ou "Unresolved compilation problem" num teste
-  que nada tem de errado. Rodar `mvn clean verify` antes de investigar.
-- **HttpClient 5: fechar a resposta drena o corpo restante.** Um servidor que
-  manda mais que o limite e continua pingando bytes nunca estoura o timeout de
-  leitura e prende quem chama. `SafeHttpFetcher` cancela a requisição antes de
-  fechar. O teste precisa pingar bytes devagar: com o servidor parado, o
-  timeout encerra a drenagem e o teste passa mesmo sem a proteção.
-- **Relógio do banco em container difere do da JVM.** No Windows a VM do Docker
-  pode estar segundos adiantada. Em teste, nunca comparar `now()` do SQL com
-  instante da aplicação; usar instante bem no passado.
-- **Relógio da JVM no Windows tem resolução de até ~16 ms.** Duas operações
-  seguidas podem receber o mesmo `Instant`; ordenar por `createdAt` com
-  desempate por UUID fica aleatório. Em teste de ordenação, afastar os
-  instantes por SQL em vez de contar com o relógio.
-- **"Null type safety … unchecked conversion" do VS Code é falso positivo** da
-  análise de nulos do Eclipse em method reference sobre genérico do JDK. Está
-  desligado em `.vscode/java-compiler.prefs` (local). Não trocar method
-  reference por lambda por causa dele.
-- **A API omite campo nulo no JSON** (`default-property-inclusion: non_null`).
-  Em teste MockMvc, campo nulo é `jsonPath(...).doesNotExist()`, não
-  `.value(nullValue())`; no frontend, o tipo é opcional (`?:`), não `| null`.
-- **A API simulada do frontend casa rota por prefixo.** `GET /leads/` responde
-  também `/leads/{id}/qualquer-coisa` com o JSON do lead. Seção nova no
-  detalhe do lead exige declarar a rota nos testes de `leads` e `crm`.
-- **nginx: `add_header` dentro de `location` descarta os do `server`.** A
-  página HTML ficou sem nenhum cabeçalho de segurança por isso. Os cabeçalhos
-  vivem em `frontend/security-headers.conf`, incluído em **cada** `location`;
-  `location` novo precisa do `include`. Conferir com `curl -I` em `/`.
-- **Perfil sem servidor web quebra o `SecurityConfig`**
-  (`web-application-type: none` → falta `HttpSecurity`). O bootstrap sobe com
-  `server.port: 0` e encerra pelo `BootstrapExit`.
-- **`"\s"` numa string Java é um espaço literal** (Java 15+), não "espaço em
-  branco" de regex. Regex dentro de literal sempre com `"\\s"`, `"\\d"`, também
-  em SQL montado em Java. Um teste passava por acaso porque a entrada só tinha
-  espaços.
-- **`server.error.*` não é mais lido no Boot 4** (depreciação nível `error`):
-  as chaves são `spring.web.error.*`. Propriedade com depreciação `error` é
-  ignorada em silêncio; o aviso do editor é a única pista.
-- **PostgreSQL arredonda, não trunca, fração abaixo do microssegundo.** Um
-  `Instant` com nanos gravado em `timestamptz` pode voltar *maior* que o
-  original. Comparar instante da sessão com o do banco exige truncar em
-  `MICROS` antes de gravar e usar o valor gravado dos dois lados.
-- **`FOR UPDATE` + auditoria `REQUIRES_NEW` = deadlock.** `audit_event` tem FK
-  para `organization`; travar a linha da organização e auditar na mesma
-  requisição faz a transação nova esperar pela que a chamou. Para serializar,
-  usar `pg_advisory_xact_lock`.
-- **`flyway_schema_history.version` é texto**: `max(version)` dá `9` com a V10
-  aplicada. Ordenar por `installed_rank`.
-- **Git Bash converte caminho em argumento do `docker run`** (`/mnt` vira
-  `C:/Program Files/Git/mnt`). Usar `MSYS_NO_PATHCONV=1` e `$(pwd -W)`.
-- **`curl -F file=@/c/...` no Git Bash não traduz o caminho do Windows**: a
-  requisição falha sem mensagem. Rodar de dentro da pasta, com caminho
-  relativo.
-- **O cookie CSRF precisa de `setCookiePath("/")`.** Sem isso herda o
-  context-path `/api/v1`, e o JavaScript da página servida em `/` não o vê: o
-  login falha com 403 **no navegador**, embora todo teste de API passe. Há
-  teste de regressão em `AuthControllerIntegrationTest`.
-- **Cookie não é isolado por porta.** Todos os serviços em `localhost`
-  compartilham o mesmo conjunto de cookies, e esta máquina roda outros projetos
-  em 5173/8080/55433. Nome genérico (`XSRF-TOKEN`, `JSESSIONID`) colide, o
-  navegador envia **dois cookies de mesmo nome**, o servidor lê só o primeiro e
-  recusa com **403 sem mensagem útil**. Por isso os nomes são `JH_XSRF` /
-  `X-JH-XSRF` e `JHSESSION`. Ver D22.
-- **Mudar o path ou o nome de um cookie deixa órfão no navegador.** O antigo
-  continua sendo enviado e pode ser lido no lugar do novo. Ao mexer em cookie,
-  testar com o resíduo presente, não só com pote limpo.
-- **Cookie CSRF só é reemitido quando o token é novo.** Asserção sobre
-  `Set-Cookie` numa requisição HTTP fica dependente da ordem dos testes; testar
-  o `CsrfTokenRepository` diretamente.
-- **Não há `.prettierrc`; `npx prettier` sem opções reescreve o frontend**
-  com aspas duplas e 80 colunas. O estilo é `--single-quote --print-width 120`,
-  e só nos arquivos alterados.
-- **Portas 55107–55806 são reservadas pelo Windows/Hyper-V** nesta máquina
-  (`netsh interface ipv4 show excludedportrange protocol=tcp`). Conferir antes
-  de escolher porta nova.
+- **nginx truncates bodies over 1 MB by default** (`client_max_body_size`),
+  answering 413 before the backend sees them. The import accepts 2 MB (D14);
+  the limit is in `frontend/nginx.conf`. A MockMvc upload test cannot catch
+  this.
+- **Spring Data ignores a repository declared as a nested interface**
+  (`considerNestedRepositories = false`). One file per repository.
+- **JSX drops trailing whitespace before a line break.** `{a}: ` on one line
+  and `{b}` on the next renders `a:b`. Build the text in a template string.
+- **The editor compiles into `backend/target` alongside Maven.** The VS
+  Code/Eclipse Java server writes classes there; the symptom is a
+  `NoClassDefFoundError` on a synthetic class (`Class$1`) or an "Unresolved
+  compilation problem" in a test with nothing wrong with it. Run `mvn clean
+  verify` before investigating.
+- **HttpClient 5: closing the response drains the remaining body.** A server
+  that sends more than the limit and keeps dripping bytes never hits the read
+  timeout and holds the caller. `SafeHttpFetcher` cancels the request before
+  closing. The test has to drip bytes slowly: with a stopped server the timeout
+  ends the drain and the test passes even without the protection.
+- **The database clock in a container differs from the JVM's.** On Windows the
+  Docker VM can be seconds ahead. In a test, never compare SQL `now()` with an
+  application instant; use an instant well in the past.
+- **The JVM clock on Windows has up to ~16 ms resolution.** Two consecutive
+  operations can receive the same `Instant`; ordering by `createdAt` with a
+  UUID tiebreak then becomes random. In an ordering test, separate the instants
+  through SQL rather than relying on the clock.
+- **"Null type safety … unchecked conversion" from VS Code is a false
+  positive** of Eclipse's null analysis on a method reference over a JDK
+  generic. It is disabled in `.vscode/java-compiler.prefs` (local). Do not
+  replace a method reference with a lambda because of it.
+- **The API omits a null field from JSON**
+  (`default-property-inclusion: non_null`). In a MockMvc test a null field is
+  `jsonPath(...).doesNotExist()`, not `.value(nullValue())`; in the frontend
+  the type is optional (`?:`), not `| null`.
+- **The frontend's fake API matches routes by prefix.** `GET /leads/` also
+  answers `/leads/{id}/anything` with the lead JSON. A new section in the lead
+  detail must declare its route in both the `leads` and the `crm` tests.
+- **nginx: `add_header` inside a `location` discards those from `server`.** The
+  HTML page ended up with no security headers at all because of this. The
+  headers live in `frontend/security-headers.conf`, included in **every**
+  `location`; a new `location` needs the `include`. Check with `curl -I` on
+  `/`.
+- **A profile with no web server breaks `SecurityConfig`**
+  (`web-application-type: none` → no `HttpSecurity`). The bootstrap starts with
+  `server.port: 0` and exits through `BootstrapExit`.
+- **`"\s"` in a Java string is a literal space** (Java 15+), not regex
+  whitespace. Always write `"\\s"`, `"\\d"` inside a literal, including in SQL
+  built in Java. One test passed by accident because the input contained only
+  spaces.
+- **`server.error.*` is no longer read on Boot 4** (deprecation level `error`):
+  the keys are `spring.web.error.*`. A property with `error`-level deprecation
+  is ignored silently, and the editor warning is the only clue.
+- **PostgreSQL rounds, it does not truncate, fractions below the
+  microsecond.** An `Instant` with nanoseconds written to `timestamptz` can
+  come back *greater* than the original. Comparing a session instant with a
+  stored one requires truncating to `MICROS` before writing and using the
+  stored value on both sides.
+- **`FOR UPDATE` + `REQUIRES_NEW` auditing = deadlock.** `audit_event` has a
+  foreign key to `organization`; locking the organisation row and auditing in
+  the same request makes the new transaction wait for the one that called it.
+  Use `pg_advisory_xact_lock` to serialise.
+- **`flyway_schema_history.version` is text**: `max(version)` returns `9` with
+  V10 applied. Order by `installed_rank`.
+- **Git Bash rewrites a path in a `docker run` argument** (`/mnt` becomes
+  `C:/Program Files/Git/mnt`). Use `MSYS_NO_PATHCONV=1` and `$(pwd -W)`.
+- **`curl -F file=@/c/...` in Git Bash does not translate the Windows path**:
+  the request fails with no message. Run from inside the folder with a relative
+  path.
+- **The CSRF cookie needs `setCookiePath("/")`.** Without it, it inherits the
+  `/api/v1` context path and the JavaScript on the page served at `/` cannot
+  see it: login fails with 403 **in the browser** even though every API test
+  passes. There is a regression test in `AuthControllerIntegrationTest`.
+- **Cookies are not isolated by port.** Every service on `localhost` shares one
+  cookie jar, and this machine runs other projects on 5173/8080/55433. A
+  generic name (`XSRF-TOKEN`, `JSESSIONID`) collides, the browser sends **two
+  cookies with the same name**, the server reads only the first and refuses
+  with **403 and no useful message**. Hence `JH_XSRF` / `X-JH-XSRF` and
+  `JHSESSION`. See D22.
+- **Changing a cookie's path or name leaves an orphan in the browser.** The old
+  one keeps being sent and may be read instead of the new one. When touching a
+  cookie, test with the leftover present, not only with a clean jar.
+- **The CSRF cookie is only reissued when the token is new.** An assertion
+  about `Set-Cookie` on an HTTP request becomes order-dependent; test
+  `CsrfTokenRepository` directly.
+- **There is no `.prettierrc`; `npx prettier` with no options rewrites the
+  frontend** with double quotes and 80 columns. The style is `--single-quote
+  --print-width 120`, applied only to changed files.
+- **Ports 55107–55806 are reserved by Windows/Hyper-V** on this machine
+  (`netsh interface ipv4 show excludedportrange protocol=tcp`). Check before
+  picking a new port.
+- **`hibernate.order_inserts` reorders INSERTs by entity type** and can send a
+  child row before its parent. The import confirm writes `company` and
+  `import_row` in the same flush, and the foreign key violation surfaces as a
+  **409** through `GlobalExceptionHandler`. `hibernate.jdbc.batch_size` is
+  enabled and the reordering flag deliberately is not; `HibernatePropertiesTest`
+  pins both.
 
-## Portas (escolhidas para não colidir com outros projetos desta máquina)
+## Ports (chosen to avoid collisions with other projects on this machine)
 
-| Serviço | Porta | Observação |
+| Service | Port | Note |
 |---|---|---|
-| **Aplicação (nginx)** | **8090** | **ponto de entrada em container; é aqui que você testa** |
-| PostgreSQL | 15432 | 5432 é o Postgres local; faixas 55107–55806 são reservadas pelo Windows |
-| Backend | 8081 | 8080 é o projeto `agendamento`; em container, só para depuração |
-| Frontend (Vite dev) | 5174 | 5173 é o projeto `agendamento` |
+| **Application (nginx)** | **8090** | **containerised entry point; this is where you test** |
+| PostgreSQL | 15432 | 5432 is the local PostgreSQL; 55107–55806 are reserved by Windows |
+| Backend | 8081 | 8080 belongs to the `agendamento` project; in containers, debugging only |
+| Frontend (Vite dev) | 5174 | 5173 belongs to the `agendamento` project |
 
-## Autenticação (Etapa 3)
+## Authentication
 
-Sessão por cookie `JHSESSION` (`HttpOnly`, `SameSite=Lax`, `Secure` via
-`COOKIE_SECURE`). CSRF em cookie `XSRF-TOKEN` legível por JavaScript, reenviado
-no cabeçalho `X-XSRF-TOKEN` — o `httpClient` já faz isso em POST/PATCH/PUT/DELETE.
+Session in the `JHSESSION` cookie (`HttpOnly`, `SameSite=Lax`, `Secure` via
+`COOKIE_SECURE`). CSRF in a JavaScript-readable cookie, echoed in the header —
+`httpClient` already does this for POST/PATCH/PUT/DELETE.
 
-Rotas públicas: `/health`, `/auth/login`, `/openapi/**`, `/docs/**`.
-Todo o resto exige autenticação, **inclusive rotas inexistentes**, que respondem
-401 em vez de 404 para anônimos. Isso é intencional: não revela quais rotas
-existem.
+Public routes: `/health`, `/auth/login`, `/openapi/**`, `/docs/**`. Everything
+else requires authentication, **including routes that do not exist**, which
+answer 401 instead of 404 for anonymous callers. That is intentional: it does
+not disclose which routes exist.
 
-Para entrar em desenvolvimento: defina `LOCAL_ADMIN_PASSWORD` no `.env` e rode
-com o perfil `local` (`SPRING_PROFILES_ACTIVE=local`). O `LocalBootstrap` cria a
-organização e o administrador na primeira execução (D19).
+To sign in during development: set `LOCAL_ADMIN_PASSWORD` in `.env` and run
+with the `local` profile (`SPRING_PROFILES_ACTIVE=local`). `LocalBootstrap`
+creates the organisation and the administrator on first run (D19).
 
-Um recurso de outra organização responde **404, nunca 403**: informar que existe
-mas pertence a outro tenant já é vazamento.
+A resource from another organisation answers **404, never 403**: saying it
+exists but belongs to another tenant is already a leak.
 
-A associação é **revalidada no banco a cada requisição autenticada**
-(`MembershipRevalidationFilter`, D21). Revogar associação, desabilitar usuário,
-suspender organização ou mudar papel vale na requisição seguinte, sem esperar a
-sessão expirar. Não substitua isso por cache sem reler a decisão D21.
+Membership is **revalidated in the database on every authenticated request**
+(`MembershipRevalidationFilter`, D21). Revoking membership, disabling a user,
+suspending an organisation or changing a role takes effect on the next request,
+without waiting for the session to expire. Do not replace this with a cache
+without re-reading D21.
 
-O limitador de login usa **reserva atômica** (`tryAcquire`, D20). Nunca
-reintroduzir um par `isBlocked()`/`recordFailure()`: entre a verificação e a
-contabilização, requisições concorrentes furam o limite. O descarte por teto
-**nunca remove entrada bloqueada** — sem isso, inundar o limitador apaga o
-próprio bloqueio e devolve tentativas ilimitadas ao atacante. Há também um
-limite por IP, porque o e-mail é escolhido por quem chama.
+The login limiter uses **atomic reservation** (`tryAcquire`, D20). Never
+reintroduce an `isBlocked()`/`recordFailure()` pair: between the check and the
+accounting, concurrent requests slip through. Eviction by cap **never removes a
+blocked entry** — without that, flooding the limiter erases the attacker's own
+block and returns unlimited attempts. There is also a per-IP limit, because the
+caller chooses the e-mail.
 
-**Teste de limite precisa ser validado ao contrário:** remova a proteção e
-confirme que o teste falha. Três versões do teste do limitador passavam sem a
-proteção — uma não alcançava o teto, outra esgotava o teto de IPs primeiro,
-outra usava relógio congelado, que deixa todas as entradas com o mesmo instante
-e torna "mais antiga" sem significado.
+**A limit test must be validated in reverse:** remove the protection and
+confirm the test fails. Three versions of the limiter test passed without the
+protection — one never reached the cap, one exhausted the IP cap first, and one
+used a frozen clock, which gives every entry the same instant and makes
+"oldest" meaningless.
 
-## Versões fixadas (Etapa 2, consultadas nos registries em 2026-11-04)
+## Pinned versions (checked against the registries on 2026-11-04)
 
 Java 21 · Spring Boot 4.1.2 · SpringDoc 3.2.0 · Testcontainers 2.0.5 ·
 PostgreSQL 18-alpine · React 19.3.1 · TypeScript 7.0.2 · Vite 8.3.5 ·
 Vitest 5.1.0 · Tailwind 4.3.4.
 
-Flyway, Jackson, Hibernate e o driver JDBC têm versão gerenciada pelo BOM do
-Spring Boot — não fixar manualmente. Ao atualizar qualquer versão, consultar o
-registry em vez de supor a última.
+Flyway, Jackson, Hibernate and the JDBC driver are managed by the Spring Boot
+BOM — do not pin them by hand. When updating any version, check the registry
+rather than assuming the latest.
 
-Conexão local: `postgresql://jhcomp@localhost:15432/jhcomp_prospect`.
-O banco escuta apenas em `127.0.0.1`.
+Local connection: `postgresql://jhcomp@localhost:15432/jhcomp_prospect`. The
+database listens on `127.0.0.1` only.
 
-## Regras não negociáveis
+## Non-negotiable rules
 
-Vêm da especificação e existem por razão legal ou de produto. Não contorne nem
-"simplifique" nenhuma delas sem decisão registrada em `docs/11-decisions.md`.
+These come from the specification and exist for legal or product reasons. Do
+not work around or "simplify" any of them without a decision recorded in
+`docs/11-decisions.md`.
 
-1. **Nenhum envio externo automático.** A IA não tem caminho de envio,
-   publicação, remoção de bloqueio de contato ou exclusão de registro
-   (`docs/06` §11). Isso é restrição de arquitetura: a camada de IA não recebe
-   ferramenta de escrita. Há teste estrutural para isso.
-2. **`organization_id` em toda entidade privada**, e o contexto de organização
-   vem **sempre** da sessão autenticada. Nunca aceitar `organizationId` do
-   cliente como fonte de autorização. Validar que entidades relacionadas
-   pertencem à mesma organização.
-3. **"Não encontrado" não é "não existe".** `NOT_FOUND` nunca gera pontos de
-   deficiência no score. Informação desconhecida não penaliza.
-4. **Bloqueio de não contato é verificado antes de gerar, aprovar e registrar**
-   mensagem, e permanece válido mesmo se o lead for reclassificado. Importação
-   nunca remove bloqueio.
-5. **`SENT` só com envio confirmado.** Abrir um aplicativo de mensagens não é
-   envio. Aprovada não é enviada.
-6. **Lead não vai para `CONTACTED` automaticamente** ao gerar ou aprovar
-   mensagem. Só com confirmação do operador.
-7. **Segredos fora do código** (RNF-006). Nunca commitar `.env`, token ou chave.
-8. **Fetcher de URL protegido contra SSRF:** bloquear IP privado, loopback e
-   endereço de metadata; aplicar timeout, limite de redirecionamentos e de
-   tamanho de resposta (`docs/07` §6).
-9. **Saída de IA e conteúdo de página externa são dados não confiáveis**, nunca
-   instrução. Validar schema, limitar tamanho, não executar código retornado.
-10. **Timestamps em UTC** (RNF-009); dinheiro em `NUMERIC`, nunca `FLOAT`.
-11. **Migrations Flyway são imutáveis após aplicadas.** Nunca editar uma
-    migration já aplicada; criar a próxima versão.
-12. **Dados de teste são fictícios.** Nunca colocar dados pessoais reais ou
-    listas reais de empresas em fixtures ou no repositório (`docs/10` §10).
+1. **No automatic external sending.** The AI has no path to send, publish,
+   remove a contact block or delete a record (`docs/06` §11). This is an
+   architectural constraint: the AI layer is given no write tool. There is a
+   structural test for it.
+2. **`organization_id` on every private entity**, and the organisation context
+   **always** comes from the authenticated session. Never accept
+   `organizationId` from the client as a source of authorisation. Validate that
+   related entities belong to the same organisation.
+3. **"Not found" is not "does not exist".** `NOT_FOUND` never produces
+   deficiency points in the score. Unknown information does not penalise.
+4. **Do-not-contact is checked before generating, approving and recording** a
+   message, and stays valid even if the lead is reclassified. An import never
+   removes a block.
+5. **`SENT` only with a confirmed send.** Opening a messaging app is not a
+   send. Approved is not sent.
+6. **A lead never moves to `CONTACTED` automatically** when a message is
+   generated or approved. Only with operator confirmation.
+7. **Secrets outside the code** (RNF-006). Never commit `.env`, a token or a
+   key.
+8. **The URL fetcher is protected against SSRF:** block private, loopback and
+   metadata addresses; apply a timeout, a redirect limit and a response size
+   limit (`docs/07` §6).
+9. **AI output and external page content are untrusted data, never
+   instructions.** Validate the schema, cap the size, never execute returned
+   code.
+10. **Timestamps in UTC** (RNF-009); money in `NUMERIC`, never `FLOAT`.
+11. **Flyway migrations are immutable once applied.** Never edit an applied
+    migration; create the next version.
+12. **Test data is fictitious.** Never put real personal data or real company
+    lists in fixtures or in the repository (`docs/10` §10).
 
-## Convenções de código
+## Code conventions
 
 **Backend**
 
-- `domain` não depende de Spring, HTTP nem fornecedor externo.
-- Entidade JPA nunca é exposta na API. DTOs de request/response explícitos.
-- Controller não contém regra de negócio: valida o request e chama o caso de uso.
-- Transação nos casos de uso que alteram múltiplas entidades. **Nunca manter
-  transação aberta durante chamada de rede.**
-- Erro no formato de `docs/05` §1. Nunca retornar stack trace.
-- Integração externa só por adaptador (`BusinessSource`, `AIProvider`), com
-  timeout e tratamento de rate limit.
-- Toda listagem é paginada (RNF-002).
+- `domain` depends on neither Spring, HTTP nor any external provider.
+- A JPA entity is never exposed by the API. Request and response DTOs are
+  explicit.
+- A controller contains no business logic: it validates the request and calls
+  the use case.
+- Use a transaction in use cases that change several entities. **Never hold a
+  transaction open during a network call.**
+- Errors follow the format in `docs/05` §1. Never return a stack trace.
+- External integration only through an adapter (`BusinessSource`,
+  `AIProvider`), with a timeout and rate-limit handling.
+- Every listing is paginated (RNF-002).
 
 **Frontend**
 
-- TypeScript `strict`. **`any` é proibido**; evitar cast e `!` não justificados.
-- Cliente HTTP centralizado, nunca `fetch` espalhado.
-- Toda tela prevê carregando, vazio, erro, sem permissão e sessão expirada
+- TypeScript `strict`. **`any` is forbidden**; avoid unjustified casts and `!`.
+- One centralised HTTP client, never `fetch` scattered around.
+- Every screen covers loading, empty, error, no permission and session expired
   (`docs/08` §11).
-- Acessibilidade: navegação por teclado, foco visível, label em campo, não
-  depender só de cor para status, confirmação em ação destrutiva.
+- Accessibility: keyboard navigation, visible focus, labels on fields, never
+  colour alone for status, confirmation on destructive actions.
+- **UI strings stay in Portuguese.**
 
-**Evitar:** overengineering, abstração sem uso concreto, dependência sem
-justificativa, duplicação, método ou componente grande demais, comentário que
-repete o código, implementação provisória apresentada como definitiva.
+**Avoid:** overengineering, abstraction with no concrete use, dependencies
+without justification, duplication, oversized methods or components, comments
+that restate the code, a provisional implementation presented as final.
 
-## Definition of Done
+## Definition of done
 
-Uma etapa só está concluída com: regra de negócio implementada, validação de
-entrada, autorização verificada, tratamento de erro, testes adequados,
-documentação atualizada, revisão de segurança/privacidade quando aplicável,
-estados de UI cobertos e logs sem dado sensível desnecessário.
+A stage is only complete with: the business rule implemented, input validation,
+authorisation checked, error handling, adequate tests, updated documentation, a
+security and privacy review where applicable, UI states covered, and logs free
+of unnecessary sensitive data.
 
-Teste negativo de acesso cruzado entre organizações é obrigatório em toda etapa
-que adicione entidade ou endpoint privado.
+A negative cross-organisation access test is mandatory in every stage that adds
+a private entity or endpoint.
 
-## Ao concluir uma etapa
+## When finishing a stage
 
-Informe: o que foi implementado, arquivos criados ou modificados, testes
-executados, resultado real dos testes, problemas pendentes e próxima etapa.
-Se um teste falhou, diga que falhou e mostre a saída.
+Report: what was implemented, files created or modified, tests run, the **real**
+test results, open problems, and the next step. If a test failed, say that it
+failed and show the output.
