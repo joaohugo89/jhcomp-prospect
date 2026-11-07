@@ -1,204 +1,99 @@
-# 09 — Roadmap do MVP
+# 09 — MVP roadmap
 
-## 1. Estratégia
+## 1. Strategy
 
-Construir em incrementos utilizáveis. O sistema deve começar a apoiar a operação comercial antes da conclusão de módulos avançados.
+Build in usable increments. The system had to start supporting the commercial
+operation before the advanced modules were finished.
 
-Estimativa inicial: 6 sprints, aproximadamente 6–8 semanas de trabalho individual em dedicação consistente. É uma estimativa de planejamento, não compromisso de prazo; integrações externas e ajustes de escopo podem alterá-la.
+The original estimate was 6 sprints, roughly 6–8 weeks of consistent
+individual work. It was a planning estimate, never a commitment.
 
-## 2. Prioridades
+## 2. Priorities
 
-### P0 — MVP obrigatório
-- autenticação;
-- organização;
-- empresas e leads;
-- importação CSV;
-- deduplicação;
-- proveniência;
-- análise com evidências;
-- score explicável;
-- pipeline;
-- rascunho de mensagem e revisão;
-- registro de interação;
-- lista de não contato;
-- dashboard básico.
+### P0 — required for the MVP — **all delivered**
 
-### P1 — MVP ampliado
-- integração inicial com fonte autorizada;
-- tarefas;
-- templates e prévia simples;
-- filtros e relatórios adicionais.
+Authentication · organisation · companies and leads · CSV import ·
+deduplication · provenance · analysis with evidence · explainable score ·
+pipeline · message drafting and review · interaction recording ·
+do-not-contact list · dashboard.
 
-### P2 — Futuro
-- integrações oficiais de mensageria;
-- publicação de sites;
-- editor visual;
-- SaaS billing;
-- automações avançadas;
-- aplicativo mobile.
+### P1 — extended MVP
 
-## 3. Sprint 0 — Preparação
+| Item | Status |
+|---|---|
+| Tasks | delivered |
+| Additional filters and reports | delivered (work queues, saved views, conversion report) |
+| First integration with an authorised source | **not started** — no provider selected |
+| Templates and simple preview | **cancelled** by D13 |
 
-Entregas:
-- criar repositórios;
-- definir convenções;
-- configurar CI;
-- escolher versões estáveis;
-- preparar Docker Compose;
-- revisar contratos iniciais;
-- criar backlog.
+### P2 — future
 
-Critério de conclusão:
-- frontend e backend iniciam localmente;
-- PostgreSQL acessível;
-- build e testes executam no CI.
+Official messaging integrations · site publication · visual editor · SaaS
+billing · advanced automation · mobile app.
 
-## 4. Sprint 1 — Fundação
+## 3. What was built, by stage
 
-Entregas:
-- estrutura modular;
-- migrations iniciais;
-- Organization, User e OrganizationMember;
-- autenticação;
-- autorização;
-- contexto de organização;
-- tratamento global de erros.
+| Stage | Delivered | Acceptance |
+|---|---|---|
+| 0 — Setup | Repository, conventions, CI, pinned versions, Docker Compose | Frontend and backend start locally; PostgreSQL reachable; CI builds and tests |
+| 1 — Foundation | Modular structure, initial migrations, `Organization`/`User`/`OrganizationMember`, authentication, authorisation, organisation context, global error handling | An authenticated user reaches only their own organisation; negative isolation tests pass |
+| 2 — Companies and leads | CRUD, paginated listings, filters, CSV import, import report, assisted deduplication, provenance | A test file imports, duplicates are identified, valid records persist, origin is queryable |
+| 3 — Intelligence | Analysis model, findings and evidence, verification states, deterministic score, finding review, background jobs | An analysis shows evidence, state, confidence and score version; unknown information is not a confirmed deficiency |
+| 4 — CRM | Default pipeline, Kanban, deals, interactions, tasks, dashboard | An operator follows a lead from start to close; changes and interactions appear in the history |
+| 5 — AI and outreach | `AIProvider` port, fake provider, versioned prompts, draft generation, output validation, editing and approval, manual send recording, suppression list | The AI drafts from available context only; the operator reviews; a block prevents an approach; nothing is sent automatically |
+| 6 — Launch | End-to-end tests of the main flows, documentation, deployment, backup and restore verified | Production environment protected and monitored |
 
-Critério de conclusão:
-- usuário autenticado acessa apenas a organização autorizada;
-- testes negativos de isolamento passam.
+Stage 6 originally also carried the Website Studio. It was cut by D13 rather
+than delivered, and the stage closed on operations instead.
 
-## 5. Sprint 2 — Empresas e leads
+## 4. First commercial milestone — **not yet done**
 
-Entregas:
-- CRUD de empresas;
-- CRUD de leads;
-- listagem paginada;
-- filtros;
-- importação CSV;
-- relatório de importação;
-- deduplicação assistida;
-- proveniência.
+Validate with roughly 30 real companies from the region, obtained from
+permitted sources.
 
-Critério de conclusão:
-- importar arquivo de teste;
-- identificar duplicatas potenciais;
-- revisar e persistir registros válidos;
-- consultar histórico de origem.
+For each record: source and date · segment and location · confirmed data ·
+observed opportunity · operator review · decision to approach or not ·
+outcome of the interaction.
 
-## 6. Sprint 3 — Inteligência
+Then assess data quality, research time, usefulness of the score, relevance of
+the messages, replies and conversations started, and which segments fit best.
 
-Entregas:
-- modelo de análise;
-- achados e evidências;
-- estados de verificação;
-- análise inicial manual/assistida;
-- score determinístico;
-- revisão de achados;
-- job assíncrono para tarefas demoradas.
+**Do not treat the number of messages sent as a measure of success.**
 
-Integração de fonte:
-- selecionar fornecedor após validar cobertura regional, preço, termos e armazenamento;
-- implementar um adaptador;
-- não acoplar o domínio ao fornecedor.
+This milestone is the real remaining work. Everything above it is software;
+this is the part that tells whether the software was worth building, and it
+is the input that should decide the backlog below rather than the other way
+round.
 
-Critério de conclusão:
-- uma análise mostra evidências, estado, confiança e versão do score;
-- informação desconhecida não é tratada como deficiência confirmada.
+## 5. Definition of done
 
-## 7. Sprint 4 — CRM
+A story is finished only with: business rules implemented · input validation ·
+authorisation · error handling · adequate tests · updated documentation ·
+security and privacy review where applicable · loading, error and empty states
+in the interface · logs free of unnecessary sensitive data.
 
-Entregas:
-- pipeline padrão;
-- Kanban;
-- deals;
-- interações;
-- tarefas básicas, se houver tempo;
-- dashboard.
+A negative cross-organisation access test is mandatory in every stage that
+adds a private entity or endpoint.
 
-Critério de conclusão:
-- operador acompanha lead do estado inicial à conclusão;
-- alterações e interações aparecem no histórico.
+## 6. Post-MVP backlog
 
-## 8. Sprint 5 — IA e Outreach
+In the order their value is currently understood — which the milestone in
+section 4 is expected to change:
 
-Entregas:
-- interface AIProvider;
-- provedor inicial;
-- prompts versionados;
-- geração de rascunhos;
-- validação de saída;
-- edição e aprovação;
-- registro manual de envio;
-- suppression list;
-- bloqueio antes de nova abordagem.
+1. **A real AI provider** behind the existing `AIProvider` port. The seam is
+   built and the fake stays as the test provider.
+2. **Less friction in recording a send.** The operator copies the text,
+   switches app, sends, comes back and marks it. Fewer steps without breaking
+   the rule that `SENT` requires a confirmed send.
+3. **One data entry source**, even semi-automatic, so that companies enter on
+   a cadence rather than whenever someone remembers.
+4. Better filters and segmentation.
+5. Scheduled data refresh.
+6. Deeper technical analysis of sites.
+7. Commercial proposals.
+8. Official e-mail/WhatsApp integration, after a requirements and privacy
+   review.
+9. External organisations and SaaS plans.
 
-Critério de conclusão:
-- IA gera uma mensagem com base apenas em contexto disponível;
-- operador revisa;
-- sistema impede abordagem quando há bloqueio;
-- nenhum envio é disparado automaticamente.
-
-## 9. Sprint 6 — Website Studio e lançamento
-
-Entregas:
-- catálogo de templates;
-- configuração de template;
-- prévia básica;
-- indicação de demonstração não oficial;
-- testes end-to-end do fluxo principal;
-- documentação;
-- deploy;
-- backup e restauração testados.
-
-Critério de conclusão:
-- operador cria e visualiza uma demonstração usando dados autorizados;
-- ambiente de produção está protegido e monitorado.
-
-## 10. Primeiro marco comercial
-
-Validar com aproximadamente 30 empresas reais da região, obtidas de fontes permitidas ou cadastradas manualmente.
-
-Para cada registro:
-- fonte e data;
-- segmento e localização;
-- dados confirmados;
-- oportunidade observada;
-- revisão do operador;
-- decisão de abordar ou não;
-- resultado da interação.
-
-Avaliar:
-- qualidade dos dados;
-- tempo de pesquisa;
-- utilidade do score;
-- relevância das mensagens;
-- respostas e conversas iniciadas;
-- segmentos com melhor aderência.
-
-Não considerar quantidade de mensagens enviadas como indicador isolado de sucesso.
-
-## 11. Definition of Done
-
-Uma história só está concluída quando:
-- regras de negócio implementadas;
-- validação de entrada;
-- autorização;
-- tratamento de erros;
-- testes adequados;
-- documentação atualizada;
-- revisão de segurança/privacidade quando aplicável;
-- interface com estados de carregamento, erro e vazio;
-- logs sem dados sensíveis desnecessários.
-
-## 12. Backlog pós-MVP
-
-- melhorar filtros e segmentação;
-- novas fontes autorizadas;
-- atualização programada de dados;
-- análise técnica mais profunda de sites;
-- propostas comerciais;
-- integração oficial com e-mail/WhatsApp, após revisão de requisitos;
-- templates adicionais;
-- publicação controlada;
-- organizações externas e planos SaaS.
+Items 4 to 9 are candidates, not commitments. Nine items in a backlog written
+before contact with real data is nine guesses.

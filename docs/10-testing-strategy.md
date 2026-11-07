@@ -1,181 +1,157 @@
-# 10 — Estratégia de testes
+# 10 — Testing strategy
 
-## 1. Objetivos
+## 1. Goals
 
-Garantir:
-- integridade das regras comerciais;
-- isolamento entre organizações;
-- qualidade de importação;
-- rastreabilidade de dados;
-- segurança do fluxo de outreach;
-- consistência das análises;
-- estabilidade das integrações;
-- usabilidade do fluxo principal.
+Guarantee the integrity of the commercial rules, isolation between
+organisations, import quality, data traceability, the safety of the outreach
+flow, consistency of analyses, stability of integrations, and usability of the
+main flow.
 
-## 2. Pirâmide de testes
+Current state: **440 backend tests**, **169 frontend tests**, **2 end-to-end
+journeys**.
 
-### Unitários
-Ferramentas: JUnit 5 e Mockito.
+## 2. The pyramid
 
-Cobrir:
-- normalização de empresas;
-- deduplicação;
-- transições de status;
-- cálculo do score;
-- bloqueio de não contato;
-- validação de mensagens;
-- regras de pipeline;
-- políticas de autorização em serviços.
+### Unit — JUnit 5 and Mockito
 
-Testes unitários devem ser rápidos e não depender de rede ou serviços externos.
+Covering company normalisation, deduplication, status transitions, score
+calculation, do-not-contact blocking, message validation, pipeline rules and
+authorisation policies in services.
 
-### Integração
-Ferramentas: Spring Boot Test e Testcontainers com PostgreSQL.
+Unit tests are fast and touch neither the network nor any external service.
 
-Cobrir:
-- repositories;
-- migrations Flyway;
-- constraints;
-- transações;
-- filtros por organização;
-- importação;
-- consultas paginadas;
-- endpoints e serialização;
-- persistência de histórico.
+### Integration — Spring Boot Test and Testcontainers with PostgreSQL
 
-Preferir PostgreSQL real em container para testes de persistência, em vez de depender apenas de H2.
+Covering repositories, Flyway migrations, constraints, transactions,
+per-organisation filters, imports, paginated queries, endpoints and
+serialisation, and history persistence.
 
-### Frontend
-Ferramentas a selecionar conforme projeto, por exemplo Vitest e React Testing Library.
+A real PostgreSQL in a container, never H2: the behaviour that matters here —
+composite foreign keys, `inet`, `timestamptz` rounding, advisory locks — is
+exactly the behaviour H2 does not reproduce.
 
-Cobrir:
-- formulários;
-- validação;
-- filtros;
-- estados vazios e de erro;
-- componentes de score;
-- pipeline;
-- revisão de mensagem;
-- acessibilidade básica.
+Two rules this suite learned the hard way:
 
-### End-to-end
-Ferramenta a selecionar, por exemplo Playwright.
+- **The container must be a singleton**, started in a static block, without
+  `@Testcontainers`/`@Container`. With that extension the container stops at
+  the end of each class while Spring reuses the cached context, and the
+  following classes fail with "Failed to obtain JDBC Connection".
+- **An integration test that logs in must use `TestSessions.login`.** The
+  limiter is a bean in the shared context; logins all coming from 127.0.0.1
+  exhaust the per-network quota as the suite grows, and tests start failing
+  with 429 in an unpredictable order.
 
-Fluxos:
-1. login;
-2. cadastrar empresa;
-3. criar lead;
-4. importar CSV;
-5. revisar duplicata;
-6. analisar lead;
-7. mover pipeline;
-8. gerar e revisar mensagem;
-9. registrar interação;
-10. registrar não contato;
-11. confirmar bloqueio de nova abordagem;
-12. criar prévia de site.
+### Frontend — Vitest and React Testing Library
 
-## 3. Testes críticos de isolamento
+Covering forms, validation, filters, empty and error states, score components,
+the pipeline, message review and basic accessibility.
 
-Criar duas organizações de teste, A e B.
+The simulated API matches routes **by prefix**: `GET /leads/` also answers
+`/leads/{id}/anything` with the lead JSON. A new section in the lead detail
+therefore has to declare its route in both the `leads` and the `crm` tests.
 
-Verificar que:
-- usuário A não lista empresas de B;
-- usuário A não acessa lead de B por UUID;
-- usuário A não altera deal de B;
-- usuário A não acessa mensagens de B;
-- importações e jobs mantêm o escopo correto;
-- filtros e dashboard não misturam dados;
-- relações entre entidades de organizações diferentes são rejeitadas.
+### End-to-end — Playwright
 
-Testar tanto respostas HTTP quanto efeitos no banco.
+Two journeys (D17), chosen because they are the two that would cost real money
+if they broke:
 
-## 4. Testes de deduplicação
+1. import a company from CSV, qualify the lead and move it on the pipeline;
+2. generate and approve a message, and confirm that a do-not-contact request
+   blocks a new approach.
 
-Casos:
-- mesmo domínio e nome;
-- telefone com formatações diferentes;
-- nome com acentos e espaços;
-- empresas homônimas em cidades diferentes;
-- nome parecido, mas empresas distintas;
-- registro sem site ou telefone;
-- importação repetida do mesmo arquivo.
+They run against the containerised environment and assert that no
+Content-Security-Policy violation appears in the console, because the header
+is the production one and a violation would break a screen without any unit
+test noticing.
 
-Critério:
-- duplicatas fortes são sinalizadas;
-- casos ambíguos exigem revisão;
-- nenhum registro é mesclado silenciosamente apenas por similaridade textual.
+The remaining journeys from the original plan — login, register a company,
+create a lead, review a duplicate, analyse a lead, record an interaction — are
+covered at integration level instead. The website preview journey went with
+D13.
 
-## 5. Testes do score
+## 3. Critical isolation tests
 
-- score mínimo 0;
-- score máximo 100;
-- soma de critérios correta;
-- desconhecido não pontua como deficiência;
-- critério não aplicável tratado conforme regra;
-- versão da fórmula persistida;
-- alterações em achados recalculam score de maneira reproduzível;
-- resultado exibe decomposição.
+Two test organisations, A and B. Verify that user A cannot list B's companies,
+cannot reach B's lead by UUID, cannot change B's deal, cannot read B's
+messages; that imports and jobs keep the right scope; that filters and the
+dashboard never mix data; and that a relation between entities of different
+organisations is rejected.
 
-## 6. Testes de outreach e privacidade
+Assert both the HTTP response and the effect in the database. **A negative
+cross-organisation test is mandatory for every step that adds a private
+entity or endpoint.**
 
-- mensagem gerada inicia como rascunho;
-- IA não possui caminho de envio;
-- mensagem exige revisão;
-- mensagem aprovada não equivale a enviada;
-- envio só é registrado após confirmação;
-- pedido de não contato bloqueia novos contatos;
-- importação não remove bloqueios;
-- bloqueio é consultado antes de aprovar ou registrar abordagem;
-- logs não expõem conteúdo sensível desnecessário.
+## 4. Deduplication tests
 
-## 7. Testes de integrações
+Same domain and name · phone in different formats · name with accents and
+extra spaces · same name in different cities · similar name but distinct
+companies · record with neither site nor phone · the same file imported twice.
 
-Usar mocks/stubs para:
-- timeout;
-- indisponibilidade;
-- rate limit;
-- resposta inválida;
-- dados parciais;
-- duplicação de resposta;
-- falha de autenticação;
-- quota excedida.
+Criteria: strong duplicates are flagged, ambiguous cases require review, and
+nothing is merged silently on textual similarity alone.
 
-Não executar testes automatizados contra produção sem autorização e limites definidos.
+## 5. Score tests
 
-## 8. Segurança
+Minimum 0, maximum 100, criteria summed correctly, unknown never scoring as a
+deficiency, non-applicable handled by rule, formula version persisted, changes
+to findings recalculating reproducibly, and the breakdown shown.
 
-Incluir verificações para:
-- validação de entrada;
-- autorização por recurso;
-- CSRF conforme estratégia de autenticação;
-- XSS em conteúdo renderizado;
-- SQL injection;
-- SSRF em verificação de URLs;
-- upload de arquivos;
-- rate limiting;
-- exposição de segredos;
-- exportação CSV e formula injection;
-- dependências vulneráveis.
+## 6. Outreach and privacy tests
+
+A generated message starts as a draft · the AI has no send path, which is
+asserted structurally rather than behaviourally · a message requires review ·
+approved is not sent · a send is recorded only after confirmation · a
+do-not-contact request blocks further contact · an import never removes a
+block · the block is checked before approving and before recording · logs do
+not expose unnecessary sensitive content.
+
+## 7. Integration tests
+
+Stub timeout, unavailability, rate limit, invalid response, partial data,
+duplicated response, authentication failure and exceeded quota.
+
+Never run automated tests against production without authorisation and
+defined limits.
+
+The `SafeHttpFetcher` test needs the server to drip bytes slowly: with a
+stopped server the timeout ends the drain and the test passes **even without
+the protection**, which is precisely the false positive this document exists
+to prevent.
+
+## 8. Security
+
+Input validation · per-resource authorisation · CSRF · XSS in rendered
+content · SQL injection · SSRF in URL checks · file upload · rate limiting ·
+secret exposure · CSV export and formula injection · vulnerable dependencies.
+
+**Every test of a limit or a block must be validated in reverse:** remove the
+protection and confirm the test fails. This is not a formality. Three versions
+of the login limiter test passed with the protection removed — one never
+reached the cap, one exhausted the IP cap first, and one used a frozen clock,
+which gives every entry the same instant and makes "oldest" meaningless.
 
 ## 9. CI
 
-Pipeline mínimo:
-1. format/lint;
-2. compilação;
-3. testes unitários;
-4. testes de integração;
-5. build frontend;
-6. testes frontend;
-7. análise de dependências;
-8. build de imagens, quando aplicável.
+Format and lint · compile · unit tests · integration tests · frontend build ·
+frontend tests · dependency analysis · image build where applicable. A merge
+is blocked when a required test fails.
 
-Bloquear merge quando testes obrigatórios falharem.
+One local trap: the IDE compiles into `backend/target` alongside Maven. The
+symptom is a `NoClassDefFoundError` on a synthetic class (`Class$1`) or an
+"Unresolved compilation problem" in a test with nothing wrong with it. Run
+`mvn clean verify` before investigating.
 
-## 10. Dados de teste
+## 10. Test data
 
-- Usar dados fictícios em testes automatizados.
-- Não colocar dados pessoais reais em fixtures.
-- Não copiar listas reais de empresas para o repositório.
-- Não utilizar credenciais de produção em CI.
-- Mascarar dados em ambientes não produtivos.
+- **Fictitious data only.** Never real personal data in a fixture, and never a
+  real list of companies in the repository.
+- No production credentials in CI.
+- Mask data in non-production environments.
+- Data created by an end-to-end run carries a unique suffix, because the
+  environment's database persists between runs and a repeated name or phone
+  would become a duplicate or a block left over from an earlier run.
+
+One consequence worth stating: **the end-to-end suite writes to the database
+of the environment it runs against.** Pointing it at an environment that holds
+real prospecting data will mix test companies into the real pipeline. It
+deserves its own environment once real data exists.

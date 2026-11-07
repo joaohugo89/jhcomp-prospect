@@ -1,270 +1,173 @@
-# 08 — Especificação de UI/UX
+# 08 — UI/UX specification
 
-## 1. Objetivo da interface
+> **The interface itself is in Portuguese.** It is an internal tool for a
+> Brazilian operator, so every label, message and empty state the user reads
+> is written in Portuguese. This document, like the rest of the
+> documentation, is in English.
 
-A interface deve permitir que um operador execute o fluxo comercial rapidamente, com pouca fricção e contexto suficiente para tomar decisões.
+## 1. Purpose of the interface
 
-Prioridades:
-- clareza;
-- densidade informacional controlada;
-- filtros eficientes;
-- estados de carregamento e erro explícitos;
-- acessibilidade;
-- responsividade;
-- ações críticas com confirmação.
+The operator must be able to run the commercial flow quickly, with little
+friction and enough context to decide.
 
-## 2. Direção visual
+Priorities: clarity · controlled information density · efficient filters ·
+explicit loading and error states · accessibility · responsiveness ·
+confirmation on destructive actions.
 
-A identidade deve seguir a marca JH.COMP sem competir com os dados.
+## 2. Visual direction
 
-Direção inicial:
-- interface administrativa moderna;
-- tema escuro como opção, não obrigação;
-- fundo neutro;
-- cor primária consistente com a identidade da marca;
-- cores de status com significado semântico;
-- tipografia legível;
-- espaçamento consistente;
-- ícones com rótulos acessíveis.
+The identity follows the JH.COMP brand without competing with the data: the
+same language as the company's sites (joaohugo.com and its subdomains).
 
-Direção adotada (implementada): a mesma dos sites da JH Comp — joaohugo.com,
-freelancer, tech, portfolio e planner. Vinho (oxblood `#44171b`) e creme
-`#f7f3ee`, vermelho `#e53935` como acento, Fraunces nos títulos, Inter no
-texto, JetBrains Mono nos rótulos curtos em maiúsculo, e acabamento
-glassmorphism: superfícies translúcidas com `backdrop-filter` e linha fina de
-creme a 12%.
+Oxblood `#44171b` and cream `#f7f3ee`, red `#e53935` as the accent, Fraunces
+for headings, Inter for body text, JetBrains Mono for short uppercase labels,
+and a glassmorphism finish — translucent surfaces with `backdrop-filter` and a
+hairline of cream at 12% opacity.
 
-São dois modos, com os mesmos tokens:
+Two modes share one set of tokens:
 
-- **claro** — creme de fundo, vinho na navegação e nos botões;
-- **escuro** — vinho profundo de fundo, superfícies de creme translúcido.
+- **light** — cream background, oxblood navigation and buttons;
+- **dark** — deep oxblood background, translucent cream surfaces.
 
-O padrão acompanha a preferência do aparelho; o botão no topo do menu lateral
-alterna os dois, e a escolha fica no `localStorage`. A
-tela de entrada é sempre vinho, nos dois modos. Não há azul na paleta: as
-famílias usadas para informação e etapas do funil são areia, terracota e
-ameixa. Definições em `frontend/src/index.css`; o tema, em
+The default follows the device preference; a button at the top of the sidebar
+switches between the two and the choice is kept in `localStorage`. The login
+screen is oxblood in both modes.
+
+There is no blue in the palette: the families used for information and for
+funnel stages are sand, terracotta and plum. A blue sitting next to the
+oxblood read as an accident rather than a decision.
+
+Definitions are in `frontend/src/index.css`; the theme switch is in
 `frontend/src/app/theme.ts`.
 
-## 3. Navegação
-
-Menu lateral sugerido:
+## 3. Navigation
 
 ```text
 JH.COMP Prospect
 ├── Dashboard
-├── Prospecção
-│   ├── Pesquisar empresas
-│   ├── Importações
-│   └── Histórico de pesquisas
-├── Empresas
-├── Leads
 ├── Pipeline
-├── Outreach
-├── Website Studio
-└── Configurações
+├── Leads
+├── Empresas            (companies)
+├── Importações         (imports)
+├── Não contato         (do not contact)
+└── Membros             (members, admin only)
 ```
 
-Configurações:
-- perfil;
-- organização;
-- membros;
-- integrações;
-- preferências;
-- privacidade e exportação.
+The sidebar groups these under *Trabalho*, *Base* and *Administração*.
 
-Itens ainda não implementados devem ficar ocultos ou claramente identificados como indisponíveis, sem simular funcionalidades.
+There is no "Outreach" entry: composing a message belongs to the lead it
+concerns, and a separate screen would have invited working through messages
+instead of through leads. There is no "Website Studio" entry either — the
+feature was removed by D13.
+
+Anything not implemented is hidden rather than shown as disabled. A menu entry
+that leads nowhere teaches the operator to distrust the menu.
 
 ## 4. Dashboard
 
-Exibir:
-- total de leads ativos;
-- leads por etapa;
-- empresas adicionadas no período;
-- contatos registrados;
-- propostas abertas;
-- negócios ganhos;
-- atividades recentes;
-- tarefas pendentes.
+Shows active leads, leads per stage, companies added in the period, contacts
+recorded, open proposals, deals won, recent activity and pending tasks, plus
+an attention panel of what needs action now (D30) and a conversion funnel.
 
-Filtros:
-- período;
-- segmento;
-- cidade;
-- origem.
+Filters: period, segment, city, origin, owner.
 
-Evitar gráficos sem dados suficientes. Mostrar estado vazio com orientação para cadastrar/importar os primeiros leads.
+Charts are not drawn on insufficient data: below the minimum sample of 10 the
+rate is withheld rather than shown as a misleading percentage (D29). The empty
+state points at registering or importing the first companies instead of
+rendering an empty chart.
 
-## 5. Pesquisa de empresas
+## 5. Company search
 
-Campos:
-- cidade;
-- estado;
-- segmento;
-- fonte;
-- limite;
-- filtros adicionais suportados pela fonte.
+Not implemented — no business source provider exists (RF-021). When one is
+added: the criteria are city, state, segment, source and limit; results show
+name, segment, location, website, business phone, source, collection date and
+a possible-duplicate indicator; the actions are open, select, import, ignore
+and review a duplicate.
 
-Resultados:
-- nome;
-- segmento;
-- localização;
-- site, se disponível;
-- telefone comercial, se disponível;
-- fonte;
-- data de coleta;
-- indicação de possível duplicata.
+A field the source did not provide is never displayed as if it were confirmed.
 
-Ações:
-- abrir detalhes;
-- selecionar;
-- importar como empresa/lead;
-- ignorar;
-- revisar possível duplicata.
+## 6. Company and lead lists
 
-Não exibir campos que a fonte não forneceu como se estivessem confirmados.
+Both lists are work queues rather than tables to browse: the row answers "what
+do I do with this one", not merely "what is it".
 
-## 6. Lista de empresas e leads
+Columns: company, status, owner, next task, time in stage, value, score.
+Features: text search, combinable filters, sorting, pagination, bulk selection
+for safe actions only, and saved views — private, or shared when an admin
+publishes them (D31).
 
-Tabela com:
-- nome;
-- segmento;
-- cidade;
-- status;
-- score;
-- prioridade;
-- origem;
-- última atualização.
+**Bulk actions can never send messages.** They are limited to owner and
+priority for leads, and segment or city for companies.
 
-Recursos:
-- busca textual;
-- filtros combináveis;
-- ordenação;
-- paginação;
-- seleção em lote apenas para ações seguras;
-- exportação autorizada.
+## 7. Lead detail
 
-Ações em lote não podem enviar mensagens.
+Header: company name, segment, location, status, priority, score, main
+actions.
 
-## 7. Detalhes do lead
+Sections: overview, digital presence, history, messages, negotiation. There is
+no website project section (D13).
 
-Cabeçalho:
-- nome da empresa;
-- segmento;
-- localização;
-- status;
-- prioridade;
-- score;
-- ações principais.
+The analysis section shows, for each finding: the finding, its verification
+state, the evidence, the date, the confidence, the points awarded out of the
+maximum, and the human review. A finding changed by a reviewer still shows
+what the automated analysis originally concluded.
 
-Abas:
-1. Visão geral.
-2. Presença digital.
-3. Histórico.
-4. Mensagens.
-5. Negociação.
-6. Projeto de site.
+## 8. Kanban pipeline
 
-A seção de análise deve exibir:
-- achado;
-- estado de verificação;
-- evidência;
-- data;
-- confiança;
-- pontos;
-- revisão humana.
+Columns per stage, compact cards carrying the company name, the potential
+service, the score, the last interaction and the next task. Two densities,
+compact and detailed.
 
-## 8. Pipeline Kanban
+Cards move by drag-and-drop **and** by an accessible control, because
+drag-and-drop alone excludes keyboard users. Every change is persisted and
+reports success or failure.
 
-- Colunas por etapa.
-- Cards compactos.
-- Nome da empresa.
-- Serviço potencial.
-- Score.
-- Última interação.
-- Próxima tarefa.
-
-Permitir mover cards por drag-and-drop e por controles acessíveis. Toda alteração deve ser persistida e apresentar feedback de sucesso/erro.
+Columns are `Lead.status`, one to one (D2). Won and Lost show only what closed
+in the last 30 days; older ones stay in the lead list.
 
 ## 9. Outreach
 
-Tela de composição:
-- canal;
-- destinatário;
-- contexto utilizado;
-- rascunho;
-- indicação de informações não verificadas;
-- botão de regenerar;
-- edição manual;
-- aprovar;
-- descartar.
+The composer shows the channel, the recipient, the context used, the draft, an
+explicit list of unverified statements, a regenerate button, manual editing,
+approve and discard.
 
-Antes de aprovar:
-- verificar bloqueio de não contato;
-- exibir identidade do remetente;
-- exibir origem/contexto da mensagem;
-- permitir revisar destinatário e conteúdo.
+Before approving: the do-not-contact block is checked, the sender identity is
+shown, the origin and context of the message are shown, and both recipient and
+content can be reviewed. Approving a message with unverified claims requires
+ticking that they were reviewed.
 
-O MVP não deve ter botão de disparo em massa.
+**There is no bulk send button**, and no send button at all: the operator
+sends outside the system and comes back to record it.
 
 ## 10. Website Studio
 
-Fluxo:
-1. selecionar lead/empresa;
-2. escolher template;
-3. preencher dados autorizados;
-4. personalizar tema;
-5. gerar conteúdo estruturado;
-6. visualizar;
-7. salvar prévia.
+Removed by decision D13. No screen, no route, no menu entry.
 
-A prévia deve mostrar claramente que é conceitual e não oficial. Não utilizar marca ou imagem de terceiros sem autorização apropriada.
+## 11. Interface states
 
-## 11. Estados de interface
+Every screen covers: loading · empty · success · error · no permission ·
+session expired · integration unavailable · partial result · stale data.
 
-Todas as telas devem prever:
-- carregando;
-- vazio;
-- sucesso;
-- erro;
-- sem permissão;
-- sessão expirada;
-- integração indisponível;
-- resultado parcial;
-- dados desatualizados.
+Error messages are useful and never reveal internal detail.
 
-Mensagens de erro devem ser úteis e não revelar detalhes internos.
+## 12. Accessibility and responsiveness
 
-## 12. Acessibilidade e responsividade
+Keyboard navigation · visible focus · labels on fields · adequate contrast ·
+validation messages associated with their field · never colour alone to convey
+status · tables usable on small screens · forms in a logical order ·
+confirmation on destructive actions.
 
-- navegação por teclado;
-- foco visível;
-- labels em campos;
-- contraste adequado;
-- mensagens de validação associadas aos campos;
-- não depender apenas de cor para indicar status;
-- tabelas utilizáveis em telas menores;
-- formulários com ordem lógica;
-- confirmação em ações destrutivas.
+## 13. Reusable components
 
-## 13. Componentes reutilizáveis
+`AppShell`, `PageHeader`, `SidePanel`, `StatTile`, `Badges` (status, priority,
+score, message status), `FormField`, `SegmentSelect`, `Pagination`,
+`ConfirmDialog`, and the shared state views (loading, empty, error) in
+`States`. Control classes — buttons, inputs, cards, chips, focus ring — are
+centralised in `components/styles.ts` so focus and disabled states are
+identical everywhere.
 
-- AppShell;
-- Sidebar;
-- PageHeader;
-- DataTable;
-- FilterBar;
-- StatusBadge;
-- ScoreIndicator;
-- EvidenceCard;
-- ActivityTimeline;
-- KanbanBoard;
-- MessageComposer;
-- EmptyState;
-- ConfirmDialog;
-- FormField;
-- Pagination.
+## 14. Product principle
 
-## 14. Princípio de produto
-
-A interface deve priorizar a próxima ação útil: revisar um lead, validar um achado, responder a uma empresa ou preparar uma proposta. Não otimizar para volume de disparos.
+The interface prioritises the next useful action: review a lead, validate a
+finding, answer a company, prepare a proposal. It is not optimised for the
+volume of messages sent, and no screen reports that number as an achievement.
