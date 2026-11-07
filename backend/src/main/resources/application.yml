@@ -25,6 +25,18 @@ spring:
       "[hibernate.jdbc.time_zone]": UTC
       # Falha cedo em consulta que gere N+1 por colecao paginada.
       "[hibernate.query.fail_on_pagination_over_collection_fetch]": true
+      # Agrupa os INSERT/UPDATE de um mesmo flush numa so ida ao banco. Sem
+      # isto, saveAll emite uma instrucao por linha, e a importacao de 2.000
+      # linhas (D14) vira 2.000 viagens. So funciona porque os ids sao
+      # atribuidos pela aplicacao (AssignedIdEntity): com id gerado pelo banco
+      # por IDENTITY o Hibernate desliga o batch silenciosamente.
+      #
+      # Sem order_inserts: agrupar por tipo de entidade reordena os INSERT e
+      # pode mandar a linha filha antes da pai. A confirmacao da importacao
+      # grava company e import_row no mesmo flush, e a violacao de chave
+      # estrangeira vira 409 pelo GlobalExceptionHandler. O ganho de ordenar e
+      # marginal perto do de agrupar; a ordem nao e negociavel.
+      "[hibernate.jdbc.batch_size]": 50
 
   flyway:
     enabled: true

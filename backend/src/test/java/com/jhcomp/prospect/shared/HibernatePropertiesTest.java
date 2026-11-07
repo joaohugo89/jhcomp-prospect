@@ -29,4 +29,19 @@ class HibernatePropertiesTest extends PostgresIntegrationTest {
         assertThat(properties.get("hibernate.jdbc.time_zone")).isEqualTo("UTC");
         assertThat(properties.get("hibernate.query.fail_on_pagination_over_collection_fetch")).isEqualTo("true");
     }
+
+    @Test
+    @DisplayName("agrupamento de instrucoes chega ao Hibernate, sem reordenacao")
+    void batchingPropertiesKeepTheirNames() {
+        var properties = entityManagerFactory.getProperties();
+
+        // Um nome errado aqui nao quebra nada: o Hibernate so deixa de agrupar,
+        // e a importacao volta a uma ida ao banco por linha sem aviso nenhum.
+        assertThat(properties.get("hibernate.jdbc.batch_size")).isEqualTo("50");
+
+        // order_inserts agrupa por tipo de entidade e pode gravar a linha
+        // filha antes da pai: a confirmacao da importacao passou a responder
+        // 409 por violacao de chave estrangeira. Ficar de fora e proposital.
+        assertThat(properties).doesNotContainKey("hibernate.order_inserts");
+    }
 }

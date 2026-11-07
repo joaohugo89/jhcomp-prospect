@@ -125,13 +125,23 @@ public class SuppressionService implements ContactBlockCheck {
                 organizationId, types, values, pageable);
     }
 
-    /** Totais por tipo, para o topo da tela. */
+    /**
+     * Totals per identifier type, for the top of the screen.
+     *
+     * <p>One grouped query, not one per type. A type with no entries is absent
+     * from the result set, so the map starts at zero for every constant: the
+     * screen must show "0", not omit the row.
+     */
     @Transactional(readOnly = true)
     public Map<IdentifierType, Long> countsByType() {
         UUID organizationId = organizationContext.requireOrganizationId();
         Map<IdentifierType, Long> counts = new EnumMap<>(IdentifierType.class);
         for (IdentifierType type : IdentifierType.values()) {
-            counts.put(type, repository.countByOrganizationIdAndIdentifierType(organizationId, type));
+            counts.put(type, 0L);
+        }
+        for (SuppressionEntryRepository.IdentifierTypeCount row : repository.countGroupedByIdentifierType(
+                organizationId)) {
+            counts.put(row.getIdentifierType(), row.getTotal());
         }
         return counts;
     }
