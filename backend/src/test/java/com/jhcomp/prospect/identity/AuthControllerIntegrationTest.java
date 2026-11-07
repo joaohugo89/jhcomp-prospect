@@ -28,11 +28,11 @@ import com.jhcomp.prospect.shared.audit.AuditOutcome;
 import com.jhcomp.prospect.shared.security.SecurityConfig;
 
 /**
- * Autenticacao por sessao (RF-001, RF-002, decisao D1).
+ * Session authentication (RF-001, RF-002, decision D1).
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Autenticacao")
+@DisplayName("Authentication")
 class AuthControllerIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -54,7 +54,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("credenciais validas autenticam e resolvem a organizacao")
+    @DisplayName("valid credentials authenticate and resolve the organisation")
     void loginSucceeds() throws Exception {
         var admin = testData.createActiveAdmin("login-ok");
 
@@ -66,13 +66,13 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.userId").value(admin.userId().toString()))
                 .andExpect(jsonPath("$.organizationId").value(admin.organizationId().toString()))
                 .andExpect(jsonPath("$.role").value("ADMIN"))
-                // O hash de senha nunca aparece na resposta.
+                // The password hash never appears in the response.
                 .andExpect(jsonPath("$.passwordHash").doesNotExist())
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
-    @DisplayName("login bem-sucedido e registrado na auditoria")
+    @DisplayName("a successful login is recorded in the audit trail")
     void loginIsAudited() throws Exception {
         var admin = testData.createActiveAdmin("login-audit");
 
@@ -91,12 +91,13 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     /**
-     * O critério de aceite do RF-001 exige que a recusa nao revele se o e-mail
-     * existe. Testar status igual nao basta: o corpo tambem precisa ser
-     * indistinguivel, senao a diferenca permite enumerar contas.
+     * RF-001's acceptance criterion requires the refusal not to reveal whether
+     * the e-mail exists. Asserting an equal status is not enough: the body has
+     * to be indistinguishable too, or the difference allows account
+     * enumeration.
      */
     @Nested
-    @DisplayName("falha de login nao revela a causa")
+    @DisplayName("a login failure does not reveal the cause")
     class FailuresAreIndistinguishable {
 
         private String responseBodyFor(String email, String password) throws Exception {
@@ -111,7 +112,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("e-mail inexistente, senha errada, usuario desabilitado e organizacao suspensa respondem igual")
+        @DisplayName("unknown e-mail, wrong password, disabled user and suspended organisation answer identically")
         void allFailuresLookTheSame() throws Exception {
             var validUser = testData.createActiveAdmin("fail-a");
 
@@ -144,7 +145,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
             assertThat(suspendedOrg).isEqualTo(unknownEmail);
             assertThat(revoked).isEqualTo(unknownEmail);
 
-            // E o corpo nao deve mencionar usuario, e-mail ou organizacao.
+            // And the body must mention no user, e-mail or organisation.
             assertThat(unknownEmail)
                     .contains("INVALID_CREDENTIALS")
                     .doesNotContain("disabled", "suspended", "not found", "revoked");
@@ -152,7 +153,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("falha de login e registrada sem guardar o e-mail tentado")
+    @DisplayName("a login failure is recorded without storing the e-mail attempted")
     void loginFailureIsAuditedWithoutEmail() throws Exception {
         String attemptedEmail = "nao-cadastrado-" + java.util.UUID.randomUUID() + "@example.test";
 
@@ -167,8 +168,8 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
                 .toList();
 
         assertThat(failures).isNotEmpty();
-        // O e-mail tentado seria dado pessoal de quem talvez nem seja usuario,
-        // coletado sem finalidade necessaria (doc 07 §2).
+        // The e-mail attempted would be personal data about someone who may
+        // not even be a user, collected with no necessary purpose (doc 07 §2).
         assertThat(failures).allSatisfy(event -> {
             assertThat(event.getDetail()).doesNotContain(attemptedEmail);
             assertThat(event.getActorUserId()).isNull();
@@ -176,7 +177,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("logout e registrado na auditoria")
+    @DisplayName("logout is recorded in the audit trail")
     void logoutIsAudited() throws Exception {
         var admin = testData.createActiveAdmin("logout-audit");
 
@@ -201,7 +202,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("e-mail invalido falha na validacao com erro por campo")
+    @DisplayName("an invalid e-mail fails validation with a per-field error")
     void invalidEmailFailsValidation() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .with(csrf())
@@ -210,14 +211,15 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.status").value(400))
-                // MockMvc nao aplica o context-path, por isso aqui aparece sem
-                // o prefixo /api/v1 que o servidor real inclui.
+                // MockMvc does not apply the context path, which is why it
+                // appears here without the /api/v1 prefix the real server
+                // includes.
                 .andExpect(jsonPath("$.instance").value("/auth/login"))
                 .andExpect(jsonPath("$.errors[0].field").value("email"));
     }
 
     @Test
-    @DisplayName("senha curta falha na validacao sem chegar ao banco")
+    @DisplayName("a short password fails validation without reaching the database")
     void shortPasswordFailsValidation() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .with(csrf())
@@ -228,11 +230,11 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("o cookie CSRF e legivel pela pagina servida na raiz")
+    @DisplayName("the CSRF cookie is readable by the page served at the root")
     void csrfCookieIsReadableFromRoot() {
-        // Exercita o repositorio diretamente, e nao via requisicao HTTP: o
-        // cookie so e reemitido quando o token e novo, o que tornaria a
-        // assercao dependente da ordem dos testes.
+        // It exercises the repository directly rather than through an HTTP
+        // request: the cookie is only reissued when the token is new, which
+        // would make the assertion depend on test order.
         var request = new org.springframework.mock.web.MockHttpServletRequest();
         var response = new org.springframework.mock.web.MockHttpServletResponse();
 
@@ -242,25 +244,25 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
         var cookie = response.getCookie(SecurityConfig.CSRF_COOKIE_NAME);
 
         assertThat(cookie).describedAs("cookie %s", SecurityConfig.CSRF_COOKIE_NAME).isNotNull();
-        // Nome proprio do projeto: cookie nao e isolado por porta, e um nome
-        // generico colidiria com outro servico em localhost, fazendo o
-        // navegador enviar dois cookies de mesmo nome.
+        // A project-specific name: cookies are not isolated by port, and a
+        // generic name would collide with another service on localhost, making
+        // the browser send two cookies with the same name.
         assertThat(cookie.getName()).doesNotStartWith("XSRF");
-        // Sem path "/", o cookie herdaria o context-path /api/v1 e o
-        // JavaScript da pagina, servida em /, nao o veria: o login falharia
-        // com 403 no navegador, embora passasse em teste de API.
+        // Without path "/", the cookie would inherit the /api/v1 context path
+        // and the JavaScript of the page served at / would not see it: login
+        // would fail with 403 in the browser while passing in an API test.
         assertThat(cookie.getPath()).isEqualTo("/");
-        // Este cookie precisa ser legivel por JavaScript, ao contrario do de sessao.
+        // This cookie has to be readable by JavaScript, unlike the session one.
         assertThat(cookie.isHttpOnly()).isFalse();
     }
 
     @Test
-    @DisplayName("login sem token CSRF e recusado")
+    @DisplayName("a login without a CSRF token is refused")
     void loginRequiresCsrfToken() throws Exception {
         var admin = testData.createActiveAdmin("csrf");
 
-        // Sem .with(csrf()). Com autenticacao por cookie, aceitar POST sem
-        // token permitiria requisicao forjada a partir de outro site.
+        // Without .with(csrf()). With cookie authentication, accepting a POST
+        // with no token would allow a request forged from another site.
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody(admin.email(), admin.password())))
@@ -268,7 +270,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("excesso de tentativas resulta em 429")
+    @DisplayName("too many attempts result in 429")
     void tooManyAttemptsAreBlocked() throws Exception {
         var admin = testData.createActiveAdmin("rate-limit");
 
@@ -280,7 +282,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
                     .andExpect(status().isUnauthorized());
         }
 
-        // A senha correta tambem e recusada enquanto o bloqueio durar.
+        // The correct password is refused too, for as long as the block lasts.
         mockMvc.perform(post("/auth/login")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -290,7 +292,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("/auth/me exige autenticacao")
+    @DisplayName("/auth/me requires authentication")
     void meRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/auth/me"))
                 .andExpect(status().isUnauthorized())
@@ -299,7 +301,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("/auth/me devolve o usuario e a organizacao da sessao")
+    @DisplayName("/auth/me returns the session's user and organisation")
     void meReturnsSessionUser() throws Exception {
         var admin = testData.createActiveAdmin("me");
 
@@ -319,7 +321,7 @@ class AuthControllerIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("logout encerra a sessao")
+    @DisplayName("logout ends the session")
     void logoutEndsSession() throws Exception {
         var admin = testData.createActiveAdmin("logout");
 

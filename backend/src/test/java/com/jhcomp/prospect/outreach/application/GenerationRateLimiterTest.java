@@ -17,10 +17,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Limite de geracao de mensagens por usuario")
+@DisplayName("The per-user message generation limit")
 class GenerationRateLimiterTest {
 
-    /** Relogio que avanca a mando do teste. */
+    /** A clock that advances at the test's command. */
     private static final class MutableClock extends Clock {
         private Instant now = Instant.parse("2026-11-06T12:00:00Z");
 
@@ -48,7 +48,7 @@ class GenerationRateLimiterTest {
     private final GenerationRateLimiter limiter = new GenerationRateLimiter(clock);
 
     @Test
-    @DisplayName("libera ate o teto na janela e recusa a seguinte")
+    @DisplayName("allows up to the cap within the window and refuses the next one")
     void refusesAboveLimit() {
         UUID user = UUID.randomUUID();
         for (int i = 0; i < GenerationRateLimiter.MAX_PER_WINDOW; i++) {
@@ -61,7 +61,7 @@ class GenerationRateLimiterTest {
     }
 
     @Test
-    @DisplayName("a janela desliza: a geracao mais antiga expira e libera uma vaga")
+    @DisplayName("the window slides: the oldest generation expires and frees a slot")
     void windowSlides() {
         UUID user = UUID.randomUUID();
         for (int i = 0; i < GenerationRateLimiter.MAX_PER_WINDOW; i++) {
@@ -70,14 +70,14 @@ class GenerationRateLimiterTest {
         }
         assertThat(limiter.tryAcquire(user)).isFalse();
 
-        // Ultima reserva aconteceu 10 s atras; a primeira, 100 s atras.
+        // The last reservation happened 10 s ago; the first, 100 s ago.
         clock.advance(GenerationRateLimiter.WINDOW.minusSeconds(100));
         assertThat(limiter.tryAcquire(user)).as("primeira expirou").isTrue();
         assertThat(limiter.tryAcquire(user)).as("so uma vaga liberada").isFalse();
     }
 
     @Test
-    @DisplayName("requisicoes concorrentes nao furam o teto")
+    @DisplayName("concurrent requests do not slip past the cap")
     void concurrentRequestsRespectLimit() throws Exception {
         UUID user = UUID.randomUUID();
         int threads = 64;

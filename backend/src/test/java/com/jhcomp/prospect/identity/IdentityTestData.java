@@ -19,14 +19,14 @@ import com.jhcomp.prospect.identity.infrastructure.persistence.UserEntity;
 import com.jhcomp.prospect.identity.infrastructure.persistence.UserRepository;
 
 /**
- * Cria organizacoes, usuarios e associacoes para os testes de integracao.
+ * Creates organisations, users and memberships for the integration tests.
  *
- * <p>Todos os dados sao ficticios e usam dominios reservados para teste
- * ({@code .test}, {@code example.test}): nunca dado pessoal real em fixture
- * (doc 10 §10).
+ * <p>Every value is fictitious and uses domains reserved for testing
+ * ({@code .test}, {@code example.test}): never real personal data in a
+ * fixture (doc 10 §10).
  *
- * <p>Cada cenario usa identificadores unicos por execucao, para que os testes
- * nao dependam de ordem nem interfiram uns nos outros.
+ * <p>Each scenario uses identifiers unique per run, so the tests neither
+ * depend on order nor interfere with one another.
  */
 @TestComponent
 public class IdentityTestData {
@@ -50,7 +50,7 @@ public class IdentityTestData {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /** Dados de um membro criado, com a senha em claro para uso no login do teste. */
+    /** The data of a created member, with the password in clear text for the test's login. */
     public record Member(UUID memberId, UUID userId, UUID organizationId, String email, String password) {}
 
     @Transactional
@@ -85,14 +85,14 @@ public class IdentityTestData {
         return new Member(member.getId(), user.getId(), organization.getId(), email, password);
     }
 
-    /** Membro ativo a mais numa organizacao que ja existe. */
+    /** One more active member in an organisation that already exists. */
     @Transactional
     public Member addMember(UUID organizationId, OrganizationRole role) {
         OrganizationEntity organization = organizationRepository.findById(organizationId).orElseThrow();
         return createMember(organization, role, UserStatus.ACTIVE, MemberStatus.ACTIVE);
     }
 
-    /** Atalho para o caso mais comum: organizacao ativa com um administrador ativo. */
+    /** A shortcut for the common case: an active organisation with an active administrator. */
     @Transactional
     public Member createActiveAdmin(String slugPrefix) {
         return createMember(
@@ -103,10 +103,12 @@ public class IdentityTestData {
     }
 
     /**
-     * Altera diretamente o estado persistido, sem passar pela aplicacao.
+     * Changes the persisted state directly, without going through the
+     * application.
      *
-     * <p>Usa SQL para simular uma mudanca administrativa feita fora da sessao
-     * em curso, que e exatamente o cenario que a revalidacao precisa detectar.
+     * <p>It uses SQL to simulate an administrative change made outside the
+     * session in progress, which is exactly the scenario revalidation has to
+     * detect.
      */
     @Transactional
     public void revokeMembership(UUID memberId) {

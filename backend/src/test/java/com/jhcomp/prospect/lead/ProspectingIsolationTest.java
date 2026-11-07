@@ -32,15 +32,15 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Isolamento entre organizacoes em empresas e leads (doc 10 §3).
+ * Isolation between organisations across companies and leads (doc 10 §3).
  *
- * <p>Usuario de A conhece os UUIDs de B e tenta todas as rotas com eles. Toda
- * tentativa responde 404, e nao 403, para nao confirmar que o recurso existe; e
- * o banco confirma que nada de B mudou.
+ * <p>A user of A knows B's UUIDs and tries every route with them. Each
+ * attempt answers 404 rather than 403, so as not to confirm the resource
+ * exists; and the database confirms that nothing of B's changed.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Isolamento entre organizacoes: empresas e leads")
+@DisplayName("Isolation between organisations: companies and leads")
 class ProspectingIsolationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -99,7 +99,7 @@ class ProspectingIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao lista empresas nem leads de B")
+    @DisplayName("a user of A lists neither companies nor leads of B")
     void listingsAreScoped() throws Exception {
         mockMvc.perform(get("/companies").param("includeArchived", "true").session(sessionA))
                 .andExpect(status().isOk())
@@ -111,7 +111,7 @@ class ProspectingIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao le empresa de B por UUID, em nenhuma rota")
+    @DisplayName("a user of A cannot read a company of B by UUID, on any route")
     void companyReadsAreScoped() throws Exception {
         expectNotFound(get("/companies/" + companyB), "");
         expectNotFound(get("/companies/" + companyB + "/sources"), "");
@@ -119,7 +119,7 @@ class ProspectingIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao altera nem arquiva empresa de B")
+    @DisplayName("a user of A can neither change nor archive a company of B")
     void companyWritesAreScoped() throws Exception {
         expectNotFound(patch("/companies/" + companyB), "{\"name\": \"Alterado por A\"}");
         expectNotFound(post("/companies/" + companyB + "/archive"), "");
@@ -130,9 +130,9 @@ class ProspectingIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao abre lead para empresa de B")
+    @DisplayName("a user of A cannot open a lead for a company of B")
     void cannotCreateLeadForOtherOrganizationCompany() throws Exception {
-        // Encerra o lead de B para que so o isolamento possa impedir a criacao.
+        // Closes B's lead so that only the isolation can prevent the creation.
         send(patch("/leads/" + leadB + "/status"), sessionB, "{\"status\": \"LOST\"}");
 
         expectNotFound(post("/leads"), "{\"companyId\": \"%s\"}".formatted(companyB));
@@ -143,7 +143,7 @@ class ProspectingIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao le nem altera lead de B por UUID")
+    @DisplayName("a user of A can neither read nor change a lead of B by UUID")
     void leadRoutesAreScoped() throws Exception {
         expectNotFound(get("/leads/" + leadB), "");
         expectNotFound(get("/leads/" + leadB + "/timeline"), "");
@@ -160,7 +160,7 @@ class ProspectingIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao atribui lead proprio a membro de B")
+    @DisplayName("a user of A cannot assign their own lead to a member of B")
     void cannotAssignToOtherOrganizationMember() throws Exception {
         String companyA = JsonPath.read(send(post("/companies"), sessionA, """
                 {"name": "Empresa de A", "city": "Cidade Exemplo", "state": "MG"}
@@ -173,10 +173,10 @@ class ProspectingIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("duplicatas nunca sugerem empresa de outra organizacao")
+    @DisplayName("duplicates never suggest a company from another organisation")
     void duplicatesAreScoped() throws Exception {
-        // Mesmo dominio e telefone da empresa de B: seria duplicata forte se
-        // estivesse na mesma organizacao.
+        // The same domain and phone as B's company: it would be a strong
+        // duplicate if it were in the same organisation.
         String companyA = JsonPath.read(send(post("/companies"), sessionA, """
                 {"name": "Empresa de B", "city": "Cidade Exemplo", "state": "MG",
                  "websiteUrl": "https://empresa-b.example.test", "phone": "(35) 3333-4444"}

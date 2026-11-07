@@ -12,13 +12,13 @@ import com.jhcomp.prospect.outreach.domain.OutreachChannel;
 
 import tools.jackson.databind.json.JsonMapper;
 
-@DisplayName("Saida da IA: validacao estrita antes de virar rascunho")
+@DisplayName("AI output: strict validation before it becomes a draft")
 class GeneratedOutputParserTest {
 
     private final GeneratedOutputParser parser = new GeneratedOutputParser(JsonMapper.builder().build());
 
     @Test
-    @DisplayName("aceita objeto com corpo, assunto e afirmacoes")
+    @DisplayName("accepts an object with body, subject and claims")
     void acceptsValidOutput() {
         MessageDraft draft = parser.parse(OutreachChannel.EMAIL, """
                 {"subject": "Oi", "body": "Corpo", "unverifiedClaims": ["algo"]}
@@ -30,7 +30,7 @@ class GeneratedOutputParserTest {
     }
 
     @Test
-    @DisplayName("assunto e afirmacoes sao opcionais")
+    @DisplayName("subject and claims are optional")
     void optionalFields() {
         assertThat(parser.parse(OutreachChannel.WHATSAPP, "{\"body\": \"Corpo\", \"subject\": null}").draft()).isPresent();
     }
@@ -50,13 +50,13 @@ class GeneratedOutputParserTest {
             "{\"body\": \"\"}",
             "{\"body\": \"ok\"} trailing"
     })
-    @DisplayName("recusa saida malformada inteira")
+    @DisplayName("refuses malformed output whole")
     void rejectsMalformedOutput(String raw) {
         assertThat(parser.parse(OutreachChannel.EMAIL, raw).draft()).isEmpty();
     }
 
     @Test
-    @DisplayName("recusa resposta acima do teto antes de interpretar")
+    @DisplayName("refuses a response over the cap before parsing it")
     void rejectsOversizedOutput() {
         String raw = "{\"body\": \"" + "a".repeat(GeneratedOutputParser.MAX_RAW_LENGTH) + "\"}";
 
@@ -64,7 +64,7 @@ class GeneratedOutputParserTest {
     }
 
     @Test
-    @DisplayName("aplica o limite do canal a saida da IA")
+    @DisplayName("applies the channel limit to the AI's output")
     void appliesChannelLimit() {
         String raw = "{\"body\": \"" + "a".repeat(OutreachChannel.WHATSAPP.maxBodyLength() + 1) + "\"}";
 

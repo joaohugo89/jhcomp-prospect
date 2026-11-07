@@ -34,10 +34,10 @@ import com.jhcomp.prospect.identity.IdentityTestData;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Segmento com uma grafia so por organizacao (D31): ao gravar e na migration V13. Dados ficticios. */
+/** One spelling per segment and organisation (D31): on write and in migration V13. Fictitious data. */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Segmento com grafia unica")
+@DisplayName("One spelling per segment")
 class SegmentCanonicalIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -73,12 +73,12 @@ class SegmentCanonicalIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("ao gravar, adota a grafia que ja existe e tira espaco repetido")
+    @DisplayName("on write, it adopts the spelling that already exists and removes repeated spaces")
     void onWrite() throws Exception {
         assertThat(create("Barbearia Um", "Barbearia")).isEqualTo("Barbearia");
         assertThat(create("Barbearia Dois", "  barbearia ")).isEqualTo("Barbearia");
         assertThat(create("Padaria Um", "Padaria   do   Centro")).isEqualTo("Padaria do Centro");
-        // Tabulacao tambem e espaco em branco: a regex precisa ser \\s, nao um espaco literal.
+        // A tab is whitespace too: the regex has to be \\s, not a literal space.
         assertThat(create("Padaria Dois", "padaria\\tdo centro")).isEqualTo("Padaria do Centro");
 
         String id = JsonPath.read(send(post("/companies"),
@@ -87,12 +87,12 @@ class SegmentCanonicalIntegrationTest extends PostgresIntegrationTest {
         send(patch("/companies/" + id), "{\"segment\": \"BARBEARIA\"}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.segment").value("Barbearia"));
-        // Segmento novo fica como foi digitado.
+        // A new segment is kept exactly as typed.
         assertThat(create("Floricultura Um", "Floricultura")).isEqualTo("Floricultura");
     }
 
     @Test
-    @DisplayName("migration V13 unifica as grafias existentes pela mais usada, sem mexer em outra organizacao")
+    @DisplayName("migration V13 unifies the existing spellings by the most used one, without touching another organisation")
     void migrationUnifiesExisting() throws IOException {
         IdentityTestData.Member other = testData.createActiveAdmin("segmento-b");
         insert(admin.organizationId(), "Barbearia");
@@ -110,12 +110,12 @@ class SegmentCanonicalIntegrationTest extends PostgresIntegrationTest {
                 "select coalesce(segment, '<nulo>') from company where organization_id = ? order by 1",
                 String.class, admin.organizationId());
         assertThat(mine).containsExactly("<nulo>", "Barbearia", "Barbearia", "Barbearia", "Barbearia");
-        // Outra organizacao tem a propria grafia mais usada.
+        // Another organisation has its own most-used spelling.
         assertThat(jdbc.queryForObject("select segment from company where organization_id = ?", String.class,
                 other.organizationId())).isEqualTo("barbearia");
     }
 
-    /** Os comandos de segmento da V13 (os que mexem em company), executados sobre dados de teste. */
+    /** V13's segment statements — the ones touching company — run over test data. */
     private static List<String> segmentStatements() throws IOException {
         String sql = new String(new ClassPathResource("db/migration/V13__segment_canonical_and_shared_views.sql")
                 .getInputStream().readAllBytes(), StandardCharsets.UTF_8);

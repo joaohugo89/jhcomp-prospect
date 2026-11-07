@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import com.jhcomp.prospect.shared.error.InvalidRequestException;
 
-/** Leitura e limites do CSV (RF-015, D14). Unitario, sem Spring. */
+/** Reading a CSV and its limits (RF-015, D14). A unit test, without Spring. */
 @DisplayName("CsvTable")
 class CsvTableTest {
 
@@ -20,7 +20,7 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("le ponto e virgula, como exporta o Excel em portugues")
+    @DisplayName("reads semicolons, as Excel in Portuguese exports them")
     void semicolon() {
         CsvTable table = CsvTable.parse(utf8("nome;cidade;uf\nPadaria Ficticia, Ltda;Cidade Exemplo;MG\n"));
 
@@ -29,14 +29,14 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("le virgula e tabulacao")
+    @DisplayName("reads commas and tabs")
     void commaAndTab() {
         assertThat(CsvTable.parse(utf8("nome,cidade\nA,B\n")).headers()).containsExactly("nome", "cidade");
         assertThat(CsvTable.parse(utf8("nome\tcidade\nA\tB\n")).headers()).containsExactly("nome", "cidade");
     }
 
     @Test
-    @DisplayName("remove o BOM do Excel e preserva acentos")
+    @DisplayName("removes Excel's BOM and preserves accents")
     void bomAndAccents() {
         CsvTable table = CsvTable.parse(utf8("﻿nome;cidade\nSalão Estética;Poços\n"));
 
@@ -44,9 +44,9 @@ class CsvTableTest {
         assertThat(table.records().getFirst().cells()).containsExactly("Salão Estética", "Poços");
     }
 
-    /** ISO-8859-1 decodificado como UTF-8 viraria lixo gravado como nome de empresa. */
+    /** ISO-8859-1 decoded as UTF-8 would become rubbish stored as a company name. */
     @Test
-    @DisplayName("recusa arquivo que nao e UTF-8")
+    @DisplayName("refuses a file that is not UTF-8")
     void rejectsNonUtf8() {
         byte[] latin1 = "nome;cidade\nSalão;Poços\n".getBytes(StandardCharsets.ISO_8859_1);
 
@@ -56,19 +56,19 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("aceita aspas, aspas escapadas e quebra de linha dentro da celula")
+    @DisplayName("accepts quotes, escaped quotes and a line break inside a cell")
     void quotedCells() {
         CsvTable table = CsvTable.parse(utf8("nome;obs;uf\n\"Loja \"\"Central\"\"\";\"linha 1\nlinha 2; com ponto e virgula\";MG\nOutra;x;SP\n"));
 
         assertThat(table.records()).hasSize(2);
         assertThat(table.records().getFirst().cells())
                 .containsExactly("Loja \"Central\"", "linha 1\nlinha 2; com ponto e virgula", "MG");
-        // A quebra de linha dentro da celula nao desloca a numeracao.
+        // A line break inside a cell does not shift the numbering.
         assertThat(table.records().get(1).rowNumber()).isEqualTo(3);
     }
 
     @Test
-    @DisplayName("ignora linhas vazias e conta celulas alem do cabecalho")
+    @DisplayName("ignores empty rows and counts cells beyond the header")
     void blankRowsAndExtraCells() {
         CsvTable table = CsvTable.parse(utf8("nome;uf\nA;MG\n;\n\nB;SP;sobra;\n"));
 
@@ -78,7 +78,7 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("linha mais curta que o cabecalho tem celulas vazias")
+    @DisplayName("a row shorter than the header has empty cells")
     void shortRow() {
         CsvTable table = CsvTable.parse(utf8("nome;cidade;uf\nA\n"));
 
@@ -86,7 +86,7 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("recusa cabecalho repetido ou vazio")
+    @DisplayName("refuses a repeated or empty header")
     void invalidHeader() {
         assertThatThrownBy(() -> CsvTable.parse(utf8("nome;Nome\nA;B\n")))
                 .hasMessageContaining("duplicated");
@@ -95,7 +95,7 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("recusa arquivo vazio, sem dados ou com aspas sem fechamento")
+    @DisplayName("refuses an empty file, one with no data, or one with an unclosed quote")
     void invalidContent() {
         assertThatThrownBy(() -> CsvTable.parse(new byte[0])).hasMessageContaining("empty");
         assertThatThrownBy(() -> CsvTable.parse(utf8("nome;uf\n"))).hasMessageContaining("no data rows");
@@ -105,7 +105,7 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("recusa mais de 2000 linhas inteiro, sem importar pela metade")
+    @DisplayName("refuses more than 2000 rows outright, without importing halfway")
     void rowLimit() {
         StringBuilder csv = new StringBuilder("nome;uf\n");
         for (int i = 0; i < CsvTable.MAX_ROWS; i++) {
@@ -118,7 +118,7 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("recusa mais de 2 MB")
+    @DisplayName("refuses more than 2 MB")
     void sizeLimit() {
         byte[] content = new byte[CsvTable.MAX_BYTES + 1];
         Arrays.fill(content, (byte) 'a');
@@ -127,7 +127,7 @@ class CsvTableTest {
     }
 
     @Test
-    @DisplayName("reconhece cabecalhos usuais sem mapeamento manual")
+    @DisplayName("recognises the usual headers without manual mapping")
     void guessesHeaders() {
         assertThat(ImportField.guess("Razão Social")).contains(ImportField.NAME);
         assertThat(ImportField.guess(" E-mail ")).contains(ImportField.BUSINESS_EMAIL);

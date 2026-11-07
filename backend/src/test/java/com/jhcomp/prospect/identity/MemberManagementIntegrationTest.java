@@ -30,17 +30,17 @@ import com.jayway.jsonpath.JsonPath;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Gestao de membros e troca de senha (RF-003, D28). */
+/** Member management and password change (RF-003, D28). */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Gestao de membros e senha")
+@DisplayName("Member management and passwords")
 class MemberManagementIntegrationTest extends PostgresIntegrationTest {
 
     private static final String FINAL_PASSWORD = "senha-definitiva-ficticia";
 
     /**
-     * Enderecos em 198.19.0.0/16 (RFC 2544), um por teste: a troca de senha
-     * usa o limitador de login, compartilhado pelo contexto inteiro.
+     * Addresses in 198.19.0.0/16 (RFC 2544), one per test: the password change
+     * uses the login limiter, which is shared across the whole context.
      */
     private static final AtomicInteger NEXT_ADDRESS = new AtomicInteger();
 
@@ -76,7 +76,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
         }).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
-    /** Cadastra membro pela API e devolve os dados de login com a senha temporaria. */
+    /** Registers a member through the API and returns the login data with the temporary password. */
     private IdentityTestData.Member createMember(String role) throws Exception {
         String email = "membro-" + UUID.randomUUID().toString().substring(0, 8) + "@example.test";
         String body = perform(post("/organizations/members"), adminSession, """
@@ -97,7 +97,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
                 "{\"currentPassword\": \"%s\", \"newPassword\": \"%s\"}".formatted(current, next));
     }
 
-    /** Membro que ja trocou a senha temporaria; devolve a sessao dele. */
+    /** A member who has already changed the temporary password; returns their session. */
     private MockHttpSession activeSession(IdentityTestData.Member member) throws Exception {
         MockHttpSession session = TestSessions.login(mockMvc, member);
         changePassword(session, member.password(), FINAL_PASSWORD).andExpect(status().isOk());
@@ -109,10 +109,10 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
                 member.memberId(), member.userId(), member.organizationId(), member.email(), password);
     }
 
-    // ---- Visao da equipe ----------------------------------------------------
+    // ---- Team overview ------------------------------------------------------
 
     @Test
-    @DisplayName("lista mostra ultimo acesso e senha pendente, busca por nome ou e-mail e filtra por situacao")
+    @DisplayName("the list shows last access and a pending password, searches by name or e-mail, and filters by status")
     void teamOverview() throws Exception {
         IdentityTestData.Member waiting = createMember("OPERATOR");
         IdentityTestData.Member active = createMember("OPERATOR");
@@ -130,7 +130,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[0].memberId").value(waiting.memberId().toString()))
                 .andExpect(jsonPath("$.content[0].passwordChangeRequired").value(true))
                 .andExpect(jsonPath("$.content[0].lastLoginAt").doesNotExist());
-        // Curinga do LIKE e literal: "%" nao traz todo mundo.
+        // A LIKE wildcard is literal: "%" does not return everyone.
         mockMvc.perform(get("/organizations/members").param("search", "%").param("includeRevoked", "true")
                         .session(adminSession))
                 .andExpect(jsonPath("$.totalElements").value(0));
@@ -141,7 +141,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.revoked").value(1))
                 .andExpect(jsonPath("$.awaitingFirstAccess").value(0));
 
-        // Outra organizacao nao entra na contagem, e operador nao consulta.
+        // Another organisation does not enter the count, and an operator cannot read it.
         IdentityTestData.Member other = testData.createActiveAdmin("membros-resumo-b");
         mockMvc.perform(get("/organizations/members/summary").session(TestSessions.login(mockMvc, other)))
                 .andExpect(jsonPath("$.active").value(1))
@@ -150,10 +150,10 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ---- Cadastro e primeiro acesso ----------------------------------------
+    // ---- Registration and first access --------------------------------------
 
     @Test
-    @DisplayName("cadastro gera senha temporaria que so aparece na resposta e nao e guardada em texto")
+    @DisplayName("registration generates a temporary password that appears only in the response and is never stored in clear text")
     void createsMemberWithTemporaryPassword() throws Exception {
         IdentityTestData.Member member = createMember("OPERATOR");
 
@@ -170,7 +170,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("com senha temporaria so ha troca de senha; depois dela, acesso normal")
+    @DisplayName("with a temporary password only the password change is available; after it, normal access")
     void temporaryPasswordMustBeChanged() throws Exception {
         IdentityTestData.Member member = createMember("OPERATOR");
         MockHttpSession session = TestSessions.login(mockMvc, member);
@@ -193,7 +193,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.passwordChangeRequired").value(false));
         mockMvc.perform(get("/leads").session(session)).andExpect(status().isOk());
 
-        // A senha temporaria deixa de valer; a nova entra direto, sem exigencia.
+        // The temporary password stops working; the new one gets in directly, with no requirement.
         mockMvc.perform(post("/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\": \"%s\", \"password\": \"%s\"}".formatted(member.email(), member.password())))
                 .andExpect(status().isUnauthorized());
@@ -202,7 +202,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("trocar a senha encerra as outras sessoes do usuario e mantem a atual")
+    @DisplayName("changing the password ends the user's other sessions and keeps the current one")
     void passwordChangeEndsOtherSessions() throws Exception {
         IdentityTestData.Member created = createMember("OPERATOR");
         activeSession(created);
@@ -217,7 +217,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("tentativas erradas de senha atual esbarram no limitador de login")
+    @DisplayName("wrong attempts at the current password run into the login limiter")
     void passwordChangeIsRateLimited() throws Exception {
         IdentityTestData.Member member = createMember("OPERATOR");
         MockHttpSession session = TestSessions.login(mockMvc, member);
@@ -228,10 +228,10 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
         changePassword(session, member.password(), FINAL_PASSWORD).andExpect(status().isTooManyRequests());
     }
 
-    // ---- Papel, acesso e redefinicao ---------------------------------------
+    // ---- Role, access and reset ---------------------------------------------
 
     @Test
-    @DisplayName("promover, revogar e reativar valem na requisicao seguinte do membro")
+    @DisplayName("promoting, revoking and restoring take effect on the member's next request")
     void roleAndStatusChangesApplyImmediately() throws Exception {
         IdentityTestData.Member member = createMember("OPERATOR");
         MockHttpSession session = activeSession(member);
@@ -254,7 +254,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("redefinir senha encerra a sessao do membro e exige nova troca")
+    @DisplayName("resetting the password ends the member's session and requires a new change")
     void resetPassword() throws Exception {
         IdentityTestData.Member member = createMember("OPERATOR");
         MockHttpSession session = activeSession(member);
@@ -270,7 +270,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("administrador nao altera a propria associacao")
+    @DisplayName("an administrator cannot change their own membership")
     void cannotChangeSelf() throws Exception {
         perform(patch("/organizations/members/" + admin.memberId()), adminSession, "{\"role\": \"OPERATOR\"}")
                 .andExpect(status().isConflict());
@@ -284,7 +284,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("e-mail ja cadastrado e recusado, mesmo de outra organizacao")
+    @DisplayName("an already registered e-mail is refused, even from another organisation")
     void duplicateEmailIsRejected() throws Exception {
         IdentityTestData.Member other = testData.createActiveAdmin("members-other");
 
@@ -295,7 +295,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("operador nao cadastra, altera nem redefine senha de membro")
+    @DisplayName("an operator cannot register, change or reset a member's password")
     void operatorCannotManageMembers() throws Exception {
         IdentityTestData.Member operator = createMember("OPERATOR");
         MockHttpSession session = activeSession(operator);
@@ -310,7 +310,7 @@ class MemberManagementIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("administrador de A nao altera nem redefine membro de B")
+    @DisplayName("an administrator of A cannot change or reset a member of B")
     void crossOrganizationIsNotFound() throws Exception {
         IdentityTestData.Member other = testData.createActiveOperator("members-b");
 

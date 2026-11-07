@@ -9,20 +9,20 @@ import org.junit.jupiter.api.Test;
 class ClientNetworkTest {
 
     @Test
-    @DisplayName("IPv4 e exato nos dois niveis")
+    @DisplayName("IPv4 is exact at both levels")
     void ipv4IsExact() {
         assertThat(ClientNetwork.of("203.0.113.10"))
                 .isEqualTo(new ClientNetwork("203.0.113.10", "203.0.113.10"));
     }
 
     @Test
-    @DisplayName("IPv4 mapeado em IPv6 vira o IPv4")
+    @DisplayName("an IPv4-mapped IPv6 address becomes the IPv4")
     void mappedIpv4() {
         assertThat(ClientNetwork.of("::FFFF:203.0.113.10").subscriber()).isEqualTo("203.0.113.10");
     }
 
     @Test
-    @DisplayName("IPv6 agrupa assinante em /64 e site em /48")
+    @DisplayName("IPv6 groups the subscriber by /64 and the site by /48")
     void ipv6Prefixes() {
         var network = ClientNetwork.of("2001:db8:abcd:12:aaaa:bbbb:cccc:dddd");
 
@@ -31,14 +31,14 @@ class ClientNetworkTest {
     }
 
     @Test
-    @DisplayName("formas abreviada e completa do mesmo IPv6 coincidem")
+    @DisplayName("the abbreviated and full forms of the same IPv6 coincide")
     void ipv6CanonicalForm() {
         assertThat(ClientNetwork.of("2001:db8::1"))
                 .isEqualTo(ClientNetwork.of("2001:0db8:0000:0000:0000:0000:0000:0002"));
     }
 
     @Test
-    @DisplayName("valor nao literal e vazio nao escapam do limite")
+    @DisplayName("a non-literal value and an empty one do not escape the limit")
     void nonLiteralIsKeptAsIs() {
         assertThat(ClientNetwork.of("nao-e-ip").site()).isEqualTo("nao-e-ip");
         assertThat(ClientNetwork.of(" ").site()).isEqualTo("unknown");

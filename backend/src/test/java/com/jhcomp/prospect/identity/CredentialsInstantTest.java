@@ -17,16 +17,17 @@ import com.jhcomp.prospect.identity.infrastructure.persistence.UserEntity;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 
 /**
- * Instante da troca de senha guardado na sessao e no banco e o mesmo (D28).
+ * The instant of a password change is the same in the session and in the
+ * database (D28).
  *
- * <p>A sessao e encerrada quando a senha mudou depois dela. Se o banco
- * guardasse um instante ligeiramente posterior ao da sessao, a pessoa que
- * acabou de trocar a senha perderia a propria sessao.
+ * <p>A session ends when the password changed after it. If the database kept
+ * an instant slightly later than the session's, whoever had just changed
+ * their password would lose their own session.
  */
-@DisplayName("Instante da troca de senha")
+@DisplayName("The instant of a password change")
 class CredentialsInstantTest extends PostgresIntegrationTest {
 
-    /** Fracao abaixo do microssegundo que o PostgreSQL arredonda para cima. */
+    /** A sub-microsecond fraction that PostgreSQL rounds up. */
     private static final Instant WITH_NANOS = Instant.parse("2026-11-06T12:00:00.000000900Z");
 
     private final JdbcTemplate jdbc;
@@ -36,7 +37,7 @@ class CredentialsInstantTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("o PostgreSQL arredonda para cima a fracao abaixo do microssegundo")
+    @DisplayName("PostgreSQL rounds a sub-microsecond fraction up")
     void postgresRoundsSubMicroseconds() {
         Instant stored = jdbc.queryForObject("select ?::timestamptz", Instant.class, WITH_NANOS.toString());
 
@@ -44,7 +45,7 @@ class CredentialsInstantTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("a entidade trunca para o microssegundo, e o banco devolve exatamente o mesmo instante")
+    @DisplayName("the entity truncates to the microsecond, and the database returns exactly the same instant")
     void entityStoresWhatTheDatabaseKeeps() {
         UserEntity user = new UserEntity(UUID.randomUUID(), "x@example.test", "{noop}x", "X", UserStatus.ACTIVE,
                 false, WITH_NANOS);

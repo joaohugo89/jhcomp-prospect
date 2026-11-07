@@ -23,18 +23,19 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Isolamento entre organizacoes (RNF-001, doc 10 §3).
+ * Isolation between organisations (RNF-001, doc 10 §3).
  *
- * <p>Este e o teste que o doc 10 §3 chama de critico: duas organizacoes, A e B,
- * e a verificacao de que nenhum caminho leva um usuario de A a dado de B — nem
- * por listagem, nem por UUID conhecido, nem por papel administrativo.
+ * <p>This is the test doc 10 §3 calls critical: two organisations, A and B,
+ * and the verification that no path takes a user of A to data of B — not
+ * through a listing, not through a known UUID, not through an administrative
+ * role.
  *
- * <p>Verifica tanto a resposta HTTP quanto o comportamento no banco, como o
- * documento exige.
+ * <p>It checks both the HTTP response and the behaviour in the database, as
+ * the document requires.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Isolamento entre organizacoes")
+@DisplayName("Isolation between organisations")
 class OrganizationIsolationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -63,7 +64,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao ve membros de B na listagem")
+    @DisplayName("a user of A does not see members of B in the listing")
     void listingIsScopedToOwnOrganization() throws Exception {
         var session = TestSessions.login(mockMvc, adminA);
 
@@ -71,18 +72,19 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].userId").value(adminA.userId().toString()))
-                // O membro de B nao pode aparecer em lugar algum da resposta.
+                // B's member must appear nowhere in the response.
                 .andExpect(jsonPath("$.content[?(@.email == '" + memberOfB.email() + "')]").isEmpty())
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test
-    @DisplayName("usuario de A nao acessa membro de B mesmo conhecendo o UUID")
+    @DisplayName("a user of A cannot reach a member of B even knowing the UUID")
     void cannotReachOtherOrganizationResourceByUuid() throws Exception {
         var session = TestSessions.login(mockMvc, adminA);
 
-        // O UUID e valido e o recurso existe: so nao pertence a organizacao de
-        // quem pede. A resposta e 404, nao 403, para nao confirmar a existencia.
+        // The UUID is valid and the resource exists: it simply does not belong
+        // to the caller's organisation. The answer is 404, not 403, so as not
+        // to confirm it exists.
         mockMvc.perform(get("/organizations/members/" + memberOfB.memberId()).session(session))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.type").value("RESOURCE_NOT_FOUND"))
@@ -90,7 +92,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A acessa o proprio membro pelo UUID")
+    @DisplayName("a user of A reaches their own member by UUID")
     void canReachOwnOrganizationResourceByUuid() throws Exception {
         var session = TestSessions.login(mockMvc, adminA);
 
@@ -100,9 +102,9 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("consulta escopada no banco nao retorna recurso de outra organizacao")
+    @DisplayName("a scoped query in the database returns no resource from another organisation")
     void repositoryQueryIsScoped() {
-        // Mesmo efeito verificado uma camada abaixo do HTTP, como pede o doc 10 §3.
+        // The same effect verified one layer below HTTP, as doc 10 §3 asks.
         assertThat(memberRepository.findByIdAndOrganization(memberOfB.memberId(), organizationA.getId()))
                 .describedAs("membro de B buscado com escopo de A")
                 .isEmpty();
@@ -113,7 +115,7 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("listagem no banco nao mistura organizacoes")
+    @DisplayName("a listing in the database does not mix organisations")
     void repositoryListingIsScoped() {
         var membersOfA = memberRepository.findByOrganization(
                 organizationA.getId(), MemberStatus.ACTIVE, PageRequest.of(0, 50));
@@ -126,21 +128,21 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("operador nao executa operacao administrativa")
+    @DisplayName("an operator cannot perform an administrative operation")
     void operatorIsBlockedFromAdminOperation() throws Exception {
         var operator = testData.createMember(
                 organizationA, OrganizationRole.OPERATOR, UserStatus.ACTIVE, MemberStatus.ACTIVE);
 
         var session = TestSessions.login(mockMvc, operator);
 
-        // Critério de aceite do RF-003.
+        // RF-003's acceptance criterion.
         mockMvc.perform(get("/organizations/members").session(session))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.type").value("FORBIDDEN"));
     }
 
     @Test
-    @DisplayName("sem autenticacao nao ha acesso a dado de organizacao")
+    @DisplayName("without authentication there is no access to organisation data")
     void anonymousIsRejected() throws Exception {
         mockMvc.perform(get("/organizations/members"))
                 .andExpect(status().isUnauthorized())
@@ -151,12 +153,13 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("organizationId enviado pelo cliente e ignorado")
+    @DisplayName("an organizationId sent by the client is ignored")
     void clientSuppliedOrganizationIdIsIgnored() throws Exception {
         var session = TestSessions.login(mockMvc, adminA);
 
-        // Tentativa explicita de trocar de organizacao por query string. O
-        // parametro nao e lido em lugar algum; o escopo vem da sessao (RF-002).
+        // An explicit attempt to switch organisation through a query string.
+        // The parameter is read nowhere; the scope comes from the session
+        // (RF-002).
         mockMvc.perform(get("/organizations/members")
                         .param("organizationId", organizationB.getId().toString())
                         .session(session))
@@ -166,10 +169,10 @@ class OrganizationIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("sessao de B nao enxerga dado de A")
+    @DisplayName("a session of B cannot see data of A")
     void reverseDirectionIsAlsoIsolated() throws Exception {
-        // Testa o sentido contrario: um isolamento que funciona so em uma
-        // direcao normalmente indica filtro aplicado no lugar errado.
+        // Tests the opposite direction: isolation that works one way only
+        // usually means the filter was applied in the wrong place.
         var session = TestSessions.login(mockMvc, memberOfB);
 
         mockMvc.perform(get("/organizations/members/" + adminA.memberId()).session(session))

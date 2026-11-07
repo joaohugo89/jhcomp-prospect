@@ -7,24 +7,25 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * Base dos testes que precisam de PostgreSQL real (doc 10 §2).
+ * The base of tests that need a real PostgreSQL (doc 10 §2).
  *
- * <p>Usa o padrao de container singleton: o container e iniciado uma vez por
- * JVM em bloco estatico e nunca e parado explicitamente. Nao usar
- * {@code @Testcontainers} com {@code @Container} aqui — essa extensao para o
- * container ao fim de cada classe de teste, enquanto o Spring reaproveita o
- * contexto em cache apontando para o container ja encerrado, o que faz as
- * classes seguintes falharem com "Failed to obtain JDBC Connection".
+ * <p>It uses the singleton container pattern: the container starts once per
+ * JVM in a static block and is never stopped explicitly. Do not use
+ * {@code @Testcontainers} with {@code @Container} here — that extension stops
+ * the container at the end of each test class, while Spring reuses the cached
+ * context pointing at the now-dead container, which makes the following
+ * classes fail with "Failed to obtain JDBC Connection".
  *
- * <p>O encerramento fica a cargo do Ryuk, container acessorio que o
- * Testcontainers sobe para remover recursos ao fim da execucao.
+ * <p>Shutdown is Ryuk's job, the sidecar container Testcontainers starts to
+ * remove resources at the end of the run.
  *
- * <p>A classe vem de {@code org.testcontainers.postgresql}, e nao do pacote
- * {@code org.testcontainers.containers}, que foi depreciado no Testcontainers
- * 2.x. A nova classe nao e generica, por isso nao leva {@code <?>}.
+ * <p>The class comes from {@code org.testcontainers.postgresql}, not from
+ * {@code org.testcontainers.containers}, which was deprecated in
+ * Testcontainers 2.x. The new class is not generic, so it takes no
+ * {@code <?>}.
  *
- * <p>A imagem acompanha a do {@code docker-compose.yml}: testar contra uma
- * versao diferente da de desenvolvimento esconde problema de migration.
+ * <p>The image matches the one in {@code docker-compose.yml}: testing against
+ * a different version from the development one hides migration problems.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -34,8 +35,9 @@ public abstract class PostgresIntegrationTest {
     static final PostgreSQLContainer POSTGRES;
 
     static {
-        // O container vive por toda a JVM de teste de proposito, portanto nao e
-        // fechado aqui. Fecha-lo invalidaria o contexto Spring em cache.
+        // The container deliberately lives for the whole test JVM, so it is
+        // not closed here. Closing it would invalidate the cached Spring
+        // context.
         @SuppressWarnings("resource")
         PostgreSQLContainer container = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"))
                 .withDatabaseName("jhcomp_prospect_test")
@@ -43,10 +45,10 @@ public abstract class PostgresIntegrationTest {
                 .withPassword("jhcomp_test");
 
         container
-                // RNF-009: o banco de teste opera em UTC, como o de producao.
+                // RNF-009: the test database runs in UTC, as production does.
                 .withEnv("TZ", "UTC")
                 .withEnv("PGTZ", "UTC")
-                // Mesma collation do docker-compose, da qual a deduplicacao depende.
+                // The same collation as docker-compose, which deduplication depends on.
                 .withEnv("POSTGRES_INITDB_ARGS", "--encoding=UTF8 --locale=C");
 
         POSTGRES = container;

@@ -39,10 +39,10 @@ import com.jhcomp.prospect.identity.IdentityTestData;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** CRM e dashboard pela API (RF-040 a RF-043, RF-070, D2, D25). Dados ficticios. */
+/** CRM and dashboard through the API (RF-040 to RF-043, RF-070, D2, D25). Fictitious data. */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("API de CRM e dashboard")
+@DisplayName("CRM and dashboard API")
 class CrmApiIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -92,7 +92,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("etapas sao os status do lead, em ordem, sem o bloqueio de contato")
+    @DisplayName("the stages are the lead statuses, in order, without the contact block")
     void stages() throws Exception {
         mockMvc.perform(get("/pipeline-stages").session(session))
                 .andExpect(status().isOk())
@@ -102,7 +102,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("quadro traz os cards por etapa com ultima interacao e proxima tarefa")
+    @DisplayName("the board carries the cards per stage with last interaction and next task")
     void board() throws Exception {
         String first = createLead("Loja Um");
         String second = createLead("Loja Dois");
@@ -124,9 +124,9 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$[1].cards[0].allowedTransitions", hasItem("CONTACT_APPROVED")));
     }
 
-    /** Itens 2, 3 e 4 do quadro: tempo na etapa, valor da etapa inteira e janela das colunas finais. */
+    /** Board items 2, 3 and 4: time in stage, the whole stage's value, and the final columns' window. */
     @Test
-    @DisplayName("quadro soma o valor da etapa, informa a entrada na etapa e limita os encerrados a 30 dias")
+    @DisplayName("the board sums the stage value, reports the stage entry and limits the closed ones to 30 days")
     void boardValuesAndWindows() throws Exception {
         String big = createLead("Loja Valor Alto");
         String small = createLead("Loja Valor Baixo");
@@ -135,7 +135,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
         }
         send(put("/leads/" + big + "/deal"), "{\"estimatedValue\": 1500.50}").andExpect(status().isOk());
         send(put("/leads/" + small + "/deal"), "{\"estimatedValue\": 499.50}").andExpect(status().isOk());
-        // Chegou na proposta ha 12 dias.
+        // It reached the proposal 12 days ago.
         jdbc.update("update lead_status_change set changed_at = now() - interval '12 days' "
                 + "where lead_id = ? and to_status = 'PROPOSAL_SENT'", UUID.fromString(big));
 
@@ -155,7 +155,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$[5].totalValue").value(2000.00))
                 .andExpect(jsonPath("$[5].recentDays").doesNotExist())
                 .andExpect(jsonPath("$[5].cards[*].estimatedValue", hasItem(1500.50)))
-                // Fechado ha 40 dias sai da coluna e do valor; continua na lista de leads.
+                // Closed 40 days ago leaves the column and the value; it stays in the lead list.
                 .andExpect(jsonPath("$[6].stage.key").value("WON"))
                 .andExpect(jsonPath("$[6].recentDays").value(30))
                 .andExpect(jsonPath("$[6].total").value(1))
@@ -166,7 +166,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
         List<String> entered = JsonPath.read(board, "$[5].cards[?(@.leadId == '" + big + "')].stageEnteredAt");
         assertThat(Instant.parse(entered.getFirst())).isBefore(Instant.now().minus(11, ChronoUnit.DAYS));
 
-        // O valor respeita os filtros do quadro, como a contagem.
+        // The value respects the board's filters, as the count does.
         mockMvc.perform(get("/pipeline/board").param("segment", "OUTRO").session(session))
                 .andExpect(jsonPath("$[5].total").value(0))
                 .andExpect(jsonPath("$[5].totalValue").value(0));
@@ -174,9 +174,9 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(2));
     }
 
-    /** D2: deal nasce na proposta e o resultado vem do status do lead. */
+    /** D2: the deal appears at the proposal and the outcome comes from the lead's status. */
     @Test
-    @DisplayName("deal nasce na proposta, guarda valor em decimal e motivo de perda")
+    @DisplayName("the deal appears at the proposal, stores a decimal value and a loss reason")
     void dealLifecycle() throws Exception {
         String leadId = createLead("Loja Deal");
         mockMvc.perform(get("/leads/" + leadId + "/deal").session(session)).andExpect(status().isNotFound());
@@ -198,7 +198,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("ganho sem passar por proposta tambem cria o deal")
+    @DisplayName("a win without passing through a proposal also creates the deal")
     void wonWithoutProposal() throws Exception {
         String leadId = createLead("Loja Ganha");
         move(leadId, "QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "WON");
@@ -209,7 +209,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("valor negativo ou com mais de duas casas e recusado")
+    @DisplayName("a negative value, or one with more than two decimal places, is refused")
     void dealValueValidation() throws Exception {
         String leadId = createLead("Loja Valor");
         move(leadId, "QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "PROPOSAL_SENT");
@@ -218,9 +218,9 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
         send(put("/leads/" + leadId + "/deal"), "{\"estimatedValue\": 10.123}").andExpect(status().isBadRequest());
     }
 
-    /** Regra 6: registrar contato nao move o lead para CONTACTED. */
+    /** Rule 6: recording a contact does not move the lead to CONTACTED. */
     @Test
-    @DisplayName("interacao registrada nao muda o status e aparece no historico")
+    @DisplayName("a recorded interaction does not change the status and appears in the history")
     void interactionDoesNotMoveLead() throws Exception {
         String leadId = createLead("Loja Contato");
         move(leadId, "QUALIFIED", "CONTACT_APPROVED");
@@ -239,7 +239,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("interacao no futuro e recusada")
+    @DisplayName("an interaction in the future is refused")
     void futureInteraction() throws Exception {
         String leadId = createLead("Loja Futuro");
 
@@ -247,9 +247,9 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    /** Doc 06 §9 e regra 4: pedido de nao contato vale na hora e bloqueia abordagem. */
+    /** Doc 06 §9 and rule 4: a do-not-contact request takes effect at once and blocks any approach. */
     @Test
-    @DisplayName("pedido de nao contato bloqueia o lead e recusa nova abordagem")
+    @DisplayName("a do-not-contact request blocks the lead and refuses a new approach")
     void doNotContactRequest() throws Exception {
         String leadId = createLead("Loja Bloqueada");
         move(leadId, "QUALIFIED");
@@ -260,13 +260,13 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
 
         send(post("/leads/" + leadId + "/interactions"), interaction("CONTACT", "OUTBOUND", Instant.now()))
                 .andExpect(status().isConflict());
-        // A empresa ainda pode nos procurar: registrar o que ela fez continua possivel.
+        // The company can still come to us: recording what it did remains possible.
         send(post("/leads/" + leadId + "/interactions"), interaction("REPLY", "INBOUND", Instant.now()))
                 .andExpect(status().isCreated());
     }
 
     @Test
-    @DisplayName("tarefa: cria, conclui e lista abertas primeiro")
+    @DisplayName("task: creates, completes, and lists the open ones first")
     void tasks() throws Exception {
         String leadId = createLead("Loja Tarefa");
         String done = JsonPath.read(send(post("/tasks"), "{\"leadId\": \"%s\", \"title\": \"Enviar orcamento\"}".formatted(leadId))
@@ -284,7 +284,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("dashboard conta leads por etapa, contatos e ganhos do periodo")
+    @DisplayName("the dashboard counts leads per stage, contacts and wins for the period")
     void dashboard() throws Exception {
         String won = createLead("Loja Painel Ganha");
         String contacted = createLead("Loja Painel Contato");
@@ -312,7 +312,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
 
         mockMvc.perform(get("/dashboard/summary").param("from", "2026-02-01").param("to", "2026-01-01").session(session))
                 .andExpect(status().isBadRequest());
-        // Periodo passado sem eventos: nada no periodo, mas a foto por etapa e atual.
+        // A past period with no events: nothing in the period, but the per-stage snapshot is current.
         mockMvc.perform(get("/dashboard/summary").param("from", "2020-01-01").param("to", "2020-01-31").session(session))
                 .andExpect(jsonPath("$.summary.companiesAdded").value(0))
                 .andExpect(jsonPath("$.summary.dealsWon").value(0));
@@ -320,12 +320,12 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.summary.leadsByStatus", not(hasItem("WON"))));
     }
 
-    /** Origem e a primeira proveniencia da empresa; importacao posterior nao a muda (D29). */
+    /** The origin is the company's first provenance; a later import does not change it (D29). */
     @Test
-    @DisplayName("dashboard filtra pela origem em que a empresa entrou")
+    @DisplayName("the dashboard filters by the origin through which the company entered")
     void dashboardBySource() throws Exception {
         String leadId = createLead("Loja Origem Manual");
-        // Uma importacao que depois completa a empresa grava nova proveniencia.
+        // An import that later completes the company writes new provenance.
         jdbc.update("""
                 insert into lead_source (id, organization_id, company_id, source_type, source_name, collected_at)
                 select gen_random_uuid(), l.organization_id, l.company_id, 'CSV_IMPORT', 'Planilha ficticia', now()
@@ -344,16 +344,16 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    /** Serie temporal: mesmas definicoes do resumo, intervalos no calendario de Brasilia. */
+    /** Time series: the same definitions as the summary, in Brasília calendar intervals. */
     @Test
-    @DisplayName("linha do tempo preenche intervalos vazios e respeita o dia de Brasilia")
+    @DisplayName("the timeline fills empty intervals and respects the Brasília day")
     void timeline() throws Exception {
         String leadId = createLead("Loja Linha do Tempo");
         send(post("/leads/" + leadId + "/interactions"), interaction("CONTACT", "OUTBOUND", Instant.now()))
                 .andExpect(status().isCreated());
         String today = LocalDate.now(ZoneId.of("America/Sao_Paulo")).toString();
 
-        // Padrao: 30 dias por dia, o ultimo e hoje.
+        // Default: 30 days, one per day, the last of them today.
         mockMvc.perform(get("/dashboard/timeline").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.granularity").value("DAY"))
@@ -363,7 +363,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.points[-1].contactsRegistered").value(1))
                 .andExpect(jsonPath("$.points[0].companiesAdded").value(0));
 
-        // 02:00 UTC do dia 10 ainda e dia 9 em Brasilia.
+        // 02:00 UTC on the 10th is still the 9th in Brasília.
         jdbc.update("update company set created_at = '2026-03-10T02:00:00Z' where id = "
                 + "(select company_id from lead where id = ?)", UUID.fromString(leadId));
         mockMvc.perform(get("/dashboard/timeline").param("from", "2026-03-08").param("to", "2026-03-10")
@@ -371,7 +371,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.points[*].start", contains("2026-03-08", "2026-03-09", "2026-03-10")))
                 .andExpect(jsonPath("$.points[*].companiesAdded", contains(0, 1, 0)));
 
-        // A primeira semana comeca no inicio do periodo, nao na segunda-feira anterior.
+        // The first week starts at the beginning of the period, not on the preceding Monday.
         mockMvc.perform(get("/dashboard/timeline").param("from", "2026-03-04").param("to", "2026-03-17")
                         .param("granularity", "WEEK").session(session))
                 .andExpect(jsonPath("$.points[*].start", contains("2026-03-04", "2026-03-09", "2026-03-16")))
@@ -387,9 +387,9 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    /** RF-071: denominador explicito e sem taxa com amostra pequena. */
+    /** RF-071: an explicit denominator, and no rate on a small sample. */
     @Test
-    @DisplayName("conversao por origem e segmento so marca amostra suficiente a partir do minimo")
+    @DisplayName("conversion by origin and segment only marks a sufficient sample from the minimum up")
     void conversion() throws Exception {
         for (int i = 0; i < 10; i++) {
             String leadId = createLead("Loja Conversao " + i);
@@ -421,7 +421,7 @@ class CrmApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.conversion.bySegment[0].sufficientSample").value(true))
                 .andExpect(jsonPath("$.conversion.bySegment[1].key").value("AUTO"))
                 .andExpect(jsonPath("$.conversion.bySegment[1].sufficientSample").value(false));
-        // Leads abertos fora do periodo nao entram no denominador.
+        // Leads opened outside the period do not enter the denominator.
         mockMvc.perform(get("/dashboard/conversion").param("from", "2020-01-01").param("to", "2020-01-31").session(session))
                 .andExpect(jsonPath("$.conversion.bySource").isEmpty());
     }

@@ -32,10 +32,10 @@ import com.jhcomp.prospect.identity.IdentityTestData;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Outreach e nao contato mantem o escopo da organizacao (doc 10 §3, regra 2). */
+/** Outreach and do-not-contact keep the organisation scope (doc 10 §3, rule 2). */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Isolamento entre organizacoes: outreach e nao contato")
+@DisplayName("Isolation between organisations: outreach and do-not-contact")
 class OutreachIsolationTest extends PostgresIntegrationTest {
 
     private static final String SHARED_PHONE = "(35) 97777-0000";
@@ -89,7 +89,7 @@ class OutreachIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao le, gera, edita, aprova, registra nem cancela mensagem de B")
+    @DisplayName("a user of A cannot read, generate, edit, approve, record or cancel a message of B")
     void routesAreScoped() throws Exception {
         expectNotFound(get("/leads/" + leadB + "/outreach-context"), "");
         expectNotFound(get("/leads/" + leadB + "/messages"), "");
@@ -109,7 +109,7 @@ class OutreachIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lista de nao contato e por organizacao: bloqueio de B nao bloqueia A nem aparece para A")
+    @DisplayName("the do-not-contact list is per organisation: a block of B neither blocks A nor appears to A")
     void suppressionIsScoped() throws Exception {
         body(post("/suppression-entries"), sessionB,
                 "{\"identifierType\": \"PHONE\", \"identifier\": \"%s\", \"reason\": \"Pedido\"}".formatted(SHARED_PHONE));
@@ -120,7 +120,7 @@ class OutreachIsolationTest extends PostgresIntegrationTest {
                 .andExpect(status().isCreated());
         mockMvc.perform(get("/suppression-entries").session(sessionA))
                 .andExpect(jsonPath("$.totalElements").value(0));
-        // Busca, totais e conferencia tambem nao enxergam o bloqueio de B.
+        // Search, totals and the check cannot see B's block either.
         mockMvc.perform(get("/suppression-entries").param("search", SHARED_PHONE).session(sessionA))
                 .andExpect(jsonPath("$.totalElements").value(0));
         mockMvc.perform(get("/suppression-entries/summary").session(sessionA))
@@ -135,7 +135,7 @@ class OutreachIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("o banco recusa mensagem de A apontando para lead de B")
+    @DisplayName("the database refuses a message of A pointing at a lead of B")
     void databaseRejectsForeignLead() {
         assertThatThrownBy(() -> jdbc.update("""
                 insert into outreach_message (id, organization_id, lead_id, channel, body, status,

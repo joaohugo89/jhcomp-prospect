@@ -24,15 +24,15 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Formato unico de erro da API (RNF-003, doc 05 §1).
+ * The API's single error format (RNF-003, doc 05 §1).
  *
- * <p>Garante que erros nascidos no Spring MVC — rota inexistente, metodo nao
- * suportado, corpo malformado — saiam no mesmo formato dos erros da aplicacao,
- * e que nenhum deles vaze detalhe interno.
+ * <p>It guarantees that errors born in Spring MVC — unknown route,
+ * unsupported method, malformed body — come out in the same format as the
+ * application's own, and that none of them leaks internal detail.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Contrato de erro")
+@DisplayName("Error contract")
 class ErrorContractTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -42,16 +42,17 @@ class ErrorContractTest extends PostgresIntegrationTest {
     private IdentityTestData testData;
 
     /**
-     * Sessao autenticada. Necessaria para alcancar o 404: rotas desconhecidas
-     * respondem 401 antes de 404 para quem nao esta autenticado, o que e
-     * intencional — nao revela a anonimos quais rotas existem.
+     * An authenticated session. Needed in order to reach the 404: unknown
+     * routes answer 401 before 404 for anyone not authenticated, which is
+     * intentional — it does not reveal to anonymous callers which routes
+     * exist.
      */
     private MockHttpSession authenticatedSession(String prefix) throws Exception {
         return TestSessions.login(mockMvc, testData.createActiveAdmin(prefix));
     }
 
     @Test
-    @DisplayName("rota inexistente responde 401 para anonimo, sem revelar se a rota existe")
+    @DisplayName("an unknown route answers 401 for an anonymous caller, without revealing whether it exists")
     void unknownRouteIsUnauthorizedForAnonymous() throws Exception {
         mockMvc.perform(get("/rota-que-nao-existe"))
                 .andExpect(status().isUnauthorized())
@@ -59,7 +60,7 @@ class ErrorContractTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("rota inexistente responde no formato padrao sem vazar detalhe interno")
+    @DisplayName("an unknown route answers in the standard format without leaking internal detail")
     void unknownRouteUsesStandardFormat() throws Exception {
         mockMvc.perform(get("/rota-que-nao-existe").session(authenticatedSession("err-404")))
                 .andExpect(status().isNotFound())
@@ -67,14 +68,14 @@ class ErrorContractTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.type").value("RESOURCE_NOT_FOUND"))
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.title").exists())
-                // O handler padrao do Spring respondia "No static resource ...",
-                // que expoe como a requisicao foi resolvida internamente.
+                // Spring's default handler answered "No static resource ...",
+                // which exposes how the request was resolved internally.
                 .andExpect(content().string(Matchers.not(Matchers.containsString("static resource"))))
                 .andExpect(content().string(Matchers.not(Matchers.containsString("org.springframework"))));
     }
 
     @Test
-    @DisplayName("nenhuma resposta de erro contem stack trace")
+    @DisplayName("no error response contains a stack trace")
     void errorsNeverContainStackTrace() throws Exception {
         String body = mockMvc.perform(get("/rota-que-nao-existe").session(authenticatedSession("err-trace")))
                 .andReturn()
@@ -88,7 +89,7 @@ class ErrorContractTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("metodo nao suportado responde 405 no formato padrao")
+    @DisplayName("an unsupported method answers 405 in the standard format")
     void unsupportedMethodUsesStandardFormat() throws Exception {
         mockMvc.perform(put("/health").with(csrf()).session(authenticatedSession("err-405")))
                 .andExpect(status().isMethodNotAllowed())
@@ -97,7 +98,7 @@ class ErrorContractTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("corpo JSON malformado responde 400 no formato padrao")
+    @DisplayName("a malformed JSON body answers 400 in the standard format")
     void malformedJsonUsesStandardFormat() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .with(csrf())
@@ -106,13 +107,13 @@ class ErrorContractTest extends PostgresIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("MALFORMED_REQUEST"))
                 .andExpect(jsonPath("$.status").value(400))
-                // Nao deve revelar a posicao do erro de parsing nem a classe do parser.
+                // It must reveal neither the parse error's position nor the parser's class.
                 .andExpect(content().string(Matchers.not(Matchers.containsString("JsonParse"))))
                 .andExpect(content().string(Matchers.not(Matchers.containsString("line:"))));
     }
 
     @Test
-    @DisplayName("toda resposta carrega o correlation id")
+    @DisplayName("every response carries the correlation id")
     void everyResponseCarriesRequestId() throws Exception {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
@@ -120,13 +121,13 @@ class ErrorContractTest extends PostgresIntegrationTest {
 
         mockMvc.perform(get("/rota-que-nao-existe"))
                 .andExpect(header().exists("X-Request-Id"));
-        // Tambem presente na resposta de erro autenticada.
+        // Present in the authenticated error response too.
         mockMvc.perform(get("/rota-que-nao-existe").session(authenticatedSession("err-reqid")))
                 .andExpect(header().exists("X-Request-Id"));
     }
 
     @Test
-    @DisplayName("health permanece publico apos a introducao da seguranca")
+    @DisplayName("health stays public after security was introduced")
     void healthRemainsPublic() throws Exception {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())

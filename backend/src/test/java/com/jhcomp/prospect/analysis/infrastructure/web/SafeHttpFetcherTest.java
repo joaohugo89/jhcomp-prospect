@@ -20,10 +20,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Prazo total do fetcher contra um servidor que responde devagar de proposito.
+ * The fetcher's total deadline against a server that answers slowly on
+ * purpose.
  *
- * <p>Socket cru, e nao HttpServer: o caso testado e o de cabecalhos enviados
- * um byte por vez, o que um servidor HTTP comum nao faz.
+ * <p>A raw socket rather than HttpServer: the case under test is headers sent
+ * one byte at a time, which an ordinary HTTP server does not do.
  */
 @DisplayName("SafeHttpFetcher")
 class SafeHttpFetcherTest {
@@ -52,7 +53,7 @@ class SafeHttpFetcherTest {
         acceptor.interrupt();
     }
 
-    /** Linha de status e depois um byte de cabecalho a cada 100 ms, por 30 s. */
+    /** A status line, then one header byte every 100 ms, for 30 s. */
     private static void trickleHeaders(Socket socket) {
         try (socket; InputStream in = socket.getInputStream(); OutputStream out = socket.getOutputStream()) {
             in.read(new byte[1024]);
@@ -63,19 +64,19 @@ class SafeHttpFetcherTest {
                 Thread.sleep(100);
             }
         } catch (IOException exception) {
-            // Cliente desistiu: e o comportamento esperado.
+            // The client gave up: that is the expected behaviour.
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         }
     }
 
     /**
-     * Cada byte reinicia o timeout de leitura, que por isso nunca estoura; so
-     * o prazo total encerra a requisicao. Validado ao contrario: sem o
-     * cancelamento agendado, o teste espera os 30 s do servidor.
+     * Every byte restarts the read timeout, which therefore never trips; only
+     * the total deadline ends the request. Validated in reverse: without the
+     * scheduled cancellation, the test waits out the server's 30 s.
      */
     @Test
-    @DisplayName("cabecalhos enviados devagar esgotam o prazo total")
+    @DisplayName("headers sent slowly exhaust the total deadline")
     void slowHeadersHitDeadline() throws Exception {
         int port = server.getLocalPort();
         try (var fetcher = new SafeHttpFetcher(AddressPolicy.allowingLoopbackForTests(), Set.of(port), Duration.ofMillis(300))) {

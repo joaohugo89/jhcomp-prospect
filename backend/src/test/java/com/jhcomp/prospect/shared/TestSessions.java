@@ -13,17 +13,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.jhcomp.prospect.identity.IdentityTestData;
 
 /**
- * Login para testes de integracao.
+ * Logging in for integration tests.
  *
- * <p>Cada login sai de um endereco de origem diferente. O limitador de login e
- * um bean do contexto Spring, que e reaproveitado entre classes de teste; com
- * todos os logins vindos de 127.0.0.1, a suite inteira dividiria a mesma cota
- * por rede e passaria a falhar com 429 conforme crescesse, em ordem
- * imprevisivel.
+ * <p>Each login comes from a different origin address. The login limiter is a
+ * bean of the Spring context, which is reused across test classes; with every
+ * login coming from 127.0.0.1, the whole suite would share one per-network
+ * quota and would start failing with 429 as it grew, in unpredictable
+ * order.
  */
 public final class TestSessions {
 
-    /** Enderecos em 198.18.0.0/15, faixa reservada para testes (RFC 2544). */
+    /** Addresses in 198.18.0.0/15, a range reserved for testing (RFC 2544). */
     private static final AtomicInteger NEXT_ADDRESS = new AtomicInteger();
 
     private TestSessions() {

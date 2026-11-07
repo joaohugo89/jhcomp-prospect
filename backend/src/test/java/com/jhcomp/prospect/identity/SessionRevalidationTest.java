@@ -16,18 +16,18 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Revalidacao da sessao a cada requisicao.
+ * Session revalidation on every request.
  *
- * <p>Sem ela, {@code organizationId} e {@code role} ficariam congelados na
- * sessao por horas: revogar associacao, desabilitar usuario, suspender
- * organizacao ou rebaixar um administrador nao teria efeito algum ate a sessao
- * expirar. O critério de aceite do RF-003 exige que operacao administrativa
- * seja bloqueada para quem nao tem permissao, e "daqui a oito horas" nao
- * satisfaz esse critério.
+ * <p>Without it, {@code organizationId} and {@code role} would stay frozen in
+ * the session for hours: revoking a membership, disabling a user, suspending
+ * an organisation or demoting an administrator would have no effect until the
+ * session expired. RF-003's acceptance criterion requires an administrative
+ * operation to be refused to whoever lacks permission, and "in eight hours"
+ * does not satisfy that criterion.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Revalidacao de sessao")
+@DisplayName("Session revalidation")
 class SessionRevalidationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -37,12 +37,12 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     private IdentityTestData testData;
 
     @Test
-    @DisplayName("associacao revogada encerra a sessao na requisicao seguinte")
+    @DisplayName("a revoked membership ends the session on the next request")
     void revokedMembershipEndsSession() throws Exception {
         var admin = testData.createActiveAdmin("revalid-revoke");
         var session = TestSessions.login(mockMvc, admin);
 
-        // A sessao funciona antes da revogacao.
+        // The session works before the revocation.
         mockMvc.perform(get("/auth/me").session(session)).andExpect(status().isOk());
 
         testData.revokeMembership(admin.memberId());
@@ -53,7 +53,7 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario desabilitado encerra a sessao na requisicao seguinte")
+    @DisplayName("a disabled user ends the session on the next request")
     void disabledUserEndsSession() throws Exception {
         var admin = testData.createActiveAdmin("revalid-disable");
         var session = TestSessions.login(mockMvc, admin);
@@ -65,7 +65,7 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("organizacao suspensa encerra a sessao na requisicao seguinte")
+    @DisplayName("a suspended organisation ends the session on the next request")
     void suspendedOrganizationEndsSession() throws Exception {
         var admin = testData.createActiveAdmin("revalid-suspend");
         var session = TestSessions.login(mockMvc, admin);
@@ -77,29 +77,29 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("rebaixar administrador a operador bloqueia a operacao administrativa de imediato")
+    @DisplayName("demoting an administrator to operator blocks the administrative operation immediately")
     void demotionTakesEffectImmediately() throws Exception {
         var admin = testData.createActiveAdmin("revalid-demote");
         var session = TestSessions.login(mockMvc, admin);
 
-        // Enquanto e administrador, lista membros.
+        // While an administrator, they can list members.
         mockMvc.perform(get("/organizations/members").session(session)).andExpect(status().isOk());
 
         testData.changeRole(admin.memberId(), OrganizationRole.OPERATOR);
 
-        // Rebaixado: a mesma sessao perde o acesso, sem precisar expirar.
+        // Demoted: the same session loses access, without having to expire.
         mockMvc.perform(get("/organizations/members").session(session))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.type").value("FORBIDDEN"));
 
-        // E o papel exibido tambem acompanha a mudanca.
+        // And the role displayed follows the change too.
         mockMvc.perform(get("/auth/me").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("OPERATOR"));
     }
 
     @Test
-    @DisplayName("promover operador a administrador libera a operacao de imediato")
+    @DisplayName("promoting an operator to administrator unlocks the operation immediately")
     void promotionTakesEffectImmediately() throws Exception {
         var operator = testData.createActiveOperator("revalid-promote");
         var session = TestSessions.login(mockMvc, operator);
@@ -112,12 +112,12 @@ class SessionRevalidationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("sessao valida continua funcionando entre requisicoes")
+    @DisplayName("a valid session keeps working across requests")
     void validSessionKeepsWorking() throws Exception {
         var admin = testData.createActiveAdmin("revalid-ok");
         var session = TestSessions.login(mockMvc, admin);
 
-        // A revalidacao nao deve derrubar sessao legitima.
+        // Revalidation must not drop a legitimate session.
         for (int request = 0; request < 3; request++) {
             mockMvc.perform(get("/auth/me").session(session))
                     .andExpect(status().isOk())

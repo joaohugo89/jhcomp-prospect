@@ -5,12 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** robots.txt (RFC 9309, doc 06 §6). Unitario. */
+/** robots.txt (RFC 9309, doc 06 §6). A unit test. */
 @DisplayName("RobotsRules")
 class RobotsRulesTest {
 
     @Test
-    @DisplayName("Disallow / no grupo * proibe a pagina inicial")
+    @DisplayName("Disallow / in the * group forbids the home page")
     void disallowAll() {
         RobotsRules rules = RobotsRules.parse("User-agent: *\nDisallow: /\n");
 
@@ -19,14 +19,14 @@ class RobotsRulesTest {
     }
 
     @Test
-    @DisplayName("Disallow vazio e arquivo sem regras nao proibem nada")
+    @DisplayName("an empty Disallow and a file with no rules forbid nothing")
     void emptyDisallow() {
         assertThat(RobotsRules.parse("User-agent: *\nDisallow:\n").allows("/")).isTrue();
         assertThat(RobotsRules.parse("# so comentario\n").allows("/")).isTrue();
     }
 
     @Test
-    @DisplayName("grupo do nosso agente prevalece sobre o grupo *")
+    @DisplayName("our agent's group prevails over the * group")
     void specificGroupWins() {
         String robots = """
                 User-agent: *
@@ -40,7 +40,7 @@ class RobotsRulesTest {
     }
 
     @Test
-    @DisplayName("regra mais longa vence; empate favorece Allow")
+    @DisplayName("the longest rule wins; a tie favours Allow")
     void longestMatch() {
         RobotsRules rules = RobotsRules.parse("""
                 User-agent: *
@@ -57,7 +57,7 @@ class RobotsRulesTest {
     }
 
     @Test
-    @DisplayName("curinga e ancora de fim")
+    @DisplayName("wildcard and end anchor")
     void wildcardAndAnchor() {
         RobotsRules rules = RobotsRules.parse("User-agent: *\nDisallow: /*.pdf$\n");
 
@@ -66,24 +66,24 @@ class RobotsRulesTest {
     }
 
     @Test
-    @DisplayName("agentes de outros robos nao afetam a decisao")
+    @DisplayName("other robots' agents do not affect the decision")
     void otherAgentsIgnored() {
         assertThat(RobotsRules.parse("User-agent: Googlebot\nDisallow: /\n").allows("/")).isTrue();
     }
 
     @Test
-    @DisplayName("erro do servidor no robots.txt proibe tudo; ausencia libera")
+    @DisplayName("a server error on robots.txt forbids everything; its absence allows")
     void statusDefaults() {
         assertThat(RobotsRules.disallowAll().allows("/")).isFalse();
         assertThat(RobotsRules.allowAll().allows("/")).isTrue();
     }
 
     /**
-     * Padrao que leva tempo exponencial numa regex com backtracking. O
-     * comparador sem regex precisa responder na hora.
+     * A pattern that takes exponential time in a backtracking regex. The
+     * regex-free matcher has to answer immediately.
      */
     @Test
-    @DisplayName("regra patologica nao trava a decisao (ReDoS)")
+    @DisplayName("a pathological rule does not stall the decision (ReDoS)")
     void pathologicalPatternIsFast() {
         String rule = "/" + "*a".repeat(40) + "b";
         RobotsRules rules = RobotsRules.parse("User-agent: *\nDisallow: " + rule + "\n");
@@ -97,7 +97,7 @@ class RobotsRulesTest {
     }
 
     @Test
-    @DisplayName("curinga casa como no padrao do Google")
+    @DisplayName("wildcards match as in Google's parser")
     void wildcardSemantics() {
         assertThat(RobotsRules.matches("/fish", "/fish.html")).isTrue();
         assertThat(RobotsRules.matches("/fish$", "/fish.html")).isFalse();
@@ -108,17 +108,17 @@ class RobotsRulesTest {
     }
 
     @Test
-    @DisplayName("limites de conteudo externo: regras demais ou caminho enorme")
+    @DisplayName("limits on external content: too many rules, or an enormous path")
     void contentLimits() {
         StringBuilder robots = new StringBuilder("User-agent: *\n");
         for (int i = 0; i < RobotsRules.MAX_RULES; i++) {
             robots.append("Disallow: /nada-").append(i).append('\n');
         }
-        // Alem do teto: ignorada.
+        // Beyond the cap: ignored.
         robots.append("Disallow: /\n");
 
         assertThat(RobotsRules.parse(robots.toString()).allows("/")).isTrue();
-        // Caminho alem do limite: sem decisao segura, nao le.
+        // A path beyond the limit: with no safe decision, it does not read.
         assertThat(RobotsRules.allowAll().allows("/" + "a".repeat(RobotsRules.MAX_PATH_LENGTH))).isFalse();
     }
 }

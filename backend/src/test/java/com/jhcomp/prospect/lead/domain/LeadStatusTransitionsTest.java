@@ -7,18 +7,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-/** Transicoes do ciclo do lead (doc 06 §2). Unitario, sem Spring. */
+/** The lead lifecycle's transitions (doc 06 §2). A unit test, without Spring. */
 @DisplayName("LeadStatusTransitions")
 class LeadStatusTransitionsTest {
 
     @Test
-    @DisplayName("lead nasce NEW")
+    @DisplayName("a lead starts NEW")
     void initialIsNew() {
         assertThat(LeadStatusTransitions.initial()).isEqualTo(LeadStatus.NEW);
     }
 
     @Test
-    @DisplayName("caminho comercial completo e permitido")
+    @DisplayName("the full commercial path is allowed")
     void happyPath() {
         LeadStatus[] path = {
             LeadStatus.NEW, LeadStatus.QUALIFIED, LeadStatus.CONTACT_APPROVED, LeadStatus.CONTACTED,
@@ -32,7 +32,7 @@ class LeadStatusTransitionsTest {
     }
 
     @Test
-    @DisplayName("nao pula etapas")
+    @DisplayName("it does not skip stages")
     void noSkipping() {
         assertThat(LeadStatusTransitions.isAllowed(LeadStatus.NEW, LeadStatus.CONTACTED)).isFalse();
         assertThat(LeadStatusTransitions.isAllowed(LeadStatus.NEW, LeadStatus.WON)).isFalse();
@@ -41,20 +41,20 @@ class LeadStatusTransitionsTest {
 
     @ParameterizedTest
     @EnumSource(value = LeadStatus.class, names = {"WON", "LOST", "DO_NOT_CONTACT"})
-    @DisplayName("terminais e bloqueio nao tem saida")
+    @DisplayName("terminal states and the block have no way out")
     void noExit(LeadStatus from) {
         assertThat(LeadStatusTransitions.allowedFrom(from)).isEmpty();
     }
 
     @ParameterizedTest
     @EnumSource(value = LeadStatus.class, names = {"WON", "LOST", "DO_NOT_CONTACT"}, mode = EnumSource.Mode.EXCLUDE)
-    @DisplayName("DO_NOT_CONTACT e alcancavel de todo estado aberto")
+    @DisplayName("DO_NOT_CONTACT is reachable from every open state")
     void doNotContactFromAnyOpenState(LeadStatus from) {
         assertThat(LeadStatusTransitions.isAllowed(from, LeadStatus.DO_NOT_CONTACT)).isTrue();
     }
 
     @Test
-    @DisplayName("contato prematuro pode voltar a qualificado")
+    @DisplayName("a premature contact can go back to qualified")
     void contactedBackToQualified() {
         assertThat(LeadStatusTransitions.isAllowed(LeadStatus.CONTACTED, LeadStatus.QUALIFIED)).isTrue();
     }

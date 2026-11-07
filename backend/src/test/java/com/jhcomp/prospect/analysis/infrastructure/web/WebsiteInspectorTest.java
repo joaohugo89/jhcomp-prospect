@@ -28,11 +28,11 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 /**
- * Verificacao do site contra um servidor HTTP local (doc 06 §6, docs/07 §6).
+ * Website verification against a local HTTP server (doc 06 §6, docs/07 §6).
  *
- * <p>O fetcher de producao bloqueia loopback; aqui ele usa a politica de teste,
- * que libera so loopback, e a porta do servidor local. O ultimo teste usa a
- * politica de producao e prova que o mesmo servidor e recusado.
+ * <p>The production fetcher blocks loopback; here it uses the test policy,
+ * which allows loopback only, and the local server's port. The last test uses
+ * the production policy and proves that the same server is refused.
  */
 @DisplayName("WebsiteInspector")
 class WebsiteInspectorTest {
@@ -95,7 +95,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("le a pagina inicial e extrai so sinais e hash")
+    @DisplayName("reads the home page and extracts only signals and a hash")
     void readsHomePage() {
         routes.put("/", exchange -> respond(exchange, 200, "text/html; charset=utf-8", """
                 <html><head><meta charset="utf-8"><meta content="width=device-width" name="viewport"></head>
@@ -108,14 +108,14 @@ class WebsiteInspectorTest {
         assertThat(observation.hasViewport()).isTrue();
         assertThat(observation.hasContactLink()).isTrue();
         assertThat(observation.contentHash()).hasSize(64);
-        // Servidor so HTTP: a tentativa HTTPS falhou.
+        // An HTTP-only server: the HTTPS attempt failed.
         assertThat(observation.httpsAvailable()).isFalse();
-        // robots.txt primeiro, pagina depois.
+        // robots.txt first, the page afterwards.
         assertThat(requested).containsSubsequence("/robots.txt", "/");
     }
 
     @Test
-    @DisplayName("pagina sem viewport e sem link de contato")
+    @DisplayName("a page with no viewport and no contact link")
     void missingSignals() {
         routes.put("/", exchange -> respond(exchange, 200, "text/html", "<html><body>Fale conosco pelo formulario</body></html>"));
 
@@ -126,7 +126,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("robots.txt proibindo: a pagina inicial nunca e requisitada")
+    @DisplayName("robots.txt forbidding: the home page is never requested")
     void respectsRobots() {
         routes.put("/robots.txt", exchange -> respond(exchange, 200, "text/plain", "User-agent: *\nDisallow: /\n"));
         routes.put("/", exchange -> respond(exchange, 200, "text/html", "<html></html>"));
@@ -138,7 +138,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("erro do servidor no robots.txt e tratado como proibicao (RFC 9309)")
+    @DisplayName("a server error on robots.txt is treated as a prohibition (RFC 9309)")
     void robotsServerErrorDisallows() {
         routes.put("/robots.txt", exchange -> respond(exchange, 503, "text/plain", "indisponivel"));
         routes.put("/", exchange -> respond(exchange, 200, "text/html", "<html></html>"));
@@ -148,7 +148,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("redirecionamentos alem do limite param a leitura")
+    @DisplayName("redirects beyond the limit stop the read")
     void redirectLimit() {
         routes.put("/", redirect("/a"));
         routes.put("/a", redirect("/b"));
@@ -163,9 +163,9 @@ class WebsiteInspectorTest {
         assertThat(requested).doesNotContain("/d");
     }
 
-    /** SSRF por redirecionamento: o site publico manda para a rede interna. */
+    /** SSRF by redirect: the public site sends you to the internal network. */
     @Test
-    @DisplayName("redirecionamento para rede interna e bloqueado")
+    @DisplayName("a redirect to the internal network is blocked")
     void redirectToInternalNetworkIsBlocked() {
         routes.put("/", redirect("http://169.254.169.254/latest/meta-data/"));
 
@@ -176,7 +176,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("redirecionamento para esquema que nao e web e recusado")
+    @DisplayName("a redirect to a non-web scheme is refused")
     void redirectToOtherSchemeIsRefused() {
         routes.put("/", redirect("file:///etc/passwd"));
 
@@ -187,7 +187,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("conteudo que nao e HTML nao e lido")
+    @DisplayName("content that is not HTML is not read")
     void nonHtml() {
         routes.put("/", exchange -> respond(exchange, 200, "application/pdf", "%PDF-1.4"));
 
@@ -198,14 +198,15 @@ class WebsiteInspectorTest {
     }
 
     /**
-     * Corpo acima do limite nao e lido ate o fim.
+     * A body over the limit is not read to the end.
      *
-     * <p>O servidor manda mais que o limite e continua pingando bytes devagar.
-     * Se o fetcher consumisse o restante ao fechar, o teste esperaria os 30 s
-     * do servidor; validado ao contrario, consumindo o corpo antes de fechar.
+     * <p>The server sends more than the limit and keeps dripping bytes slowly.
+     * If the fetcher consumed the rest on close, the test would wait out the
+     * server's 30 s; validated in reverse, by consuming the body before
+     * closing.
      */
     @Test
-    @DisplayName("corpo grande e lento nao prende o worker")
+    @DisplayName("a large, slow body does not hold the worker")
     void oversizedBodyIsCutShort() {
         routes.put("/", exchange -> {
             exchange.getResponseHeaders().set("Content-Type", "text/html");
@@ -213,9 +214,9 @@ class WebsiteInspectorTest {
             try (OutputStream output = exchange.getResponseBody()) {
                 output.write(new byte[WebsiteInspector.MAX_PAGE_BYTES + 1024]);
                 output.flush();
-                // Depois do limite, um byte a cada 100 ms por 30 s: nunca
-                // estoura o timeout de leitura. Quem drenasse o corpo ate o fim
-                // ficaria preso aqui.
+                // Past the limit, one byte every 100 ms for 30 s: it never
+                // trips the read timeout. Anything draining the body to the end
+                // would be stuck here.
                 for (int i = 0; i < 300; i++) {
                     output.write('x');
                     output.flush();
@@ -224,7 +225,7 @@ class WebsiteInspectorTest {
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
             } catch (IOException exception) {
-                // O cliente fechou a conexao: e o comportamento esperado.
+                // The client closed the connection: that is the expected behaviour.
             }
         });
 
@@ -237,7 +238,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("politica de producao recusa o mesmo servidor local")
+    @DisplayName("the production policy refuses the very same local server")
     void productionPolicyBlocksLoopback() throws Exception {
         int port = server.getAddress().getPort();
         try (var fetcher = new SafeHttpFetcher(AddressPolicy.PUBLIC_ONLY, Set.of(port), Duration.ofMillis(300))) {
@@ -250,7 +251,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("porta fora de 80 e 443 nao e acessada")
+    @DisplayName("a port other than 80 and 443 is not accessed")
     void nonStandardPortIsBlocked() {
         var production = new WebsiteInspector(CLOCK);
 
@@ -261,7 +262,7 @@ class WebsiteInspectorTest {
     }
 
     @Test
-    @DisplayName("sem site cadastrado, nada e acessado")
+    @DisplayName("with no website on file, nothing is accessed")
     void noWebsite() {
         assertThat(inspector.inspect("  ").outcome()).isEqualTo(Outcome.NO_WEBSITE);
         assertThat(requested).isEmpty();

@@ -36,10 +36,10 @@ import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationEntit
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Leads pela API (RF-011, RF-012, RF-013; doc 06 §2). Dados ficticios. */
+/** Leads through the API (RF-011, RF-012, RF-013; doc 06 §2). Fictitious data. */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("API de leads")
+@DisplayName("Lead API")
 class LeadApiIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -104,7 +104,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lead nasce com status, origem e data de criacao (aceite do RF-011)")
+    @DisplayName("a lead starts with a status, an origin and a creation date (RF-011's acceptance criterion)")
     void createdLeadHasStatusSourceAndDate() throws Exception {
         String companyId = createCompany("Barbearia Ficticia");
 
@@ -118,7 +118,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.createdAt").value(notNullValue()))
                 .andExpect(jsonPath("$.company.id").value(companyId))
                 .andExpect(jsonPath("$.company.name").value("Barbearia Ficticia"))
-                // Sem analise, sem score: nulo, nunca zero (D7).
+                // No analysis, no score: null, never zero (D7).
                 .andExpect(jsonPath("$.score").doesNotExist())
                 .andExpect(jsonPath("$.allowedTransitions", contains("QUALIFIED", "LOST", "DO_NOT_CONTACT")))),
                 "$.id");
@@ -132,7 +132,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("prioridade ausente vira MEDIUM")
+    @DisplayName("an absent priority becomes MEDIUM")
     void defaultPriority() throws Exception {
         createLead("""
                 {"companyId": "%s"}
@@ -142,7 +142,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("uma oportunidade aberta por empresa (doc 06 §3)")
+    @DisplayName("one open opportunity per company (doc 06 §3)")
     void oneOpenLeadPerCompany() throws Exception {
         String companyId = createCompany("Loja Ficticia");
         createLeadFor(companyId);
@@ -155,7 +155,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("novo ciclo comercial e permitido depois de encerrar o anterior")
+    @DisplayName("a new commercial cycle is allowed once the previous one is closed")
     void newCycleAfterClosing() throws Exception {
         String companyId = createCompany("Loja Ficticia");
         String leadId = createLeadFor(companyId);
@@ -171,7 +171,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("empresa arquivada nao recebe oportunidade")
+    @DisplayName("an archived company receives no opportunity")
     void archivedCompanyRejectsLead() throws Exception {
         String companyId = createCompany("Loja Arquivada");
         mockMvc.perform(post("/companies/" + companyId + "/archive").session(session).with(csrf()))
@@ -184,7 +184,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("empresa inexistente responde 404")
+    @DisplayName("a non-existent company answers 404")
     void unknownCompany() throws Exception {
         createLead("""
                 {"companyId": "00000000-0000-4000-8000-000000000000"}
@@ -193,7 +193,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("transicao valida registra ator, data e estado anterior")
+    @DisplayName("a valid transition records the actor, the date and the previous state")
     void validTransitionIsRecorded() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
 
@@ -212,13 +212,13 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     /**
-     * Empate de instante segue a ordem de gravacao, e nao o id aleatorio.
+     * A tie on the instant follows the recording order, not the random id.
      *
-     * <p>O empate e forcado no banco: depender do relogio tornaria o teste
-     * intermitente, que foi exatamente como o problema apareceu.
+     * <p>The tie is forced in the database: relying on the clock would make
+     * the test flaky, which is exactly how the problem showed up.
      */
     @Test
-    @DisplayName("eventos no mesmo instante saem na ordem em que foram gravados")
+    @DisplayName("events at the same instant come out in the order they were written")
     void tiesFollowRecordingOrder() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
         changeStatus(leadId, "{\"status\": \"QUALIFIED\"}").andExpect(status().isOk());
@@ -235,7 +235,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("transicao nao permitida responde 409 e nao altera o lead")
+    @DisplayName("a transition that is not allowed answers 409 and leaves the lead unchanged")
     void invalidTransition() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
 
@@ -249,9 +249,9 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.status").value("NEW"));
     }
 
-    /** Doc 06 §2: CONTACTED so com confirmacao do operador. */
+    /** Doc 06 §2: CONTACTED only with the operator's confirmation. */
     @Test
-    @DisplayName("CONTACTED exige confirmacao explicita de que o contato ocorreu")
+    @DisplayName("CONTACTED requires explicit confirmation that the contact happened")
     void contactedRequiresConfirmation() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
         changeStatus(leadId, "{\"status\": \"QUALIFIED\"}").andExpect(status().isOk());
@@ -269,7 +269,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("estado terminal registra data de fechamento e nao tem saida")
+    @DisplayName("a terminal state records a closing date and has no way out")
     void terminalState() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
 
@@ -281,7 +281,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("DO_NOT_CONTACT e alcancavel e nao e revertido por mudanca de status")
+    @DisplayName("DO_NOT_CONTACT is reachable and is not reverted by a status change")
     void doNotContactIsSticky() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
         changeStatus(leadId, "{\"status\": \"QUALIFIED\"}").andExpect(status().isOk());
@@ -294,7 +294,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("reenviar o mesmo status nao gera evento no historico")
+    @DisplayName("re-sending the same status produces no event in the history")
     void sameStatusIsNoOp() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
 
@@ -305,7 +305,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("status invalido no corpo responde 400")
+    @DisplayName("an invalid status in the body answers 400")
     void unknownStatusValue() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
 
@@ -313,7 +313,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("altera prioridade")
+    @DisplayName("changes the priority")
     void changePriority() throws Exception {
         String leadId = createLeadFor(createCompany("Loja Ficticia"));
 
@@ -327,7 +327,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("atribui a membro ativo da organizacao e remove com null")
+    @DisplayName("assigns to an active member of the organisation and clears with null")
     void assignAndUnassign() throws Exception {
         var colleague = testData.createMember(
                 organization, OrganizationRole.OPERATOR, UserStatus.ACTIVE, MemberStatus.ACTIVE);
@@ -351,7 +351,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("nao atribui a membro revogado")
+    @DisplayName("does not assign to a revoked member")
     void cannotAssignRevokedMember() throws Exception {
         var revoked = testData.createMember(
                 organization, OrganizationRole.OPERATOR, UserStatus.ACTIVE, MemberStatus.REVOKED);
@@ -366,7 +366,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("filtra por status, busca de empresa e origem")
+    @DisplayName("filters by status, company search and origin")
     void listingFilters() throws Exception {
         String qualified = createLeadFor(createCompany("Salão Ficticio"));
         createLeadFor(createCompany("Mercado Ficticio"));
@@ -387,7 +387,7 @@ class LeadApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("filtro de score nao inclui lead sem analise")
+    @DisplayName("a score filter excludes leads with no analysis")
     void scoreFilterExcludesUnscored() throws Exception {
         createLeadFor(createCompany("Loja Ficticia"));
 

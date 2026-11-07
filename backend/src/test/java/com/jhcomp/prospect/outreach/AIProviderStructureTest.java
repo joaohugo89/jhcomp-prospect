@@ -19,28 +19,28 @@ import com.jhcomp.prospect.outreach.domain.AIResponse;
 import com.jhcomp.prospect.outreach.domain.MessageGenerationRequest;
 
 /**
- * A IA nao tem caminho de escrita (regra 1 do produto, doc 06 §11).
+ * The AI has no write path (product rule 1, doc 06 §11).
  *
- * <p>Confere a interface e cada implementacao encontrada no classpath: o que
- * um provedor recebe por construtor ou guarda em campo define o que ele pode
- * fazer. Repositorio, servico de aplicacao, acesso a banco ou qualquer classe
- * do sistema fora do dominio de outreach daria a IA um meio de gravar,
- * enviar ou remover bloqueio.
+ * <p>It inspects the interface and every implementation found on the
+ * classpath: what a provider receives through its constructor, or keeps in a
+ * field, defines what it can do. A repository, an application service,
+ * database access, or any class of the system outside the outreach domain
+ * would give the AI a way to write, send or remove a block.
  */
-@DisplayName("Estrutura: provedor de IA sem ferramenta de escrita")
+@DisplayName("Structure: an AI provider with no write tool")
 class AIProviderStructureTest {
 
     private static final String BASE_PACKAGE = "com.jhcomp.prospect";
     private static final String ALLOWED_INTERNAL_PACKAGE = "com.jhcomp.prospect.outreach.domain";
 
-    /** Pacotes externos que dao acesso a dados ou a efeito colateral do sistema. */
+    /** External packages that grant access to data, or to a side effect of the system. */
     private static final List<String> FORBIDDEN_EXTERNAL = List.of(
             "org.springframework.data", "org.springframework.jdbc", "org.springframework.orm",
             "org.springframework.transaction", "org.springframework.context.ApplicationEventPublisher",
             "jakarta.persistence", "javax.sql", "org.hibernate", "jakarta.mail", "org.springframework.mail");
 
     @Test
-    @DisplayName("a interface tem um unico metodo, que so devolve texto")
+    @DisplayName("the interface has a single method, which only returns text")
     void interfaceExposesOnlyGeneration() {
         Method[] methods = AIProvider.class.getDeclaredMethods();
 
@@ -51,7 +51,7 @@ class AIProviderStructureTest {
     }
 
     @Test
-    @DisplayName("nenhuma implementacao recebe ou guarda dependencia que grave, envie ou consulte o banco")
+    @DisplayName("no implementation receives or keeps a dependency that writes, sends or queries the database")
     void implementationsHaveNoWriteDependencies() throws Exception {
         List<Class<?>> implementations = implementations();
         assertThat(implementations).as("ao menos o provedor fake").isNotEmpty();

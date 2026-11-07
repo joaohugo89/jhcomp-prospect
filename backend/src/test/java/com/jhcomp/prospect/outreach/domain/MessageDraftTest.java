@@ -8,11 +8,11 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Rascunho de mensagem: saneamento e limites por canal")
+@DisplayName("Message draft: sanitising and per-channel limits")
 class MessageDraftTest {
 
     @Test
-    @DisplayName("aceita corpo no limite do canal e recusa um caractere acima")
+    @DisplayName("accepts a body at the channel limit and refuses one character more")
     void enforcesChannelLimit() {
         String atLimit = "a".repeat(OutreachChannel.WHATSAPP.maxBodyLength());
 
@@ -23,25 +23,25 @@ class MessageDraftTest {
     }
 
     @Test
-    @DisplayName("recusa corpo vazio ou so com espacos e controles")
+    @DisplayName("refuses a body that is empty, or only spaces and control characters")
     void rejectsEmptyBody() {
         assertThat(MessageDraft.of(OutreachChannel.EMAIL, null, " \n\u0000 ", List.of()).draft()).isEmpty();
         assertThat(MessageDraft.of(OutreachChannel.EMAIL, null, null, List.of()).draft()).isEmpty();
     }
 
     @Test
-    @DisplayName("assunto so no e-mail")
+    @DisplayName("a subject only for e-mail")
     void subjectOnlyForEmail() {
         assertThat(MessageDraft.of(OutreachChannel.WHATSAPP, "Assunto", "Corpo", List.of()).violation())
                 .contains("EMAIL");
         assertThat(MessageDraft.of(OutreachChannel.EMAIL, "Assunto", "Corpo", List.of()).draft())
                 .get().extracting(MessageDraft::subject).isEqualTo("Assunto");
-        // Assunto em branco equivale a ausente, inclusive fora do e-mail.
+        // A blank subject is equivalent to an absent one, outside e-mail too.
         assertThat(MessageDraft.of(OutreachChannel.WHATSAPP, "  ", "Corpo", List.of()).draft()).isPresent();
     }
 
     @Test
-    @DisplayName("remove caracteres de controle e preserva quebras de linha")
+    @DisplayName("removes control characters and preserves line breaks")
     void stripsControlCharacters() {
         MessageDraft draft = MessageDraft.of(
                 OutreachChannel.EMAIL, "Linha\r\nquebrada", "Ola\u0007\r\nmundo\u001b[31m", List.of()).draft().orElseThrow();
@@ -51,7 +51,7 @@ class MessageDraftTest {
     }
 
     @Test
-    @DisplayName("afirmacoes nao verificadas viram uma linha cada, sem vazias, com teto")
+    @DisplayName("unverified claims become one line each, with no empty ones, under a cap")
     void normalizesClaims() {
         MessageDraft draft = MessageDraft.of(
                 OutreachChannel.EMAIL, null, "Corpo", List.of("  primeira\nlinha ", "", "segunda")).draft().orElseThrow();

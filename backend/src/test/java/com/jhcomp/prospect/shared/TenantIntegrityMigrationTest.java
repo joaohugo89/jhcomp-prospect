@@ -19,13 +19,14 @@ import com.jhcomp.prospect.identity.IdentityTestData;
 import com.jhcomp.prospect.identity.IdentityTestData.Member;
 
 /**
- * O banco recusa associacao entre organizacoes diferentes (V4, doc 04 §4).
+ * The database refuses an association between different organisations (V4,
+ * doc 04 §4).
  *
- * <p>Usa SQL direto de proposito: o objetivo e provar que a trava vale mesmo
- * quando a aplicacao erra, ou seja, sem passar por ela.
+ * <p>It uses plain SQL on purpose: the point is to prove the lock holds even
+ * when the application gets it wrong — that is, without going through it.
  */
 @Import(IdentityTestData.class)
-@DisplayName("Migration V4 (chaves compostas de tenant)")
+@DisplayName("Migration V4 (tenant composite keys)")
 class TenantIntegrityMigrationTest extends PostgresIntegrationTest {
 
     private final JdbcTemplate jdbc;
@@ -51,7 +52,7 @@ class TenantIntegrityMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lead nao referencia empresa de outra organizacao")
+    @DisplayName("a lead cannot reference a company of another organisation")
     void leadRejectsForeignCompany() {
         assertThatThrownBy(() -> insertLead(memberB.organizationId(), companyA, null))
                 .isInstanceOf(DataIntegrityViolationException.class)
@@ -59,7 +60,7 @@ class TenantIntegrityMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lead nao e atribuido a usuario que nao e membro da organizacao")
+    @DisplayName("a lead cannot be assigned to a user who is not a member of the organisation")
     void leadRejectsForeignAssignee() {
         assertThatThrownBy(() -> insertLead(memberB.organizationId(), companyB, memberA.userId()))
                 .isInstanceOf(DataIntegrityViolationException.class)
@@ -67,7 +68,7 @@ class TenantIntegrityMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("historico de status nao referencia lead de outra organizacao")
+    @DisplayName("the status history cannot reference a lead of another organisation")
     void statusChangeRejectsForeignLead() {
         UUID leadA = insertLead(memberA.organizationId(), companyA, null);
 
@@ -80,7 +81,7 @@ class TenantIntegrityMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("proveniencia nao referencia empresa de outra organizacao")
+    @DisplayName("provenance cannot reference a company of another organisation")
     void leadSourceRejectsForeignCompany() {
         assertThatThrownBy(() -> jdbc.update(
                         "insert into lead_source (id, organization_id, company_id, source_type, source_name, collected_at)"
@@ -91,7 +92,7 @@ class TenantIntegrityMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("associacoes dentro da mesma organizacao continuam aceitas")
+    @DisplayName("associations within the same organisation are still accepted")
     void sameOrganizationIsAccepted() {
         assertThatCode(() -> {
                     UUID lead = insertLead(memberA.organizationId(), companyA, memberA.userId());

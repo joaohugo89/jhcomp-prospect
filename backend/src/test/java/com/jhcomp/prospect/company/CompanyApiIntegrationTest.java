@@ -29,15 +29,14 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Empresas pela API (RF-010, RF-012, RF-014, RF-022).
+ * Companies through the API (RF-010, RF-012, RF-014, RF-022).
  *
- * <p>Cada teste cria a propria organizacao, de modo que listagens e
- * duplicatas nao dependem do que outras classes gravaram. Dados ficticios
- * (doc 10 §10).
+ * <p>Each test creates its own organisation, so listings and duplicates do
+ * not depend on what other classes wrote. Fictitious data (doc 10 §10).
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("API de empresas")
+@DisplayName("Company API")
 class CompanyApiIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -73,11 +72,11 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Nested
-    @DisplayName("cadastro")
+    @DisplayName("creation")
     class Create {
 
         @Test
-        @DisplayName("cria empresa com os dados informados e data de criacao")
+        @DisplayName("creates the company with the data given and a creation date")
         void createsCompany() throws Exception {
             createCompany("""
                     {"name": "  Barbearia Ficticia  ", "tradeName": "Ficticia", "segment": "BARBERSHOP",
@@ -91,14 +90,14 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
                     .andExpect(jsonPath("$.businessEmail").value("contato@barbearia.example.test"))
                     .andExpect(jsonPath("$.archived").value(false))
                     .andExpect(jsonPath("$.createdAt").value(notNullValue()))
-                    // Valores normalizados servem para comparar, nunca saem na API.
+                    // Normalised values exist to compare, and never leave through the API.
                     .andExpect(jsonPath("$.normalizedName").doesNotExist())
                     .andExpect(jsonPath("$.normalizedPhone").doesNotExist())
                     .andExpect(jsonPath("$.organizationId").doesNotExist());
         }
 
         @Test
-        @DisplayName("registra origem manual padrao quando nenhuma e informada (RF-022)")
+        @DisplayName("records the default manual origin when none is given (RF-022)")
         void recordsDefaultSource() throws Exception {
             String id = createCompanyId(company("Padaria Ficticia", "Cidade Exemplo"));
 
@@ -112,7 +111,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("registra a origem informada pelo operador, sempre como MANUAL (RF-020)")
+        @DisplayName("records the origin given by the operator, always as MANUAL (RF-020)")
         void recordsInformedSourceAsManual() throws Exception {
             String id = createCompanyId("""
                     {"name": "Oficina Ficticia", "city": "Cidade Exemplo", "state": "MG",
@@ -128,7 +127,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("recusa campos obrigatorios ausentes, com erro por campo")
+        @DisplayName("refuses missing required fields, with a per-field error")
         void rejectsMissingRequiredFields() throws Exception {
             createCompany("""
                     {"name": "  ", "state": "Minas"}
@@ -138,9 +137,9 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
                     .andExpect(jsonPath("$.errors[*].field", containsInAnyOrder("name", "city", "state")));
         }
 
-        /** A URL vira link na interface; um esquema arbitrario executaria script no clique. */
+        /** The URL becomes a link in the interface; an arbitrary scheme would run script on click. */
         @Test
-        @DisplayName("recusa URL com esquema que nao seja http ou https")
+        @DisplayName("refuses a URL whose scheme is neither http nor https")
         void rejectsUnsafeUrlScheme() throws Exception {
             for (String url : new String[] {
                 "javascript:alert(1)", "JavaScript:alert(1)", "javascript:1,alert(1)", "data:text/html,x"}) {
@@ -153,7 +152,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("aceita site sem esquema e com porta")
+        @DisplayName("accepts a site with no scheme and with a port")
         void acceptsUrlWithoutScheme() throws Exception {
             createCompany("""
                     {"name": "Loja Ficticia", "city": "Cidade Exemplo", "state": "MG",
@@ -163,7 +162,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("recusa origem com data de coleta no futuro")
+        @DisplayName("refuses an origin whose collection date is in the future")
         void rejectsFutureCollectionDate() throws Exception {
             createCompany("""
                     {"name": "Loja Ficticia", "city": "Cidade Exemplo", "state": "MG",
@@ -175,11 +174,11 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Nested
-    @DisplayName("listagem")
+    @DisplayName("listing")
     class Listing {
 
         @Test
-        @DisplayName("busca ignora acento, caixa e espaco excedente")
+        @DisplayName("search ignores accents, case and excess whitespace")
         void searchIsAccentInsensitive() throws Exception {
             createCompanyId(company("Salão Beleza & Estética", "Cidade Exemplo"));
             createCompanyId(company("Mercado Ficticio", "Cidade Exemplo"));
@@ -191,7 +190,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("curinga do LIKE e tratado como texto")
+        @DisplayName("a LIKE wildcard is treated as text")
         void likeWildcardsAreLiteral() throws Exception {
             createCompanyId(company("Mercado Ficticio", "Cidade Exemplo"));
 
@@ -200,7 +199,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("filtros sao combinaveis")
+        @DisplayName("filters are combinable")
         void filtersCombine() throws Exception {
             createCompany("""
                     {"name": "Barbearia Um", "segment": "BARBERSHOP", "city": "Cidade Exemplo", "state": "MG"}
@@ -221,7 +220,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("pagina tem tamanho maximo e ordenacao permitida")
+        @DisplayName("a page has a maximum size and a permitted sort order")
         void paginationAndSort() throws Exception {
             createCompanyId(company("Bravo", "Cidade Exemplo"));
             createCompanyId(company("Alfa", "Cidade Exemplo"));
@@ -232,7 +231,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("recusa ordenacao por campo nao permitido")
+        @DisplayName("refuses sorting by a field that is not permitted")
         void rejectsUnknownSort() throws Exception {
             mockMvc.perform(get("/companies").param("sort", "normalizedPhone").session(session))
                     .andExpect(status().isBadRequest())
@@ -241,11 +240,11 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Nested
-    @DisplayName("atualizacao e arquivamento")
+    @DisplayName("update and archiving")
     class UpdateAndArchive {
 
         @Test
-        @DisplayName("campo ausente mantem o valor, texto vazio limpa o opcional")
+        @DisplayName("an absent field keeps its value, an empty string clears the optional one")
         void partialUpdate() throws Exception {
             String id = createCompanyId("""
                     {"name": "Loja Ficticia", "tradeName": "Loja", "city": "Cidade Exemplo", "state": "MG",
@@ -267,7 +266,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("nao permite limpar campo obrigatorio")
+        @DisplayName("does not allow a required field to be cleared")
         void cannotClearRequiredField() throws Exception {
             String id = createCompanyId(company("Loja Ficticia", "Cidade Exemplo"));
 
@@ -283,7 +282,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("arquivada sai da listagem padrao e nao aceita alteracao")
+        @DisplayName("an archived company leaves the default listing and accepts no change")
         void archivedCompany() throws Exception {
             String id = createCompanyId(company("Loja Arquivada", "Cidade Exemplo"));
 
@@ -309,13 +308,13 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
     }
 
-    /** Casos do doc 10 §4. */
+    /** The cases from doc 10 §4. */
     @Nested
-    @DisplayName("possiveis duplicatas")
+    @DisplayName("possible duplicates")
     class Duplicates {
 
         @Test
-        @DisplayName("mesmo dominio, com e sem www e esquema")
+        @DisplayName("the same domain, with and without www and a scheme")
         void sameDomain() throws Exception {
             String first = createCompanyId("""
                     {"name": "Clinica Um", "city": "Cidade Exemplo", "state": "MG",
@@ -334,7 +333,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("telefone com formatacoes diferentes")
+        @DisplayName("a phone in different formats")
         void samePhoneDifferentFormatting() throws Exception {
             String first = createCompanyId("""
                     {"name": "Pet Um", "city": "Cidade Exemplo", "state": "MG", "phone": "(35) 98888-7777"}
@@ -349,7 +348,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("nome com acento e espaco na mesma cidade")
+        @DisplayName("a name with accents and spacing in the same city")
         void sameNormalizedNameSameCity() throws Exception {
             String first = createCompanyId(company("Açaí  do Centro", "Cidade Exemplo"));
             String second = createCompanyId(company("acai do centro", "CIDADE EXEMPLO"));
@@ -360,7 +359,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("homonimas em cidades diferentes nao sao sinalizadas")
+        @DisplayName("namesakes in different cities are not flagged")
         void homonymsInDifferentCities() throws Exception {
             createCompanyId(company("Padaria Central", "Cidade Exemplo"));
             String second = createCompanyId(company("Padaria Central", "Outra Cidade"));
@@ -370,7 +369,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("nome parecido nao basta")
+        @DisplayName("a similar name is not enough")
         void similarNameIsNotASignal() throws Exception {
             createCompanyId(company("Padaria Central", "Cidade Exemplo"));
             String second = createCompanyId(company("Padaria Central Ltda", "Cidade Exemplo"));
@@ -380,7 +379,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("registro sem site nem telefone so compara nome, cidade e estado")
+        @DisplayName("a record with neither site nor phone compares only name, city and state")
         void withoutWebsiteOrPhone() throws Exception {
             createCompanyId("""
                     {"name": "Outra Empresa", "city": "Cidade Exemplo", "state": "MG"}
@@ -393,7 +392,7 @@ class CompanyApiIntegrationTest extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("varios sinais para a mesma empresa aparecem juntos")
+        @DisplayName("several signals for the same company appear together")
         void multipleSignals() throws Exception {
             String first = createCompanyId("""
                     {"name": "Estudio Foto", "city": "Cidade Exemplo", "state": "MG",

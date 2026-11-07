@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Test;
 
 import com.jhcomp.prospect.analysis.domain.WebsiteObservation.Outcome;
 
-/** Achados e score (doc 06 §6 e §7, regra 3 do produto). Unitario, sem rede. */
-@DisplayName("FindingsBuilder e ScoreFormula")
+/** Findings and score (doc 06 §6 and §7, product rule 3). A unit test, with no network. */
+@DisplayName("FindingsBuilder and ScoreFormula")
 class FindingsBuilderTest {
 
     private static final Instant NOW = Instant.parse("2026-11-05T12:00:00Z");
@@ -41,20 +41,20 @@ class FindingsBuilderTest {
     }
 
     @Test
-    @DisplayName("os criterios somam exatamente 100, como a tabela do doc 06 §7")
+    @DisplayName("the criteria add up to exactly 100, as the table in doc 06 §7 does")
     void maxIsHundred() {
         assertThat(Arrays.stream(Criterion.values()).mapToInt(Criterion::maxPoints).sum()).isEqualTo(100);
     }
 
     @Test
-    @DisplayName("um achado por criterio, sempre")
+    @DisplayName("one finding per criterion, always")
     void oneFindingPerCriterion() {
         assertThat(byCriterion(FindingsBuilder.build(WITH_SITE, page(true, true, true), AREA, NOW)))
                 .containsOnlyKeys(Criterion.values());
     }
 
     @Test
-    @DisplayName("site sem HTTPS, sem viewport e sem contato pontua os problemas observados")
+    @DisplayName("a site with no HTTPS, no viewport and no contact scores the problems observed")
     void observedProblemsScore() {
         var findings = byCriterion(FindingsBuilder.build(WITH_SITE, page(false, false, false), AREA, NOW));
 
@@ -62,23 +62,23 @@ class FindingsBuilderTest {
         assertThat(findings.get(Criterion.NO_HTTPS).status()).isEqualTo(FindingStatus.CONFIRMED);
         assertThat(findings.get(Criterion.NO_MOBILE_VIEWPORT).status()).isEqualTo(FindingStatus.CONFIRMED);
         assertThat(findings.get(Criterion.NO_CONTACT_LINK).status()).isEqualTo(FindingStatus.CONFIRMED);
-        // Sinal de HTML: confianca media, a revisao humana decide.
+        // An HTML signal: medium confidence, and the human review decides.
         assertThat(findings.get(Criterion.NO_CONTACT_LINK).confidence()).isEqualTo(Confidence.MEDIUM);
         assertThat(findings.get(Criterion.NO_CONTACT_LINK).evidence().getFirst().contentHash()).hasSize(64);
     }
 
     @Test
-    @DisplayName("site sem problemas e empresa atendida soma so os criterios positivos")
+    @DisplayName("a site with no problems and a served company sums only the positive criteria")
     void healthySite() {
         var findings = FindingsBuilder.build(WITH_SITE, page(true, true, true), AREA, NOW);
 
-        // Informacoes comerciais 15 + segmento 10 + localizacao 10.
+        // Business information 15 + segment 10 + location 10.
         assertThat(score(findings)).isEqualTo(35);
     }
 
-    /** Regra 3: nao encontrado nao e prova de ausencia. */
+    /** Rule 3: not found is not proof of absence. */
     @Test
-    @DisplayName("sem site cadastrado, a ausencia fica nao verificada e nao pontua")
+    @DisplayName("with no website on file, the absence stays unverified and scores nothing")
     void noWebsiteIsNotConfirmedAbsence() {
         var profile = new CompanyProfile(null, "BARBERSHOP", "MG", true, false, false);
         var findings = byCriterion(FindingsBuilder.build(profile, WebsiteObservation.noWebsite(NOW), AREA, NOW));
@@ -90,7 +90,7 @@ class FindingsBuilderTest {
     }
 
     @Test
-    @DisplayName("site fora do ar nao confirma ausencia nem problema tecnico")
+    @DisplayName("a site that is down confirms neither absence nor a technical problem")
     void unreachableSiteScoresNothing() {
         var unreachable = new WebsiteObservation(Outcome.UNREACHABLE, "https://loja.example.test", null, null, null,
                 false, false, null, "DNS", NOW);
@@ -101,12 +101,12 @@ class FindingsBuilderTest {
         assertThat(byCriterion.get(Criterion.NO_HTTPS).status()).isEqualTo(FindingStatus.NOT_VERIFIED);
         assertThat(byCriterion.get(Criterion.NO_CONTACT_LINK).status()).isEqualTo(FindingStatus.NOT_VERIFIED);
         assertThat(byCriterion.get(Criterion.SITE_ABSENT).evidence().getFirst().description()).contains("DNS");
-        // So os criterios que nao dependem do site.
+        // Only the criteria that do not depend on the site.
         assertThat(score(findings)).isEqualTo(35);
     }
 
     @Test
-    @DisplayName("robots.txt proibindo a pagina deixa os sinais de pagina nao verificados")
+    @DisplayName("robots.txt forbidding the page leaves the page signals unverified")
     void robotsDisallowed() {
         var robots = new WebsiteObservation(Outcome.ROBOTS_DISALLOWED, "https://loja.example.test", null, true, null,
                 false, false, null, null, NOW);
@@ -115,12 +115,12 @@ class FindingsBuilderTest {
         assertThat(findings.get(Criterion.NO_MOBILE_VIEWPORT).status()).isEqualTo(FindingStatus.NOT_VERIFIED);
         assertThat(findings.get(Criterion.NO_MOBILE_VIEWPORT).evidence().getFirst().type())
                 .isEqualTo(EvidenceType.ROBOTS_TXT);
-        // HTTPS e fato de conexao, nao de leitura da pagina: continua verificavel.
+        // HTTPS is a fact about the connection, not about reading the page: it stays verifiable.
         assertThat(findings.get(Criterion.NO_HTTPS).status()).isEqualTo(FindingStatus.CONTRADICTED);
     }
 
     @Test
-    @DisplayName("agendamento ou catalogo nunca e afirmado automaticamente")
+    @DisplayName("booking or catalogue is never asserted automatically")
     void bookingIsManual() {
         var findings = byCriterion(FindingsBuilder.build(WITH_SITE, page(true, true, true), AREA, NOW));
 
@@ -128,7 +128,7 @@ class FindingsBuilderTest {
     }
 
     @Test
-    @DisplayName("cadastro incompleto e fora da area atendida nao pontuam, sem penalizar")
+    @DisplayName("an incomplete record and a location outside the area served score nothing, without penalising")
     void positiveCriteria() {
         var outside = new CompanyProfile("loja.example.test", null, "SP", false, false, false);
         var findings = byCriterion(FindingsBuilder.build(outside, page(true, true, true), AREA, NOW));
@@ -140,7 +140,7 @@ class FindingsBuilderTest {
     }
 
     @Test
-    @DisplayName("sem area configurada, compatibilidade e localizacao ficam para revisao")
+    @DisplayName("with no area configured, service fit and location are left for review")
     void noServiceAreaConfigured() {
         var empty = new ServiceArea(Set.of(), Set.of());
         var findings = byCriterion(FindingsBuilder.build(WITH_SITE, page(true, true, true), empty, NOW));
@@ -150,7 +150,7 @@ class FindingsBuilderTest {
     }
 
     @Test
-    @DisplayName("score e funcao pura dos estados: so CONFIRMED pontua")
+    @DisplayName("the score is a pure function of the states: only CONFIRMED scores")
     void onlyConfirmedScores() {
         for (FindingStatus status : FindingStatus.values()) {
             int expected = status == FindingStatus.CONFIRMED ? 25 : 0;

@@ -34,14 +34,14 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Importacoes mantem o escopo da organizacao (doc 10 §3).
+ * Imports keep the organisation scope (doc 10 §3).
  *
- * <p>Usuario de A conhece o id de uma importacao de B e tenta todas as rotas.
- * Tudo responde 404, e o banco confirma que nada de B mudou.
+ * <p>A user of A knows the id of an import of B and tries every route.
+ * Everything answers 404, and the database confirms nothing of B's changed.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Isolamento entre organizacoes: importacao")
+@DisplayName("Isolation between organisations: import")
 class ImportIsolationTest extends PostgresIntegrationTest {
 
     private static final String CSV = """
@@ -88,7 +88,7 @@ class ImportIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao ve, nao confirma e nao descarta importacao de B")
+    @DisplayName("a user of A cannot see, confirm or discard an import of B")
     void routesAreScoped() throws Exception {
         expectNotFound(get("/imports/" + importB));
         expectNotFound(get("/imports/" + importB + "/report"));
@@ -104,7 +104,7 @@ class ImportIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("empresa de B nao torna duplicata a linha de A")
+    @DisplayName("a company of B does not make a row of A a duplicate")
     void duplicatesAreScoped() throws Exception {
         mockMvc.perform(post("/imports/" + importB + "/confirm")
                         .session(sessionB).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
@@ -116,7 +116,7 @@ class ImportIsolationTest extends PostgresIntegrationTest {
         mockMvc.perform(get("/imports/" + importA).session(sessionA))
                 .andExpect(jsonPath("$.validRows").value(1))
                 .andExpect(jsonPath("$.duplicateRows").value(0))
-                // O mesmo arquivo de outra organizacao nao e "reenvio".
+                // The same file from another organisation is not a "resend".
                 .andExpect(jsonPath("$.previousImportId").doesNotExist());
     }
 }

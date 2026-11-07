@@ -8,29 +8,29 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** Normalizacao compartilhada (D10, doc 10 §4). Unitario, sem Spring. */
+/** The shared normalisation (D10, doc 10 §4). A unit test, without Spring. */
 @DisplayName("ContactNormalizer")
 class ContactNormalizerTest {
 
     @Nested
-    @DisplayName("nome")
+    @DisplayName("name")
     class Name {
 
         @Test
-        @DisplayName("remove acento, espaco excedente e caixa")
+        @DisplayName("removes accents, excess whitespace and case")
         void accentsAndSpaces() {
             assertThat(ContactNormalizer.name("  Salão  Beleza\t& Estética "))
                     .contains("salao beleza & estetica");
         }
 
         @Test
-        @DisplayName("mantem pontuacao: nomes diferentes continuam diferentes")
+        @DisplayName("keeps punctuation: different names stay different")
         void keepsPunctuation() {
             assertThat(ContactNormalizer.name("A.B. Ferragens")).isNotEqualTo(ContactNormalizer.name("AB Ferragens"));
         }
 
         @Test
-        @DisplayName("vazio nao normaliza")
+        @DisplayName("an empty value does not normalise")
         void blank() {
             assertThat(ContactNormalizer.name("   ")).isEmpty();
             assertThat(ContactNormalizer.name(null)).isEmpty();
@@ -38,35 +38,35 @@ class ContactNormalizerTest {
     }
 
     @Nested
-    @DisplayName("telefone")
+    @DisplayName("phone")
     class Phone {
 
         @ParameterizedTest
         @ValueSource(strings = {
             "(35) 98888-7777", "35 98888 7777", "35988887777", "+55 35 98888-7777", "055 35 98888-7777", "0 35 98888.7777"
         })
-        @DisplayName("formatacoes diferentes do mesmo celular coincidem")
+        @DisplayName("different formats of the same mobile number coincide")
         void sameMobile(String raw) {
             assertThat(ContactNormalizer.phone(raw)).contains("+5535988887777");
         }
 
         @Test
-        @DisplayName("fixo com DDD")
+        @DisplayName("a landline with an area code")
         void landline() {
             assertThat(ContactNormalizer.phone("(35) 3333-4444")).contains("+553533334444");
         }
 
-        /** Assumir DDD aproximaria empresas de cidades diferentes. */
+        /** Assuming an area code would draw together companies from different cities. */
         @ParameterizedTest
         @ValueSource(strings = {"98888-7777", "3333-4444", "123", "+1 415 555 0100", "+55 98888 7777"})
-        @DisplayName("sem DDD ou fora do padrao nacional nao normaliza")
+        @DisplayName("without an area code, or outside the national format, it does not normalise")
         void unreliable(String raw) {
             assertThat(ContactNormalizer.phone(raw)).isEmpty();
         }
     }
 
     @Nested
-    @DisplayName("dominio")
+    @DisplayName("domain")
     class Domain {
 
         @ParameterizedTest
@@ -77,14 +77,14 @@ class ContactNormalizerTest {
             "www.loja.example.test:8080/",
             "https://loja.example.test."
         })
-        @DisplayName("esquema, www, porta, caminho e caixa nao importam")
+        @DisplayName("scheme, www, port, path and case do not matter")
         void sameDomain(String raw) {
             assertThat(ContactNormalizer.domain(raw)).contains("loja.example.test");
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"localhost", "http://", "nao e url", "   "})
-        @DisplayName("host sem ponto ou invalido nao normaliza")
+        @DisplayName("a host with no dot, or an invalid one, does not normalise")
         void invalid(String raw) {
             assertThat(ContactNormalizer.domain(raw)).isEmpty();
         }
@@ -98,7 +98,7 @@ class ContactNormalizerTest {
         @ValueSource(strings = {
                 "@Loja.Exemplo", "loja.exemplo", "https://www.instagram.com/loja.exemplo/",
                 "instagram.com/Loja.Exemplo", "http://instagram.com/loja.exemplo?hl=pt"})
-        @DisplayName("perfil, @perfil e URL do perfil chegam ao mesmo identificador")
+        @DisplayName("handle, @handle and the profile URL reach the same identifier")
         void sameHandle(String raw) {
             assertThat(ContactNormalizer.instagram(raw)).contains("loja.exemplo");
         }
@@ -107,7 +107,7 @@ class ContactNormalizerTest {
         @ValueSource(strings = {
                 "https://instagram.com/p/abc123", "https://instagram.com/explore/",
                 "https://example.test/loja.exemplo", "https://instagram.com/", "perfil com espaco", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
-        @DisplayName("recusa postagem, outro host e perfil invalido")
+        @DisplayName("refuses a post, another host and an invalid handle")
         void rejectsNonProfiles(String raw) {
             assertThat(ContactNormalizer.instagram(raw)).isEmpty();
         }

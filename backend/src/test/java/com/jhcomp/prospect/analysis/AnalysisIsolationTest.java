@@ -37,14 +37,15 @@ import com.jhcomp.prospect.shared.TestSessions;
 import com.jhcomp.prospect.shared.jobs.JobWorker;
 
 /**
- * Analises mantem o escopo da organizacao (doc 10 §3, D8).
+ * Analyses keep the organisation scope (doc 10 §3, D8).
  *
- * <p>Inclui a rota sem lead no caminho, {@code /findings/{id}/review}, que a D8
- * aponta como o ponto em que a cadeia de posse precisa ser verificada.
+ * <p>It includes the route with no lead in the path,
+ * {@code /findings/{id}/review}, which D8 points to as the place where the
+ * ownership chain has to be verified.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Isolamento entre organizacoes: analise")
+@DisplayName("Isolation between organisations: analysis")
 class AnalysisIsolationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -99,7 +100,7 @@ class AnalysisIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao pede, nao lista, nao le e nao revisa analise de B")
+    @DisplayName("a user of A cannot request, list, read or review an analysis of B")
     void allRoutesAreScoped() throws Exception {
         expectNotFound(post("/leads/" + leadB + "/analyses"));
         expectNotFound(get("/leads/" + leadB + "/analyses"));

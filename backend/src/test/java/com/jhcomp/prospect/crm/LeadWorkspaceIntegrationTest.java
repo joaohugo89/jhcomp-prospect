@@ -35,10 +35,10 @@ import com.jhcomp.prospect.identity.domain.OrganizationRole;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Fila de trabalho, segmentos, acoes em lote e visoes salvas (D31). Dados ficticios. */
+/** The work queue, segments, bulk actions and saved views (D31). Fictitious data. */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Leads: fila de trabalho, segmentos, lote e visoes")
+@DisplayName("Leads: work queue, segments, bulk actions and views")
 class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -84,7 +84,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("fila traz responsavel, valor, proxima tarefa e entrada na etapa, e ordena por eles")
+    @DisplayName("the queue carries owner, value, next task and stage entry, and sorts by them")
     void worklistColumnsAndSort() throws Exception {
         String big = createLead(session, "Loja Valor Alto", "Barbearia");
         String small = createLead(session, "Loja Valor Baixo", "barbearia ");
@@ -103,7 +103,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
         mockMvc.perform(get("/leads/worklist").param("sort", "VALUE").param("direction", "desc").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(3))
-                // Sem valor vai por ultimo, mesmo do maior para o menor.
+                // No value sorts last, even descending.
                 .andExpect(jsonPath("$.content[*].leadId", contains(big, small, none)))
                 .andExpect(jsonPath("$.content[1].assigneeName").value("Usuario de Teste"))
                 .andExpect(jsonPath("$.content[1].nextTaskTitle").value("Ligar"))
@@ -111,7 +111,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[0].stageEnteredAt").exists())
                 .andExpect(jsonPath("$.content[0].estimatedValue").value(3000.0));
 
-        // Segmento sem distinguir caixa e espaco; sem segmento a parte.
+        // Segment ignoring case and spacing; "no segment" counted separately.
         mockMvc.perform(get("/leads/worklist").param("segment", "BARBEARIA").session(session))
                 .andExpect(jsonPath("$.totalElements").value(2));
         mockMvc.perform(get("/leads/worklist").param("noSegment", "true").session(session))
@@ -147,7 +147,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("origem na fila e a primeira proveniencia, como no dashboard")
+    @DisplayName("the origin in the queue is the first provenance, as on the dashboard")
     void worklistOrigin() throws Exception {
         String lead = createLead(session, "Loja Manual Depois Importada", null);
         jdbc.update("""
@@ -163,7 +163,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("segmentos em uso juntam grafias iguais e contam as empresas sem segmento")
+    @DisplayName("the segments in use group equal spellings and count the companies with none")
     void segments() throws Exception {
         createLead(session, "Barbearia Um", "Barbearia");
         createLead(session, "Barbearia Dois", "Barbearia");
@@ -178,13 +178,13 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.segments[1].name").value("Padaria"))
                 .andExpect(jsonPath("$.segments.length()").value(2))
                 .andExpect(jsonPath("$.withoutSegment").value(1));
-        // A lista de empresas tambem filtra sem distinguir caixa.
+        // The company list filters case-insensitively too.
         mockMvc.perform(get("/companies").param("segment", "BARBEARIA").session(session))
                 .andExpect(jsonPath("$.totalElements").value(3));
     }
 
     @Test
-    @DisplayName("lote atribui ou muda prioridade de todos ou de nenhum")
+    @DisplayName("a bulk action assigns or changes priority for all of them or none")
     void bulk() throws Exception {
         String one = createLead(session, "Loja Lote Um", null);
         String two = createLead(session, "Loja Lote Dois", null);
@@ -202,7 +202,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.assignedUserId").value(operator.userId().toString()))
                 .andExpect(jsonPath("$.priority").value("VERY_HIGH"));
 
-        // Um id desconhecido desfaz o lote inteiro.
+        // An unknown id rolls the whole batch back.
         send(session, post("/leads/bulk"), """
                 {"leadIds": ["%s", "%s"], "action": "PRIORITY", "priority": "LOW"}
                 """.formatted(one, UUID.randomUUID())).andExpect(status().isNotFound());
@@ -216,7 +216,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("visoes salvas: criar, listar, nome unico, consulta so de URL e apagar so as proprias")
+    @DisplayName("saved views: create, list, unique name, URL-only query, and deleting only your own")
     void views() throws Exception {
         String id = JsonPath.read(send(session, post("/leads/views"),
                 "{\"name\": \"Minhas propostas\", \"query\": \"status=PROPOSAL_SENT&city=Cidade+Exemplo\"}")
@@ -240,7 +240,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("visoes compartilhadas: so administrador publica e apaga, a equipe toda ve")
+    @DisplayName("shared views: only an administrator publishes and deletes, the whole team sees")
     void sharedViews() throws Exception {
         String shared = JsonPath.read(send(session, post("/leads/views"),
                 "{\"name\": \"Propostas da semana\", \"query\": \"status=PROPOSAL_SENT\", \"shared\": true}")
@@ -253,7 +253,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
         send(operatorSession, post("/leads/views"), "{\"name\": \"Minha\", \"query\": \"\"}")
                 .andExpect(status().isCreated());
         mockMvc.perform(get("/leads/views").session(operatorSession))
-                // Compartilhadas primeiro; o operador ve, mas nao apaga.
+                // Shared ones first; an operator sees them but cannot delete them.
                 .andExpect(jsonPath("$[*].name", contains("Propostas da semana", "Minha")))
                 .andExpect(jsonPath("$[0].canDelete").value(false))
                 .andExpect(jsonPath("$[1].canDelete").value(true));
@@ -275,7 +275,7 @@ class LeadWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("fila, segmentos, lote e visoes de A nao alcancam B")
+    @DisplayName("A's queue, segments, bulk actions and views cannot reach B")
     void isolation() throws Exception {
         IdentityTestData.Member other = testData.createActiveAdmin("workspace-b");
         MockHttpSession sessionB = TestSessions.login(mockMvc, other);

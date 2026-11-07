@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
 /**
- * Teste unitario: rapido e sem rede ou servico externo (doc 10 §2).
+ * A unit test: fast, with no network and no external service (doc 10 §2).
  */
 @DisplayName("HealthController")
 class HealthControllerTest {
@@ -33,7 +33,7 @@ class HealthControllerTest {
     }
 
     @Test
-    @DisplayName("reporta UP com a versao da aplicacao quando o banco responde")
+    @DisplayName("reports UP with the application version when the database answers")
     void reportsUp() throws SQLException {
         Connection connection = mock(Connection.class);
         when(connection.isValid(anyInt())).thenReturn(true);
@@ -49,7 +49,7 @@ class HealthControllerTest {
     }
 
     @Test
-    @DisplayName("reporta DOWN com 503 quando o banco nao responde, sem detalhe na resposta")
+    @DisplayName("reports DOWN with 503 when the database does not answer, with no detail in the response")
     void reportsDownWithoutDatabase() throws SQLException {
         when(dataSource.getConnection()).thenThrow(new SQLTransientConnectionException("pool exhausted at db:5432"));
 
@@ -62,7 +62,7 @@ class HealthControllerTest {
     }
 
     @Test
-    @DisplayName("conexao invalida tambem e DOWN")
+    @DisplayName("an invalid connection is DOWN too")
     void invalidConnectionIsDown() throws SQLException {
         Connection connection = mock(Connection.class);
         when(connection.isValid(anyInt())).thenReturn(false);

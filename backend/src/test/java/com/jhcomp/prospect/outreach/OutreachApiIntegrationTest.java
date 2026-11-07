@@ -35,13 +35,13 @@ import com.jhcomp.prospect.identity.domain.OrganizationRole;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Outreach e lista de nao contato (RF-050 a RF-053, doc 10 §6, D26). */
+/** Outreach and the do-not-contact list (RF-050 to RF-053, doc 10 §6, D26). */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Outreach: rascunho, aprovacao, registro de envio e nao contato")
+@DisplayName("Outreach: draft, approval, send record and do-not-contact")
 class OutreachApiIntegrationTest extends PostgresIntegrationTest {
 
-    /** Dados ficticios (doc 10 §10). */
+    /** Fictitious data (doc 10 §10). */
     private static final String PHONE = "(35) 98888-1234";
     private static final String EMAIL = "contato@padaria.example.test";
     private static final String INSTAGRAM = "https://instagram.com/padaria.exemplo";
@@ -131,10 +131,10 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
         return count == null ? 0 : count;
     }
 
-    // ---- Geracao ---------------------------------------------------------------
+    // ---- Generation ------------------------------------------------------------
 
     @Test
-    @DisplayName("mensagem gerada nasce em revisao, com provedor e versao do prompt, e o lead nao muda")
+    @DisplayName("a generated message starts in review, carries provider and prompt version, and the lead does not change")
     void generatedMessageStartsAsDraft() throws Exception {
         generate(leadId, "EMAIL")
                 .andExpect(status().isCreated())
@@ -154,7 +154,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("contexto de composicao mostra remetente, destinatarios e bloqueio por canal")
+    @DisplayName("the compose context shows sender, recipients and the block per channel")
     void composeContext() throws Exception {
         String other = createLead(session, null, EMAIL.replace("contato", "outro"), null);
 
@@ -172,7 +172,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("canal sem destinatario valido na empresa e recusado")
+    @DisplayName("a channel with no valid recipient on the company is refused")
     void channelWithoutRecipient() throws Exception {
         String lead = createLead(session, null, null, null);
 
@@ -182,7 +182,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("limite de geracao por usuario responde 429")
+    @DisplayName("the per-user generation limit answers 429")
     void generationIsRateLimited() throws Exception {
         for (int i = 0; i < 10; i++) {
             generate(leadId, "WHATSAPP").andExpect(status().isCreated());
@@ -192,10 +192,10 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.type").value("TOO_MANY_REQUESTS"));
     }
 
-    // ---- Revisao e aprovacao ---------------------------------------------------
+    // ---- Review and approval ---------------------------------------------------
 
     @Test
-    @DisplayName("aprovar afirmacao nao verificada exige confirmacao de revisao")
+    @DisplayName("approving an unverified claim requires confirming the review")
     void approvalRequiresReviewOfClaims() throws Exception {
         String message = generated("WHATSAPP");
 
@@ -205,7 +205,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"))
                 .andExpect(jsonPath("$.approvedAt").isNotEmpty())
-                // Aprovada nao e enviada (regra 5).
+                // Approved is not sent (rule 5).
                 .andExpect(jsonPath("$.sentAt").doesNotExist());
 
         assertThat(leadStatus(leadId)).as("aprovar nao move o lead (regra 6)").isEqualTo("NEW");
@@ -213,7 +213,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("editar mensagem aprovada devolve a revisao e limpa a aprovacao")
+    @DisplayName("editing an approved message returns it to review and clears the approval")
     void editingApprovedMessageResetsApproval() throws Exception {
         String message = approved("EMAIL");
 
@@ -225,7 +225,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("edicao respeita as regras do canal")
+    @DisplayName("an edit respects the channel's rules")
     void editingValidatesChannelRules() throws Exception {
         String message = generated("WHATSAPP");
 
@@ -235,10 +235,10 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ---- Registro de envio ---------------------------------------------------
+    // ---- Send record -----------------------------------------------------------
 
     @Test
-    @DisplayName("so mensagem aprovada pode ter envio registrado")
+    @DisplayName("only an approved message can have a send recorded")
     void onlyApprovedCanBeSent() throws Exception {
         String message = generated("WHATSAPP");
 
@@ -247,7 +247,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("envio confirmado vira interacao, mas o lead so muda se o operador pedir")
+    @DisplayName("a confirmed send becomes an interaction, but the lead only changes if the operator asks")
     void recordSendCreatesInteraction() throws Exception {
         String message = approved("WHATSAPP");
 
@@ -267,7 +267,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("marcar contatado move o lead a CONTACTED junto com o registro")
+    @DisplayName("ticking contacted moves the lead to CONTACTED along with the record")
     void recordSendCanMarkContacted() throws Exception {
         moveTo(leadId, "QUALIFIED", "CONTACT_APPROVED");
         String message = approved("EMAIL");
@@ -278,7 +278,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("envio que falhou nao conta como contato nem marca o lead")
+    @DisplayName("a failed send counts as no contact and does not mark the lead")
     void failedSend() throws Exception {
         moveTo(leadId, "QUALIFIED", "CONTACT_APPROVED");
         String message = approved("EMAIL");
@@ -291,7 +291,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("data de envio no futuro e recusada")
+    @DisplayName("a send date in the future is refused")
     void rejectsFutureSendDate() throws Exception {
         String message = approved("EMAIL");
 
@@ -301,7 +301,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("envio no mesmo minuto da aprovacao e aceito, como a tela informa; antes dela, nao")
+    @DisplayName("a send in the same minute as the approval is accepted, as the screen reports; before it, not")
     void sendDateHasMinutePrecision() throws Exception {
         String message = approved("EMAIL");
         Instant approvedAt = Instant.parse(JsonPath.read(
@@ -318,7 +318,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("cancelar encerra a mensagem; mensagem encerrada nao muda mais")
+    @DisplayName("cancelling ends the message; an ended message changes no further")
     void cancel() throws Exception {
         String message = generated("EMAIL");
 
@@ -331,24 +331,24 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isConflict());
     }
 
-    // ---- Nao contato -----------------------------------------------------------
+    // ---- Do not contact --------------------------------------------------------
 
     @Test
-    @DisplayName("telefone bloqueado em outro formato impede gerar em qualquer canal")
+    @DisplayName("a phone blocked in another format prevents generating on any channel")
     void suppressedPhoneBlocksGeneration() throws Exception {
         suppress(session, "PHONE", "+55 35 98888 1234", null).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.identifier").value("+5535988881234"));
 
         generate(leadId, "WHATSAPP").andExpect(status().isConflict());
         generate(leadId, "PHONE_CALL").andExpect(status().isConflict());
-        // Conservador: um identificador da empresa bloqueado em todos os canais bloqueia a empresa.
+        // Conservative: one identifier of the company blocked on all channels blocks the company.
         generate(leadId, "EMAIL").andExpect(status().isConflict());
         mockMvc.perform(get("/leads/" + leadId + "/outreach-context").session(session))
                 .andExpect(jsonPath("$.channels[1].blocked").value(true));
     }
 
     @Test
-    @DisplayName("bloqueio restrito a um canal libera os demais")
+    @DisplayName("a block restricted to one channel leaves the others free")
     void channelScopedSuppression() throws Exception {
         suppress(session, "INSTAGRAM", "@Padaria.Exemplo", "INSTAGRAM").andExpect(status().isCreated());
 
@@ -357,7 +357,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("bloqueio registrado depois da aprovacao impede registrar envio")
+    @DisplayName("a block recorded after the approval prevents recording a send")
     void suppressionAfterApprovalBlocksSend() throws Exception {
         String message = approved("EMAIL");
         suppress(session, "EMAIL", EMAIL.toUpperCase(), null).andExpect(status().isCreated());
@@ -370,7 +370,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("bloqueio registrado depois do rascunho impede aprovar")
+    @DisplayName("a block recorded after the draft prevents approving")
     void suppressionBlocksApproval() throws Exception {
         String message = generated("WHATSAPP");
         suppress(session, "PHONE", PHONE, "WHATSAPP").andExpect(status().isCreated());
@@ -380,7 +380,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("pedido de nao contato no lead bloqueia a empresa, inclusive recadastrada com o mesmo contato")
+    @DisplayName("a do-not-contact request on the lead blocks the company, even when re-registered with the same contact")
     void doNotContactRequestSuppressesIdentifiers() throws Exception {
         moveTo(leadId, "QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "WON");
         ok(post("/leads/" + leadId + "/interactions"), session, """
@@ -394,7 +394,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
                 """, Integer.class, UUID.fromString(leadId));
         assertThat(entries).as("telefone, e-mail e Instagram").isEqualTo(3);
 
-        // Mesma empresa cadastrada de novo (ex.: nova importacao): o bloqueio continua.
+        // The same company registered again (a new import, say): the block stands.
         String again = createLead(session, "35988881234", null, null);
         generate(again, "WHATSAPP").andExpect(status().isConflict());
         perform(post("/leads/" + again + "/interactions"), session, """
@@ -404,7 +404,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("mover o lead para DO_NOT_CONTACT tambem alimenta a lista")
+    @DisplayName("moving the lead to DO_NOT_CONTACT also feeds the list")
     void statusChangeSuppressesIdentifiers() throws Exception {
         moveTo(leadId, "DO_NOT_CONTACT");
 
@@ -413,7 +413,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("registro e idempotente e identificador invalido e recusado")
+    @DisplayName("recording is idempotent and an invalid identifier is refused")
     void registrationRules() throws Exception {
         String first = JsonPath.read(suppress(session, "EMAIL", EMAIL, null).andReturn().getResponse().getContentAsString(), "$.id");
         String second = JsonPath.read(suppress(session, "EMAIL", " " + EMAIL.toUpperCase() + " ", null)
@@ -425,7 +425,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("so administrador consulta a lista; operador pode registrar")
+    @DisplayName("only an administrator reads the list; an operator may record")
     void listingIsRestricted() throws Exception {
         MockHttpSession operator = TestSessions.login(mockMvc, testData.createActiveOperator("outreach-op"));
         suppress(operator, "EMAIL", "naocontatar@example.test", null).andExpect(status().isCreated());
@@ -440,7 +440,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lista busca o contato em qualquer formato, filtra por tipo e conta por tipo")
+    @DisplayName("the list finds the contact in any format, filters by type and counts by type")
     void listingSearchAndSummary() throws Exception {
         suppress(session, "PHONE", "(35) 97777-0001", null).andExpect(status().isCreated());
         suppress(session, "EMAIL", "busca@example.test", "EMAIL").andExpect(status().isCreated());
@@ -452,7 +452,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[0].identifier").value("busca@example.test"));
         mockMvc.perform(get("/suppression-entries").param("identifierType", "EMAIL").session(session))
                 .andExpect(jsonPath("$.totalElements").value(1));
-        // O que nao normaliza nao vira "sem filtro".
+        // What does not normalise must not become "no filter".
         mockMvc.perform(get("/suppression-entries").param("search", "???").session(session))
                 .andExpect(jsonPath("$.totalElements").value(0));
         mockMvc.perform(get("/suppression-entries/summary").session(session))
@@ -465,7 +465,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("qualquer membro confere se o contato esta bloqueado, sem ver motivo nem data")
+    @DisplayName("any member can check whether a contact is blocked, without seeing reason or date")
     void checkIsForEveryMember() throws Exception {
         IdentityTestData.Member admin = testData.createActiveAdmin("outreach-confere");
         MockHttpSession adminSession = TestSessions.login(mockMvc, admin);
@@ -490,7 +490,7 @@ class OutreachApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("registro de bloqueio vai para a auditoria sem o identificador")
+    @DisplayName("recording a block reaches the audit trail without the identifier")
     void suppressionIsAudited() throws Exception {
         String id = JsonPath.read(suppress(session, "EMAIL", "auditada@example.test", "EMAIL")
                 .andReturn().getResponse().getContentAsString(), "$.id");

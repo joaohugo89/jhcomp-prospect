@@ -9,20 +9,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.persistence.EntityManagerFactory;
 
 /**
- * Propriedades do Hibernate chegam com o nome exato (RNF-009).
+ * Hibernate properties arrive under the exact name (RNF-009).
  *
- * <p>Protege a escrita das chaves no YAML: um nome alterado na ligacao seria
- * ignorado pelo Hibernate em silencio, e o fuso continuaria parecendo certo
- * porque a JVM ja roda em UTC.
+ * <p>It protects how the keys are written in the YAML: a name changed in the
+ * binding would be ignored by Hibernate silently, and the time zone would
+ * keep looking right because the JVM already runs in UTC.
  */
-@DisplayName("Configuracao do Hibernate")
+@DisplayName("Hibernate configuration")
 class HibernatePropertiesTest extends PostgresIntegrationTest {
 
     @Autowired
     private EntityManagerFactory entityManagerFactory;
 
     @Test
-    @DisplayName("fuso UTC do JDBC e recusa de paginacao sobre colecao chegam ao Hibernate")
+    @DisplayName("the JDBC UTC time zone and the refusal to paginate over a collection reach Hibernate")
     void propertiesKeepTheirNames() {
         var properties = entityManagerFactory.getProperties();
 
@@ -31,17 +31,18 @@ class HibernatePropertiesTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("agrupamento de instrucoes chega ao Hibernate, sem reordenacao")
+    @DisplayName("statement batching reaches Hibernate, with no reordering")
     void batchingPropertiesKeepTheirNames() {
         var properties = entityManagerFactory.getProperties();
 
-        // Um nome errado aqui nao quebra nada: o Hibernate so deixa de agrupar,
-        // e a importacao volta a uma ida ao banco por linha sem aviso nenhum.
+        // A wrong name here breaks nothing: Hibernate simply stops batching,
+        // and the import goes back to one round trip per row with no warning
+        // at all.
         assertThat(properties.get("hibernate.jdbc.batch_size")).isEqualTo("50");
 
-        // order_inserts agrupa por tipo de entidade e pode gravar a linha
-        // filha antes da pai: a confirmacao da importacao passou a responder
-        // 409 por violacao de chave estrangeira. Ficar de fora e proposital.
+        // order_inserts groups by entity type and can write the child row
+        // before the parent: the import confirm started answering 409 through
+        // a foreign key violation. Leaving it out is deliberate.
         assertThat(properties).doesNotContainKey("hibernate.order_inserts");
     }
 }

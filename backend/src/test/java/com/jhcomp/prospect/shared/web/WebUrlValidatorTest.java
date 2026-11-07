@@ -8,11 +8,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * URL exibida como link (doc 05 §12).
+ * A URL displayed as a link (doc 05 §12).
  *
- * <p>Os casos recusados incluem o bypass encontrado em revisao na primeira
- * versao, baseada em regex: {@code javascript:1,alert(1)} passava porque havia
- * um digito depois dos dois-pontos.
+ * <p>The refused cases include the bypass a review found in the first,
+ * regex-based version: {@code javascript:1,alert(1)} got through because there
+ * was a digit after the colon.
  */
 @DisplayName("WebUrlValidator")
 class WebUrlValidatorTest {
@@ -29,7 +29,7 @@ class WebUrlValidatorTest {
         "www.instagram.example.test/loja_ficticia",
         "sub.dominio.example.test."
     })
-    @DisplayName("aceita http, https e endereco sem esquema")
+    @DisplayName("accepts http, https and an address with no scheme")
     void accepts(String url) {
         assertThat(validator.isValid(url, null)).isTrue();
     }
@@ -57,13 +57,13 @@ class WebUrlValidatorTest {
         "https://loja.example.test/<script>",
         "   "
     })
-    @DisplayName("recusa outros esquemas, userinfo, host sem ponto e caracteres de injecao")
+    @DisplayName("refuses other schemes, userinfo, a host with no dot, and injection characters")
     void rejects(String url) {
         assertThat(validator.isValid(url, null)).isFalse();
     }
 
     @Test
-    @DisplayName("vazio e nulo significam sem valor")
+    @DisplayName("empty and null mean no value")
     void emptyMeansNoValue() {
         assertThat(validator.isValid(null, null)).isTrue();
         assertThat(validator.isValid("", null)).isTrue();

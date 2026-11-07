@@ -39,14 +39,15 @@ import com.jhcomp.prospect.shared.TestSessions;
 import com.jhcomp.prospect.shared.jobs.JobWorker;
 
 /**
- * Analise de presenca digital pela API (RF-030 a RF-033, D3, D15).
+ * Digital presence analysis through the API (RF-030 to RF-033, D3, D15).
  *
- * <p>O site nunca e acessado de verdade: {@link WebsiteChecker} e substituido
- * por um dublê. O worker roda quando o teste chama, sem depender de tempo.
+ * <p>The site is never actually accessed: {@link WebsiteChecker} is replaced
+ * by a double. The worker runs when the test calls it, with no dependency on
+ * time.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("API de analise")
+@DisplayName("Analysis API")
 class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -69,7 +70,7 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
         this.jdbc = new JdbcTemplate(dataSource);
     }
 
-    /** Site so HTTP, sem viewport e sem link de contato. */
+    /** An HTTP-only site, with no viewport and no contact link. */
     private static WebsiteObservation siteWithProblems() {
         return new WebsiteObservation(Outcome.PAGE_READ, "https://loja.example.test", "http://loja.example.test/",
                 false, 200, false, false, "b".repeat(64), null, Instant.parse("2026-11-05T12:00:00Z"));
@@ -124,7 +125,7 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("pedido responde 202 e a analise roda em segundo plano")
+    @DisplayName("the request answers 202 and the analysis runs in the background")
     void runsInBackground() throws Exception {
         String leadId = leadWithSite();
 
@@ -135,8 +136,8 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(jobWorker.runPending()).isEqualTo(1);
 
-        // HTTPS 10 + viewport 10 + contato 10 + informacoes 15 + localizacao 10.
-        // Segmentos atendidos nao configurados: compatibilidade fica para revisao.
+        // HTTPS 10 + viewport 10 + contact 10 + business info 15 + location 10.
+        // Served segments are not configured: service fit is left for review.
         mockMvc.perform(get("/analyses/" + analysisId).session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.analysis.status").value("COMPLETED"))
@@ -149,14 +150,14 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.findings[?(@.criterion == 'SERVICE_FIT')].status").value("NOT_VERIFIED"))
                 .andExpect(jsonPath("$.findings[?(@.criterion == 'SERVICE_FIT')].pointsAwarded").value(0));
 
-        // D3: o lead recebe o score da ultima analise concluida.
+        // D3: the lead takes the score of the latest completed analysis.
         mockMvc.perform(get("/leads/" + leadId).session(session))
                 .andExpect(jsonPath("$.score").value(55));
     }
 
-    /** Regra 3: nao encontrado nao e deficiencia. */
+    /** Rule 3: not found is not a deficiency. */
     @Test
-    @DisplayName("empresa sem site cadastrado nao ganha os 25 pontos de ausencia sem revisao")
+    @DisplayName("a company with no website on file does not get the 25 absence points without a review")
     void noWebsiteIsNotPenalized() throws Exception {
         String leadId = createLead("""
                 {"name": "Sem Site", "segment": "RETAIL", "city": "Cidade Exemplo", "state": "MG", "phone": "35 3333-0000"}
@@ -171,7 +172,7 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("revisao corrige o achado, preserva o original, vira evidencia e recalcula o score")
+    @DisplayName("a review corrects the finding, preserves the original, becomes evidence and recomputes the score")
     void reviewRescores() throws Exception {
         String leadId = leadWithSite();
         String analysisId = completedAnalysis(leadId);
@@ -188,14 +189,14 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
 
         mockMvc.perform(get("/leads/" + leadId).session(session)).andExpect(jsonPath("$.score").value(65));
 
-        // Mesmo estado de novo: conferido, sem mudar pontos.
+        // The same state again: confirmed, with no change in points.
         review(booking, "{\"status\": \"CONFIRMED\"}")
                 .andExpect(jsonPath("$.analysis.score").value(65))
                 .andExpect(jsonPath("$.findings[?(@.criterion == 'NO_ONLINE_BOOKING_OR_CATALOG')].reviewStatus").value("CONFIRMED"));
     }
 
     @Test
-    @DisplayName("rejeitar um problema apontado pela verificacao tira os pontos")
+    @DisplayName("rejecting a problem the verification raised removes the points")
     void rejectingRemovesPoints() throws Exception {
         String leadId = leadWithSite();
         String analysisId = completedAnalysis(leadId);
@@ -205,7 +206,7 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("pedido repetido com analise em andamento devolve a mesma analise")
+    @DisplayName("a repeated request while one is running returns the same analysis")
     void idempotentWhileActive() throws Exception {
         String leadId = leadWithSite();
 
@@ -217,7 +218,7 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lead marcado como nao contatar nao e analisado")
+    @DisplayName("a lead marked do-not-contact is not analysed")
     void doNotContactIsNotAnalyzed() throws Exception {
         String leadId = leadWithSite();
         mockMvc.perform(patch("/leads/" + leadId + "/status").session(session).with(csrf())
@@ -228,11 +229,11 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("analise pendente nao aceita revisao")
+    @DisplayName("a pending analysis accepts no review")
     void pendingCannotBeReviewed() throws Exception {
         String leadId = leadWithSite();
         String analysisId = JsonPath.read(json(requestAnalysis(leadId)), "$.id");
-        // Gera os achados de outra analise, ja concluida, para ter um id valido.
+        // Generates the findings of another, already completed analysis, to have a valid id.
         jobWorker.runPending();
         String finding = findingId(analysisId, "SITE_ABSENT");
         jdbc.update("update lead_analysis set status = 'PROCESSING', score = null, score_version = null, "
@@ -241,9 +242,9 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
         review(finding, "{\"status\": \"CONFIRMED\"}").andExpect(status().isConflict());
     }
 
-    /** Falha inesperada: tenta de novo com espera; esgotadas as tentativas, a analise falha. */
+    /** An unexpected failure: it retries with backoff; once the attempts run out, the analysis fails. */
     @Test
-    @DisplayName("falha repetida esgota as tentativas e marca a analise como falha")
+    @DisplayName("a repeated failure exhausts the attempts and marks the analysis as failed")
     void retriesThenFails() throws Exception {
         when(websiteChecker.inspect(any())).thenThrow(new IllegalStateException("falha simulada"));
         String leadId = leadWithSite();
@@ -251,8 +252,9 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
 
         for (int attempt = 1; attempt <= 3; attempt++) {
             assertThat(jobWorker.runPending()).describedAs("tentativa %d", attempt).isEqualTo(1);
-            // Pula a espera entre tentativas. Instante bem no passado: o relogio
-            // do banco em container pode estar adiantado em relacao ao da JVM.
+            // Skips the backoff between attempts. An instant well in the past:
+            // the clock of the containerised database can run ahead of the
+            // JVM's.
             jdbc.update("update job set run_after = now() - interval '1 hour' where idempotency_key = ?", analysisId);
         }
         assertThat(jobWorker.runPending()).isZero();
@@ -264,12 +266,12 @@ class AnalysisApiIntegrationTest extends PostgresIntegrationTest {
         var job = jdbc.queryForMap("select status, attempts, last_error from job where idempotency_key = ?", analysisId);
         assertThat(job.get("status")).isEqualTo("FAILED");
         assertThat(job.get("attempts")).isEqualTo(3);
-        // So a classe do erro, sem mensagem interna.
+        // The error class only, with no internal message.
         assertThat(job.get("last_error")).isEqualTo("IllegalStateException");
     }
 
     @Test
-    @DisplayName("lista as analises do lead, mais recente primeiro")
+    @DisplayName("lists the lead's analyses, newest first")
     void listsAnalyses() throws Exception {
         String leadId = leadWithSite();
         String first = completedAnalysis(leadId);

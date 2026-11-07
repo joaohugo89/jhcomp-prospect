@@ -33,10 +33,10 @@ import com.jhcomp.prospect.identity.IdentityTestData;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** CRM e dashboard mantem o escopo da organizacao (doc 10 §3). */
+/** CRM and dashboard keep the organisation scope (doc 10 §3). */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Isolamento entre organizacoes: CRM e dashboard")
+@DisplayName("Isolation between organisations: CRM and dashboard")
 class CrmIsolationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -89,7 +89,7 @@ class CrmIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao le nem altera deal, interacoes e tarefas de B")
+    @DisplayName("a user of A can neither read nor change B's deal, interactions and tasks")
     void routesAreScoped() throws Exception {
         expectNotFound(get("/leads/" + leadB + "/deal"), "");
         expectNotFound(put("/leads/" + leadB + "/deal"), "{\"estimatedValue\": 1}");
@@ -110,7 +110,7 @@ class CrmIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("usuario de A nao atribui tarefa propria a membro de B")
+    @DisplayName("a user of A cannot assign their own task to a member of B")
     void cannotAssignToOtherOrganization() throws Exception {
         String companyA = JsonPath.read(body(post("/companies"), sessionA,
                 "{\"name\": \"Empresa de A\", \"city\": \"Cidade Exemplo\", \"state\": \"MG\"}"), "$.id");
@@ -121,9 +121,9 @@ class CrmIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("valor da etapa no quadro de A nao soma negocio de B")
+    @DisplayName("the stage value on A's board does not include a deal of B")
     void boardValueIsScoped() throws Exception {
-        // A tem um negocio de 100 na proposta; o de B, na mesma etapa, vale 5.000.
+        // A has a deal worth 100 at the proposal; B's, in the same stage, is worth 5,000.
         String companyA = JsonPath.read(body(post("/companies"), sessionA,
                 "{\"name\": \"Empresa Valor A\", \"city\": \"Cidade Exemplo\", \"state\": \"MG\"}"), "$.id");
         String leadA = JsonPath.read(body(post("/leads"), sessionA, "{\"companyId\": \"%s\"}".formatted(companyA)), "$.id");
@@ -140,7 +140,7 @@ class CrmIsolationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("quadro e dashboard de A nao mostram nem contam dados de B")
+    @DisplayName("A's board and dashboard neither show nor count data of B")
     void aggregatesAreScoped() throws Exception {
         mockMvc.perform(get("/pipeline/board").session(sessionA))
                 .andExpect(jsonPath("$[5].total").value(0))

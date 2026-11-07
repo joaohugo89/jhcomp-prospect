@@ -12,8 +12,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
 
-/** Primeiro administrador de producao: execucao unica e falha visivel (D19, D27). */
-@DisplayName("Comando de bootstrap de producao")
+/** The first administrator in production: single-use and visibly failing (D19, D27). */
+@DisplayName("Production bootstrap command")
 class AdminBootstrapCommandTest {
 
     private static final String STRONG_PASSWORD = "senha-forte-ficticia";
@@ -25,7 +25,7 @@ class AdminBootstrapCommandTest {
     }
 
     @Test
-    @DisplayName("cria organizacao e administrador com o e-mail normalizado")
+    @DisplayName("creates the organisation and the administrator with a normalised e-mail")
     void createsWhenEmpty() {
         run(" Admin@Example.Test ", STRONG_PASSWORD);
 
@@ -33,7 +33,7 @@ class AdminBootstrapCommandTest {
     }
 
     @Test
-    @DisplayName("recusa rodar de novo quando ja existe organizacao")
+    @DisplayName("refuses to run again once an organisation exists")
     void refusesWhenAlreadyInitialized() {
         when(setup.hasOrganization()).thenReturn(true);
 
@@ -42,7 +42,7 @@ class AdminBootstrapCommandTest {
     }
 
     @Test
-    @DisplayName("recusa senha curta e e-mail ausente, sem criar nada")
+    @DisplayName("refuses a short password and a missing e-mail, creating nothing")
     void refusesWeakInput() {
         assertThatThrownBy(() -> run("admin@example.test", "curta")).hasMessageContaining("at least 12");
         assertThatThrownBy(() -> run("", STRONG_PASSWORD)).hasMessageContaining("BOOTSTRAP_ADMIN_EMAIL");
@@ -50,7 +50,7 @@ class AdminBootstrapCommandTest {
     }
 
     @Test
-    @DisplayName("slug sem acento, minusculo, so com letras, digitos e hifen")
+    @DisplayName("a slug without accents, lower case, with letters, digits and hyphens only")
     void slug() {
         assertThat(AdminBootstrapCommand.slugOf("Padaria São José")).isEqualTo("padaria-sao-jose");
         assertThat(AdminBootstrapCommand.slugOf("  JH.COMP  ")).isEqualTo("jh-comp");

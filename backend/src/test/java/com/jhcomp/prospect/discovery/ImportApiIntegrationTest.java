@@ -35,16 +35,16 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Importacao CSV pela API (RF-015, RF-014, RF-022; doc 10 §4).
+ * CSV import through the API (RF-015, RF-014, RF-022; doc 10 §4).
  *
- * <p>Cada teste usa uma organizacao propria. Dados ficticios (doc 10 §10).
+ * <p>Each test uses its own organisation. Fictitious data (doc 10 §10).
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("API de importacao CSV")
+@DisplayName("CSV import API")
 class ImportApiIntegrationTest extends PostgresIntegrationTest {
 
-    /** Cabecalhos como uma planilha brasileira exporta: acento, ponto e virgula. */
+    /** Headers as a Brazilian spreadsheet exports them: accents and semicolons. */
     private static final String SAMPLE = """
             Razão Social;Segmento;Município;UF;Site;Telefone;Faturamento
             Barbearia Um;BARBERSHOP;Cidade Exemplo;MG;barbearia-um.example.test;(35) 98888-0001;100
@@ -110,7 +110,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andReturn().getResponse().getContentAsString(), "$.id");
     }
 
-    /** Planilha com uma linha que repete o site da empresa existente. */
+    /** A spreadsheet with one row repeating the existing company's site. */
     private static final String MERGE_CSV = """
             nome;cidade;uf;site;telefone;segmento;nome fantasia
             Outro Nome;Outra Cidade;SP;existente.example.test;(35) 3333-1234;OUTRO;Fantasia Nova
@@ -123,7 +123,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("analise reconhece cabecalhos, classifica as linhas e nao cria empresa")
+    @DisplayName("the analysis recognises headers, classifies the rows and creates no company")
     void analysisDoesNotPersistCompanies() throws Exception {
         upload("empresas.csv", SAMPLE.getBytes(StandardCharsets.UTF_8), "sourceName", "Planilha de outubro")
                 .andExpect(status().isCreated())
@@ -135,14 +135,14 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.sourceName").value("Planilha de outubro"))
                 .andExpect(jsonPath("$.columnMapping.name").value("Razão Social"))
                 .andExpect(jsonPath("$.columnMapping.city").value("Município"))
-                // Coluna que nao e campo da empresa nao e lida nem guardada.
+                // A column that is no company field is neither read nor stored.
                 .andExpect(jsonPath("$.ignoredColumns", contains("Faturamento")));
 
         assertThat(companies()).isZero();
     }
 
     @Test
-    @DisplayName("relatorio mostra o erro de cada linha, com campo e numero da linha")
+    @DisplayName("the report shows each row's error, with the field and the line number")
     void reportShowsErrorsPerRow() throws Exception {
         String importId = analyze(SAMPLE);
 
@@ -152,13 +152,13 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[0].rowNumber").value(4))
                 .andExpect(jsonPath("$.content[0].errors[0].field").value("city"))
                 .andExpect(jsonPath("$.content[0].errors[0].message").value("must not be blank"))
-                // A mesma regra do cadastro manual: URL perigosa nao passa por planilha.
+                // The same rule as manual entry: a dangerous URL does not get in through a spreadsheet.
                 .andExpect(jsonPath("$.content[1].rowNumber").value(5))
                 .andExpect(jsonPath("$.content[1].errors[0].field").value("websiteUrl"));
     }
 
     @Test
-    @DisplayName("telefone com formatacao diferente no mesmo arquivo e possivel duplicata")
+    @DisplayName("a phone in a different format within the same file is a possible duplicate")
     void duplicateWithinFile() throws Exception {
         String importId = analyze(SAMPLE);
 
@@ -169,7 +169,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("linha igual a empresa ja cadastrada e possivel duplicata")
+    @DisplayName("a row matching an already registered company is a possible duplicate")
     void duplicateOfExistingCompany() throws Exception {
         String existing = JsonPath.read(mockMvc.perform(post("/companies")
                         .session(session)
@@ -194,7 +194,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("confirmacao importa validas com origem CSV, pula duplicatas nao escolhidas e abre leads")
+    @DisplayName("confirmation imports the valid rows with a CSV origin, skips unchosen duplicates and opens leads")
     void confirmImportsValidRows() throws Exception {
         String importId = analyze(SAMPLE);
 
@@ -213,7 +213,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[0].companyId").value(notNullValue()))
                 .andExpect(jsonPath("$.content[0].leadId").value(notNullValue()));
 
-        // Proveniencia: cada empresa sabe de que arquivo e linha veio (RF-022).
+        // Provenance: every company knows which file and line it came from (RF-022).
         var source = jdbc.queryForMap("""
                 select s.source_type, s.source_name, s.source_reference
                   from lead_source s join company c on c.id = s.company_id
@@ -231,7 +231,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("duplicata escolhida pelo operador e importada")
+    @DisplayName("a duplicate chosen by the operator is imported")
     void includedDuplicateIsImported() throws Exception {
         String importId = analyze(SAMPLE);
 
@@ -243,21 +243,21 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("so aceita incluir linhas que sao possiveis duplicatas")
+    @DisplayName("it only accepts including rows that are possible duplicates")
     void cannotIncludeOtherRows() throws Exception {
         String importId = analyze(SAMPLE);
 
         confirm(importId, "{\"includeDuplicateRows\": [4]}")
                 .andExpect(status().isBadRequest());
 
-        // A recusa desfaz a tomada: a importacao continua aguardando.
+        // The refusal undoes the claim: the import keeps awaiting confirmation.
         mockMvc.perform(get("/imports/" + importId).session(session))
                 .andExpect(jsonPath("$.status").value("ANALYZED"));
         assertThat(companies()).isZero();
     }
 
     @Test
-    @DisplayName("visao geral conta por situacao e a lista filtra por status, so da propria organizacao")
+    @DisplayName("the overview counts by status and the list filters by status, within the organisation only")
     void summaryAndStatusFilter() throws Exception {
         String pending = analyze(SAMPLE);
         String done = analyze("nome;cidade;uf\nLoja Resumo Um;Cidade Exemplo;MG\nLoja Resumo Dois;Cidade Exemplo;MG\n");
@@ -282,7 +282,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("confirmar duas vezes nao importa em dobro")
+    @DisplayName("confirming twice does not import twice")
     void confirmTwice() throws Exception {
         String importId = analyze(SAMPLE);
 
@@ -293,7 +293,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("empresa cadastrada entre analise e confirmacao nao vira duplicata silenciosa")
+    @DisplayName("a company registered between analysis and confirmation does not become a silent duplicate")
     void recheckAtConfirmation() throws Exception {
         String importId = analyze("""
                 nome;cidade;uf;telefone
@@ -319,9 +319,9 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[0].duplicateSignals", contains("PHONE")));
     }
 
-    /** Doc 10 §4: importacao repetida do mesmo arquivo. */
+    /** Doc 10 §4: the same file imported again. */
     @Test
-    @DisplayName("reenvio do mesmo arquivo e avisado e suas linhas viram duplicatas")
+    @DisplayName("resending the same file is flagged and its rows become duplicates")
     void sameFileTwice() throws Exception {
         String first = analyze(SAMPLE);
         confirm(first, "{}").andExpect(status().isOk());
@@ -334,7 +334,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("descarte apaga os valores das linhas e impede confirmar depois")
+    @DisplayName("discarding erases the row values and prevents confirming afterwards")
     void discard() throws Exception {
         String importId = analyze(SAMPLE);
 
@@ -351,7 +351,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("mapeamento manual de colunas")
+    @DisplayName("manual column mapping")
     void manualMapping() throws Exception {
         String csv = """
                 Cliente;Local;Sigla
@@ -373,7 +373,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("recusa planilha que nao e CSV e arquivo fora de UTF-8")
+    @DisplayName("refuses a spreadsheet that is not CSV, and a file that is not UTF-8")
     void rejectsInvalidFiles() throws Exception {
         upload("empresas.xlsx", new byte[] {0x50, 0x4B, 0x03, 0x04})
                 .andExpect(status().isBadRequest())
@@ -385,12 +385,13 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lista importacoes da organizacao, mais recente primeiro")
+    @DisplayName("lists the organisation's imports, newest first")
     void listsImports() throws Exception {
         String first = analyze(SAMPLE);
         String second = analyze("nome;cidade;uf\nA;B;MG\n");
-        // O relogio da JVM no Windows tem resolucao de ate ~16 ms: duas analises
-        // seguidas podem receber o mesmo instante, e o desempate por id e aleatorio.
+        // The JVM clock on Windows has a resolution of up to ~16 ms: two
+        // consecutive analyses can receive the same instant, and the tiebreak
+        // by id is random.
         jdbc.update("UPDATE import_batch SET created_at = created_at - interval '1 hour' WHERE id = ?::uuid", first);
 
         mockMvc.perform(get("/imports").session(session))
@@ -399,9 +400,9 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.content[*].status", containsInAnyOrder("ANALYZED", "ANALYZED")));
     }
 
-    /** RF-023: completar nunca sobrescreve o que ja esta cadastrado. */
+    /** RF-023: completing never overwrites what is already on file. */
     @Test
-    @DisplayName("completar empresa existente preenche so campos vazios e registra a origem")
+    @DisplayName("completing an existing company fills only the empty fields and records the origin")
     void mergeFillsOnlyBlankFields() throws Exception {
         String existing = createExistingCompany("""
                 {"name": "Empresa Existente", "segment": "ORIGINAL", "city": "Cidade Exemplo", "state": "MG",
@@ -414,7 +415,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.importedRows").value(0))
                 .andExpect(jsonPath("$.mergedRows").value(1));
 
-        // Nenhuma empresa nova; a existente ganhou so o que faltava.
+        // No new company; the existing one gained only what was missing.
         assertThat(companies()).isEqualTo(1);
         mockMvc.perform(get("/companies/" + existing).session(session))
                 .andExpect(jsonPath("$.name").value("Empresa Existente"))
@@ -434,7 +435,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("completar com abertura de leads nao duplica oportunidade aberta nem derruba a importacao")
+    @DisplayName("completing with lead creation duplicates no open opportunity and does not fail the import")
     void mergeDoesNotDuplicateOpenLead() throws Exception {
         String existing = createExistingCompany("""
                 {"name": "Empresa Existente", "city": "Cidade Exemplo", "state": "MG",
@@ -459,7 +460,7 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("empresa arquivada depois da analise nao e alterada")
+    @DisplayName("a company archived after the analysis is not changed")
     void mergeIntoArchivedCompanyIsSkipped() throws Exception {
         String existing = createExistingCompany("""
                 {"name": "Empresa Existente", "city": "Cidade Exemplo", "state": "MG",
@@ -479,11 +480,11 @@ class ImportApiIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("so completa duplicata de empresa cadastrada, e nao junto com importar como nova")
+    @DisplayName("it only completes a duplicate of a registered company, and never alongside importing as new")
     void invalidMergeChoices() throws Exception {
         String importId = analyze(SAMPLE);
 
-        // Linha 6 duplica a linha 2 do proprio arquivo: nao ha empresa a completar.
+        // Row 6 duplicates row 2 of the file itself: there is no company to complete.
         confirm(importId, "{\"mergeDuplicateRows\": [6]}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(

@@ -39,13 +39,13 @@ import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
 /**
- * Empresas como ferramenta (D32): excluir o que entrou por engano, desfazer
- * importacao, mesclar duplicata, lista com lead e atividade, lote e duplicata
- * ao digitar. Dados ficticios.
+ * Companies as a tool (D32): deleting what was entered by mistake, undoing an
+ * import, merging a duplicate, the list with lead and activity, bulk editing
+ * and duplicate-while-typing. Fictitious data.
  */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Empresas: excluir, desfazer importacao, mesclar e lista")
+@DisplayName("Companies: delete, undo an import, merge and list")
 class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -96,7 +96,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("empresa limpa e excluida de verdade, com o lead aberto e a origem, e audita so o id")
+    @DisplayName("a clean company is really deleted, along with its open lead and origin, and only the id is audited")
     void deletesCleanCompany() throws Exception {
         String company = createCompany(session, "Loja Engano", "");
         String lead = openLead(session, company);
@@ -104,7 +104,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
         mockMvc.perform(get("/companies/" + company + "/removal").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.allowed").value(true));
-        // Nome digitado errado nao exclui.
+        // A mistyped name does not delete.
         deleteCompany(session, company, "Outra Loja").andExpect(status().isBadRequest());
         deleteCompany(session, company, "  loja engano ").andExpect(status().isNoContent());
 
@@ -120,7 +120,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("empresa com atividade comercial nao e excluida: arquivar e o caminho")
+    @DisplayName("a company with commercial activity is not deleted: archiving is the path")
     void refusesCompanyWithActivity() throws Exception {
         String withInteraction = createCompany(session, "Loja Conversa", "");
         String lead = openLead(session, withInteraction);
@@ -144,7 +144,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("operador exclui o que cadastrou por 7 dias; depois, ou de outra pessoa, so o administrador")
+    @DisplayName("an operator deletes what they registered for 7 days; afterwards, or someone else's, only an administrator")
     void creatorGraceAndAdministrator() throws Exception {
         IdentityTestData.Member operator = testData.addMember(admin.organizationId(), OrganizationRole.OPERATOR);
         MockHttpSession operatorSession = TestSessions.login(mockMvc, operator);
@@ -160,12 +160,12 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
 
         jdbc.update("update company set created_at = now() - interval '8 days' where id = ?", UUID.fromString(mine));
         deleteCompany(operatorSession, mine, "Loja Do Operador").andExpect(status().isForbidden());
-        // Administrador a qualquer tempo, de qualquer autor.
+        // An administrator at any time, whoever the author.
         deleteCompany(session, mine, "Loja Do Operador").andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("bloqueio de contato sobrevive a exclusao da empresa")
+    @DisplayName("a contact block survives the company being deleted")
     void suppressionSurvives() throws Exception {
         jdbc.update("""
                 insert into suppression_entry (id, organization_id, identifier_type, identifier, reason, requested_at,
@@ -189,7 +189,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("desfazer importacao exclui as criadas sem atividade, mantem as outras e as completadas")
+    @DisplayName("undoing an import deletes those created without activity, keeps the others and the completed ones")
     void undoImport() throws Exception {
         String existing = createCompany(session, "Empresa Existente", ", \"websiteUrl\": \"https://existente.example.test\"");
         String importId = importCsv(session, """
@@ -198,7 +198,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
                 Importada Ativa;Cidade Exemplo;MG;;(35) 3333-1002
                 Completa Existente;Outra Cidade;SP;existente.example.test;(35) 3333-1003
                 """);
-        // Antes de confirmar nao ha o que desfazer.
+        // Before confirming there is nothing to undo.
         send(session, post("/imports/" + importId + "/undo"), "").andExpect(status().isConflict());
         send(session, post("/imports/" + importId + "/confirm"), "{\"mergeDuplicateRows\": [4], \"createLeads\": true}")
                 .andExpect(status().isOk());
@@ -219,17 +219,17 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
         assertThat(jdbc.queryForList("select name from company where organization_id = ? order by name", String.class,
                 admin.organizationId())).containsExactly("Empresa Existente", "Importada Ativa");
         assertThat(count("company", "id", existing)).isOne();
-        // A linha fica no lote, sem a empresa.
+        // The row stays in the batch, without the company.
         mockMvc.perform(get("/imports/" + importId + "/report").param("status", "REMOVED").session(session))
                 .andExpect(jsonPath("$.content[*].rowNumber", contains(2)))
                 .andExpect(jsonPath("$.content[0].companyId").doesNotExist());
         mockMvc.perform(get("/imports/" + importId).session(session)).andExpect(jsonPath("$.undoneAt").exists());
-        // Uma vez so.
+        // Once only.
         send(session, post("/imports/" + importId + "/undo"), "").andExpect(status().isConflict());
     }
 
     @Test
-    @DisplayName("desfazer importacao de outra pessoa, ou depois de 7 dias, so administrador")
+    @DisplayName("undoing somebody else's import, or one older than 7 days, requires an administrator")
     void undoImportPermissions() throws Exception {
         String importId = importCsv(session, "nome;cidade;uf\nImportada Admin;Cidade Exemplo;MG\n");
         send(session, post("/imports/" + importId + "/confirm"), "{}").andExpect(status().isOk());
@@ -245,7 +245,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("mesclar move leads e origens, completa so campos vazios e arquiva a origem")
+    @DisplayName("merging moves leads and origins, fills only empty fields and archives the source")
     void mergeDuplicates() throws Exception {
         String target = createCompany(session, "Barbearia Destino", ", \"phone\": \"(35) 3333-2000\"");
         String source = createCompany(session, "Barbearia Origem",
@@ -256,7 +256,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.movedLeads").value(1))
                 .andExpect(jsonPath("$.filledFields", contains("businessEmail")))
-                // Telefone do destino nao e sobrescrito.
+                // The target's phone is not overwritten.
                 .andExpect(jsonPath("$.company.phone").value("(35) 3333-2000"))
                 .andExpect(jsonPath("$.company.businessEmail").value("contato@origem.example.test"));
 
@@ -269,7 +269,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("desfazer a importacao da origem de uma mesclagem nao apaga o destino, que existia antes")
+    @DisplayName("undoing the import of a merge's source does not delete the target, which existed before it")
     void undoAfterMergeKeepsTarget() throws Exception {
         String target = createCompany(session, "Destino Anterior", "");
         String importId = importCsv(session, "nome;cidade;uf\nOrigem Importada;Cidade Exemplo;MG\n");
@@ -283,17 +283,17 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.removed").value(0));
         send(session, post("/imports/" + importId + "/undo"), "").andExpect(status().isOk());
         assertThat(count("company", "id", target)).isOne();
-        // A linha que criou a origem agora aponta para uma empresa que ela nao criou.
+        // The row that created the source now points at a company it did not create.
         mockMvc.perform(get("/imports/" + importId + "/report").param("status", "MERGED").session(session))
                 .andExpect(jsonPath("$.content[0].companyId").value(target));
     }
 
     @Test
-    @DisplayName("mesclar nao transfere a autoria: quem cadastrou a origem nao ganha o direito de excluir o destino")
+    @DisplayName("merging does not transfer authorship: whoever registered the source gains no right to delete the target")
     void mergeDoesNotTransferAuthorship() throws Exception {
         IdentityTestData.Member operator = testData.addMember(admin.organizationId(), OrganizationRole.OPERATOR);
         MockHttpSession operatorSession = TestSessions.login(mockMvc, operator);
-        // A origem e gravada antes: a proveniencia dela tem sequencia menor que a do destino.
+        // The source is written first: its provenance has a lower sequence than the target's.
         String source = createCompany(operatorSession, "Origem Do Operador", "");
         String target = createCompany(session, "Destino Do Admin", "");
         send(session, post("/companies/" + target + "/merge"), "{\"sourceCompanyId\": \"%s\"}".formatted(source))
@@ -304,11 +304,12 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
         mockMvc.perform(get("/companies/" + target + "/removal").session(operatorSession))
                 .andExpect(jsonPath("$.allowed").value(false));
         deleteCompany(operatorSession, target, "Destino Do Admin").andExpect(status().is4xxClientError());
-        // Destino de mesclagem nunca e "limpo", nem para o administrador.
+        // A merge target is never "clean", not even for an administrator.
         deleteCompany(session, target, "Destino Do Admin").andExpect(status().isConflict());
         assertThat(count("company", "id", target)).isOne();
-        // A origem mesclada tambem nao sai, e nao pode ser mesclada de novo em outro destino:
-        // qualquer dos dois apagaria a marca que protege o destino.
+        // The merged source does not go either, and cannot be merged again
+        // into another target: either would erase the mark protecting the
+        // target.
         deleteCompany(session, source, "Origem Do Operador").andExpect(status().isConflict());
         String other = createCompany(session, "Outro Destino", "");
         send(session, post("/companies/" + other + "/merge"), "{\"sourceCompanyId\": \"%s\"}".formatted(source))
@@ -318,7 +319,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("duas mesclagens simultaneas da mesma origem: uma vale, a outra recebe 409")
+    @DisplayName("two simultaneous merges of the same source: one stands, the other gets 409")
     void concurrentMergesOfSameSource() throws Exception {
         String source = createCompany(session, "Origem Disputada", "");
         String first = createCompany(session, "Destino Um", "");
@@ -349,7 +350,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("mesclar recusa dois ciclos abertos, a propria empresa e destino arquivado")
+    @DisplayName("merging refuses two open cycles, the company itself and an archived target")
     void mergeRefusals() throws Exception {
         String target = createCompany(session, "Loja A", "");
         String source = createCompany(session, "Loja B", "");
@@ -365,7 +366,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lista traz lead atual, contato, origem, atividade e duplicata, com recortes e ordem")
+    @DisplayName("the list carries current lead, contact, origin, activity and duplicate, with slices and ordering")
     void worklist() throws Exception {
         String withLead = createCompany(session, "Alfa Com Lead", ", \"phone\": \"(35) 3333-3001\"");
         String lead = openLead(session, withLead);
@@ -404,7 +405,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("lote define segmento na grafia existente e cidade, pulando arquivadas")
+    @DisplayName("a bulk change sets the segment in the existing spelling and the city, skipping archived ones")
     void bulkUpdate() throws Exception {
         createCompany(session, "Ja Barbearia", ", \"segment\": \"Barbearia\"");
         String first = createCompany(session, "Loja Lote Um", "");
@@ -431,7 +432,7 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("duplicata ao digitar usa telefone, site e nome na cidade, sem contar a propria empresa")
+    @DisplayName("duplicate-while-typing uses phone, site and name in the city, without counting the company itself")
     void duplicateCheck() throws Exception {
         String existing = createCompany(session, "Padaria Sol",
                 ", \"phone\": \"(35) 3333-4000\", \"websiteUrl\": \"https://padaria-sol.example.test\"");
@@ -445,17 +446,17 @@ class CompanyWorkspaceIntegrationTest extends PostgresIntegrationTest {
                 """).andExpect(jsonPath("$[0].signals", contains("NAME_CITY_STATE")));
         send(session, post("/companies/duplicate-check"), "{\"websiteUrl\": \"padaria-sol.example.test/contato\"}")
                 .andExpect(jsonPath("$[0].signals", contains("DOMAIN")));
-        // Editando a propria empresa, ela nao e duplicata de si mesma.
+        // When editing the company itself, it is not a duplicate of itself.
         send(session, post("/companies/duplicate-check"), """
                 {"phone": "(35) 3333-4000", "excludeCompanyId": "%s"}
                 """.formatted(existing)).andExpect(jsonPath("$.length()").value(0));
-        // So o nome, sem cidade, nao e sinal.
+        // A name alone, with no city, is not a signal.
         send(session, post("/companies/duplicate-check"), "{\"name\": \"Padaria Sol\"}")
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
-    @DisplayName("outra organizacao: 404 em todas as rotas novas, e lista e lote nao enxergam")
+    @DisplayName("another organisation: 404 on every new route, and neither list nor bulk can see it")
     void isolation() throws Exception {
         String company = createCompany(session, "Loja Isolada", ", \"phone\": \"(35) 3333-5000\"");
         String other = createCompany(session, "Loja Isolada Dois", "");

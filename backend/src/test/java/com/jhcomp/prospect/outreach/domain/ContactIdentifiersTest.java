@@ -7,12 +7,12 @@ import org.junit.jupiter.api.Test;
 
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 
-/** D10: a lista de nao contato normaliza como a deduplicacao. Dados ficticios. */
+/** D10: the do-not-contact list normalises the way deduplication does. Fictitious data. */
 @DisplayName("ContactIdentifiers")
 class ContactIdentifiersTest {
 
     @Test
-    @DisplayName("telefone em outra formatacao vira o mesmo identificador da deduplicacao")
+    @DisplayName("a phone in another format becomes the same identifier deduplication uses")
     void phoneMatchesDedup() {
         assertThat(ContactIdentifiers.normalize(IdentifierType.PHONE, "(35) 98888-7777"))
                 .map(ContactIdentifier::value)
@@ -20,14 +20,14 @@ class ContactIdentifiersTest {
     }
 
     @Test
-    @DisplayName("e-mail em minusculas e sem espacos")
+    @DisplayName("an e-mail in lower case and without spaces")
     void email() {
         assertThat(ContactIdentifiers.normalize(IdentifierType.EMAIL, " Contato@Loja.Example.Test "))
                 .contains(new ContactIdentifier(IdentifierType.EMAIL, "contato@loja.example.test"));
     }
 
     @Test
-    @DisplayName("valor que nao normaliza nao vira identificador")
+    @DisplayName("a value that does not normalise does not become an identifier")
     void invalid() {
         assertThat(ContactIdentifiers.normalize(IdentifierType.PHONE, "98888-7777")).isEmpty();
     }

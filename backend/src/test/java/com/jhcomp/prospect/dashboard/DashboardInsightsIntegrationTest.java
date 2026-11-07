@@ -35,10 +35,10 @@ import com.jhcomp.prospect.identity.domain.OrganizationRole;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Atencao, funil, responsavel, qualidade dos dados e equipe (RF-070, RF-071). Dados ficticios. */
+/** Attention, funnel, owner, data quality and team (RF-070, RF-071). Fictitious data. */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Dashboard: atencao, funil e responsavel")
+@DisplayName("Dashboard: attention, funnel and owner")
 class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -96,7 +96,7 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("atencao: tarefa atrasada, lead parado, proposta sem contato e lead sem tarefa; nao contatar fica fora")
+    @DisplayName("attention: overdue task, stalled lead, untouched proposal and lead with no task; do-not-contact stays out")
     void attention() throws Exception {
         String late = createLead(session, "Loja Tarefa Atrasada", null);
         move(late, "QUALIFIED");
@@ -130,11 +130,11 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.staleLeads.items[*].leadId", not(hasItem(late))))
                 .andExpect(jsonPath("$.quietProposals.total").value(1))
                 .andExpect(jsonPath("$.quietProposals.items[0].leadId").value(proposal))
-                // Todos acima tem tarefa aberta: nenhum aparece como sem tarefa.
+                // All of the above have an open task: none appears as having none.
                 .andExpect(jsonPath("$.withoutTask.total").value(0))
                 .andExpect(jsonPath("$..leadId", not(hasItem(blocked))));
 
-        // Interacao recente tira a proposta da lista de frias.
+        // A recent interaction takes the proposal off the cold list.
         send(session, post("/leads/" + proposal + "/interactions"), """
                 {"type": "CONTACT", "channel": "PHONE", "direction": "OUTBOUND", "occurredAt": "%s"}
                 """.formatted(Instant.now())).andExpect(status().isCreated());
@@ -150,7 +150,7 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("funil: alcance por etapa e tempo medio so com amostra suficiente")
+    @DisplayName("funnel: reach per stage, and an average only with a sufficient sample")
     void funnel() throws Exception {
         for (int i = 0; i < 10; i++) {
             String lead = createLead(session, "Loja Funil " + i, null);
@@ -175,7 +175,7 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.funnel.stages[*].status",
                         contains("NEW", "QUALIFIED", "CONTACT_APPROVED", "CONTACTED", "IN_CONVERSATION", "PROPOSAL_SENT", "WON")))
                 .andExpect(jsonPath("$.funnel.stages[*].reached", contains(10, 10, 4, 1, 1, 1, 1)))
-                // 10 sairam de NEW: ha media; de CONTACT_APPROVED so 1 saiu: sem media.
+                // 10 left NEW: there is an average; only 1 left CONTACT_APPROVED: no average.
                 .andExpect(jsonPath("$.funnel.stages[0].exits").value(10))
                 .andExpect(jsonPath("$.funnel.stages[0].sufficientSample").value(true))
                 .andExpect(jsonPath("$.funnel.stages[0].avgDays").exists())
@@ -187,7 +187,7 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("responsavel filtra os numeros do dashboard; id de outra organizacao devolve zero")
+    @DisplayName("the owner filters the dashboard's numbers; an id from another organisation returns zero")
     void assignee() throws Exception {
         IdentityTestData.Member operator = testData.addMember(admin.organizationId(), OrganizationRole.OPERATOR);
         String mine = createLead(session, "Loja Da Operadora", null);
@@ -208,7 +208,7 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("qualidade dos dados conta empresas ativas sem segmento")
+    @DisplayName("data quality counts the active companies with no segment")
     void withoutSegment() throws Exception {
         createLead(session, "Loja Sem Segmento", null);
         createLead(session, "Loja Com Segmento", "Barbearia");
@@ -218,7 +218,7 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("equipe: operador lista os membros ativos so com id e nome")
+    @DisplayName("team: an operator lists the active members with id and name only")
     void team() throws Exception {
         IdentityTestData.Member operator = testData.addMember(admin.organizationId(), OrganizationRole.OPERATOR);
         MockHttpSession operatorSession = TestSessions.login(mockMvc, operator);
@@ -232,7 +232,7 @@ class DashboardInsightsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("atencao, funil e equipe de A nao mostram dados de B")
+    @DisplayName("A's attention, funnel and team show no data of B")
     void isolation() throws Exception {
         IdentityTestData.Member other = testData.createActiveAdmin("insights-b");
         MockHttpSession sessionB = TestSessions.login(mockMvc, other);

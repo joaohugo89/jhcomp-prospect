@@ -13,10 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Valida a migration V1 contra PostgreSQL real (doc 10 §2).
+ * Validates migration V1 against a real PostgreSQL (doc 10 §2).
  *
- * <p>Verifica tanto o registro do Flyway quanto o efeito concreto da migration,
- * porque um historico com sucesso nao prova que o objeto criado funciona.
+ * <p>It checks both Flyway's record and the migration's concrete effect,
+ * because a successful history does not prove the object it created works.
  */
 @DisplayName("Migration V1 (baseline)")
 class BaselineMigrationTest extends PostgresIntegrationTest {
@@ -28,7 +28,7 @@ class BaselineMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("foi aplicada com sucesso e sem divergencia de checksum")
+    @DisplayName("was applied successfully and with no checksum mismatch")
     void baselineApplied() {
         var applied = jdbc.queryForList(
                 "select version, description, success from flyway_schema_history order by installed_rank");
@@ -42,7 +42,7 @@ class BaselineMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("instala unaccent, usado pela normalizacao compartilhada (D10)")
+    @DisplayName("installs unaccent, used by the shared normalisation (D10)")
     void unaccentIsInstalled() {
         var installed = jdbc.queryForObject(
                 "select exists(select 1 from pg_extension where extname = 'unaccent')", Boolean.class);
@@ -51,11 +51,12 @@ class BaselineMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("unaccent normaliza acentuacao usada em nomes de empresa")
+    @DisplayName("unaccent normalises the accents used in company names")
     void unaccentNormalizesBusinessNames() {
-        // Caso real do doc 10 §4: nome com acento e espaco excedente, inclusive
-        // tabulacao. "\\s" no Java: com uma barra so, "\s" e um espaco literal
-        // (Java 15+) e a regex do SQL deixaria a tabulacao passar.
+        // A real case from doc 10 §4: a name with accents and excess
+        // whitespace, a tab included. "\\s" in Java: with a single backslash,
+        // "\s" is a literal space (Java 15+) and the SQL regex would let the
+        // tab through.
         var normalized = jdbc.queryForObject(
                 "select lower(unaccent(trim(regexp_replace(?, '\\s+', ' ', 'g'))))",
                 String.class,
@@ -65,23 +66,24 @@ class BaselineMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("timestamptz preserva o instante absoluto, como exige RNF-009")
+    @DisplayName("timestamptz preserves the absolute instant, as RNF-009 requires")
     void timestamptzPreservesInstant() {
-        // Nao se verifica aqui a configuracao TimeZone do servidor: o driver
-        // JDBC a envia no pacote de inicializacao da conexao, de modo que tanto
-        // setting quanto reset_val em pg_settings passam a refletir o fuso da
-        // JVM, e nao o do banco. O que RNF-009 realmente exige e que o instante
-        // sobreviva a ida e volta sem deslocamento, o que este teste comprova.
+        // The server's TimeZone setting is not checked here: the JDBC driver
+        // sends it in the connection's startup packet, so both setting and
+        // reset_val in pg_settings end up reflecting the JVM's zone rather
+        // than the database's. What RNF-009 actually requires is that the
+        // instant survives the round trip without shifting, which is what this
+        // test proves.
         var expected = Instant.parse("2026-01-15T12:00:00Z");
 
-        // O instante vai como literal, nao como parametro: o PostgreSQL nao
-        // infere o tipo de um parametro solto dentro de um cast.
+        // The instant goes as a literal, not a parameter: PostgreSQL does not
+        // infer the type of a bare parameter inside a cast.
         var roundTrip = jdbc.queryForObject(
                 "select cast('2026-01-15T12:00:00Z' as timestamptz)", Instant.class);
 
         assertThat(roundTrip).isEqualTo(expected);
 
-        // Mesmo instante escrito em outro deslocamento deve ler igual.
+        // The same instant written at another offset must read back equal.
         var sameInstantOtherOffset = jdbc.queryForObject(
                 "select cast('2026-01-15T09:00:00-03:00' as timestamptz)", Instant.class);
 
@@ -89,10 +91,11 @@ class BaselineMigrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("a JVM de teste roda em UTC, para que os testes sejam deterministicos")
+    @DisplayName("the test JVM runs in UTC, so the tests are deterministic")
     void testJvmRunsInUtc() {
-        // Fixado via argLine do surefire no pom.xml. Sem isso, um bug de fuso
-        // passaria na maquina do desenvolvedor e falharia no CI, ou o contrario.
+        // Pinned through surefire's argLine in pom.xml. Without it, a time
+        // zone bug would pass on the developer's machine and fail in CI, or the
+        // other way round.
         assertThat(TimeZone.getDefault().getID()).isEqualTo("UTC");
     }
 }

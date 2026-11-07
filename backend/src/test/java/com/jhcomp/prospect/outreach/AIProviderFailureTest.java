@@ -34,10 +34,10 @@ import com.jhcomp.prospect.outreach.domain.MessageGenerationRequest;
 import com.jhcomp.prospect.shared.PostgresIntegrationTest;
 import com.jhcomp.prospect.shared.TestSessions;
 
-/** Provedor indisponivel ou saida invalida nao grava rascunho (doc 10 §7, regra 9). */
+/** An unavailable provider, or invalid output, stores no draft (doc 10 §7, rule 9). */
 @AutoConfigureMockMvc
 @Import(IdentityTestData.class)
-@DisplayName("Outreach: falha e saida invalida do provedor de IA")
+@DisplayName("Outreach: failure and invalid output from the AI provider")
 class AIProviderFailureTest extends PostgresIntegrationTest {
 
     @Autowired
@@ -83,7 +83,7 @@ class AIProviderFailureTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("provedor indisponivel responde 502 sem gravar rascunho")
+    @DisplayName("an unavailable provider answers 502 without storing a draft")
     void providerUnavailable() throws Exception {
         when(aiProvider.generateMessage(any(MessageGenerationRequest.class)))
                 .thenThrow(new AIProviderException("timeout"));
@@ -93,7 +93,7 @@ class AIProviderFailureTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("saida com campo inesperado, como pedido de envio, e recusada inteira")
+    @DisplayName("output with an unexpected field, such as a request to send, is refused whole")
     void unexpectedFieldIsRejected() throws Exception {
         when(aiProvider.generateMessage(any(MessageGenerationRequest.class)))
                 .thenReturn(new AIResponse("mock", "{\"body\": \"Oi\", \"sendNow\": true}"));
@@ -103,7 +103,7 @@ class AIProviderFailureTest extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("o provedor recebe instrucoes e dados separados, sem contato da empresa")
+    @DisplayName("the provider receives instructions and data separately, with no company contact")
     void requestKeepsDataSeparateAndMinimal() throws Exception {
         when(aiProvider.generateMessage(any(MessageGenerationRequest.class)))
                 .thenAnswer(invocation -> {
