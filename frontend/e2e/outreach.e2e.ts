@@ -3,8 +3,9 @@ import { expect, test } from '@playwright/test';
 import { collectCspViolations, fictitiousPhone, importCompanyWithLead, login, uniqueSuffix } from './support';
 
 /**
- * Fluxo 2 da D17: gerar e aprovar mensagem, registrar nao contato e confirmar
- * que nova abordagem e bloqueada, na tela e no servidor (regra 4).
+ * Flow 2 of D17: generate and approve a message, register a do-not-contact
+ * request, and confirm a new approach is blocked, both on screen and on the
+ * server (rule 4).
  */
 test('gera e aprova mensagem; pedido de nao contato bloqueia nova abordagem', async ({ page }) => {
   const violations = collectCspViolations(page);
@@ -17,8 +18,8 @@ test('gera e aprova mensagem; pedido de nao contato bloqueia nova abordagem', as
   const leadUrl = page.url();
   const leadId = leadUrl.split('/').pop() ?? '';
 
-  // Rascunho sem analise: nasce em revisao e aprovar exige confirmar a revisao.
-  // Mensagens ficam numa aba do detalhe.
+  // A draft with no analysis starts in review, and approving requires
+  // confirming that review. Messages live in a tab of the detail.
   await page.getByRole('tab', { name: 'Mensagens' }).click();
   const messages = page.getByRole('region', { name: 'Mensagens' });
   await messages.getByRole('button', { name: 'Gerar rascunho' }).click();
@@ -30,7 +31,7 @@ test('gera e aprova mensagem; pedido de nao contato bloqueia nova abordagem', as
   await expect(messages.getByText('Aprovada, não enviada')).toBeVisible();
   await expect(messages.getByRole('form', { name: 'Registrar envio' })).toBeVisible();
 
-  // Pedido de nao contato pelo telefone, em outro formato que o cadastrado.
+  // A do-not-contact request by phone, in a different format from the one on file.
   await page.getByRole('link', { name: 'Não contato' }).click();
   const register = page.getByRole('region', { name: 'Registrar pedido de não contato' });
   await register.getByRole('group', { name: 'Tipo de contato' }).getByText('Telefone').click();
@@ -39,21 +40,21 @@ test('gera e aprova mensagem; pedido de nao contato bloqueia nova abordagem', as
   await register.getByRole('button', { name: 'Registrar pedido' }).click();
   await expect(page.getByText(/Pedido registrado/)).toBeVisible();
 
-  // A conferência, que qualquer membro faz, já mostra o bloqueio, no formato cadastrado.
+  // The check, which any member can run, already shows the block, in the stored format.
   const check = page.getByRole('region', { name: 'Conferir um contato' });
   await check.getByLabel('Contato a conferir').fill(phone.e164);
   await check.getByRole('button', { name: 'Conferir' }).click();
   await expect(check.getByText(/Bloqueado em todos os canais/)).toBeVisible();
 
-  // Na tela: canal bloqueado, nada a gerar e o registro de envio some.
+  // On screen: the channel is blocked, there is nothing to generate, and recording a send disappears.
   await page.goto(leadUrl);
   await page.getByRole('tab', { name: 'Mensagens' }).click();
   await expect(messages.getByText(/Há pedido de não contato/)).toBeVisible();
   await expect(messages.getByRole('button', { name: 'Gerar novo rascunho' })).toBeDisabled();
   await expect(messages.getByRole('form', { name: 'Registrar envio' })).toHaveCount(0);
 
-  // No servidor: a regra nao depende da tela. E-mail tambem fica bloqueado,
-  // porque o telefone da empresa esta bloqueado em todos os canais (D26).
+  // On the server: the rule does not depend on the screen. E-mail is blocked
+  // too, because the company's phone is blocked on every channel (D26).
   const csrf = (await page.context().cookies()).find((cookie) => cookie.name === 'JH_XSRF')?.value ?? '';
   const response = await page.request.post(`/api/v1/leads/${leadId}/messages/generate`, {
     headers: { 'X-JH-XSRF': csrf },

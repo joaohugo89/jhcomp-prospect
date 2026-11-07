@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { collectCspViolations, fictitiousPhone, importCompanyWithLead, login, uniqueSuffix } from './support';
 
-/** Fluxo 1 da D17: login, importar CSV, qualificar e mover no pipeline. */
+/** Flow 1 of D17: log in, import a CSV, qualify, and move on the pipeline. */
 test('importa empresa por CSV, qualifica o lead e move no pipeline', async ({ page }) => {
   const violations = collectCspViolations(page);
   const suffix = uniqueSuffix();
@@ -15,13 +15,13 @@ test('importa empresa por CSV, qualifica o lead e move no pipeline', async ({ pa
   await login(page);
   await importCompanyWithLead(page, company);
 
-  // Qualificar pelo detalhe do lead (cartao de propriedades, na lateral).
+  // Qualify from the lead detail (the properties card in the sidebar).
   const status = page.getByRole('region', { name: 'Propriedades' });
   await status.getByLabel('Novo status').selectOption('QUALIFIED');
   await status.getByRole('button', { name: 'Alterar status' }).click();
   await expect(status.getByLabel('Novo status').locator('option[value="CONTACT_APPROVED"]')).toHaveCount(1);
 
-  // Mover no pipeline, pelo botao (caminho do teclado), sem arrastar.
+  // Move on the pipeline through the button (the keyboard path), without dragging.
   await page.getByRole('link', { name: 'Pipeline' }).click();
   await page.getByLabel('Buscar empresa').fill(company.name);
   await page.getByRole('button', { name: 'Filtrar' }).click();

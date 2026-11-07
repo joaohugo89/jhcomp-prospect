@@ -1,19 +1,19 @@
 import { vi } from 'vitest';
 
 /**
- * API simulada para testes de interface. Nenhum teste de frontend depende de
- * rede nem do backend.
+ * A fake API for interface tests. No frontend test depends on the network or
+ * on the backend.
  *
- * As rotas são `"MÉTODO /caminho"`; o caminho casa por prefixo, ignorando a
- * query string, e a rota mais longa vence. Cada chamada fica registrada para
- * que o teste confira o que foi enviado.
+ * Routes are `"METHOD /path"`; the path matches by prefix, ignoring the query
+ * string, and the longest route wins. Every call is recorded so a test can
+ * check what was sent.
  */
 export interface RecordedCall {
   readonly method: string;
   readonly path: string;
   readonly query: URLSearchParams;
   readonly body: unknown;
-  /** Corpo multipart, quando a chamada envia arquivo. */
+  /** The multipart body, when the call uploads a file. */
   readonly form: FormData | undefined;
 }
 
@@ -106,7 +106,7 @@ export const lead = {
   allowedTransitions: ['QUALIFIED', 'CONTACTED', 'LOST', 'DO_NOT_CONTACT'] as const,
 };
 
-/** Contexto de composição mínimo, para telas que exibem o lead sem testar outreach. */
+/** A minimal compose context, for screens that show the lead without testing outreach. */
 export const outreachContext = {
   senderOrganization: 'JH.COMP',
   senderName: 'Administrador',
@@ -118,7 +118,7 @@ export const outreachContext = {
   channels: [],
 };
 
-/** Linha da fila de trabalho (`/leads/worklist`) para o mesmo lead fictício. */
+/** The work queue row (`/leads/worklist`) for the same fictitious lead. */
 export const worklistItem = {
   leadId: LEAD_ID,
   companyId: COMPANY_ID,
@@ -133,9 +133,9 @@ export const worklistItem = {
 };
 
 /**
- * Rotas que a lista de leads chama além da fila: visões, segmentos e equipe.
- * Declaradas juntas porque a API simulada casa por prefixo, e `GET /leads`
- * sozinho responderia a todas com o mesmo JSON.
+ * The routes the lead list calls besides the queue: views, segments and team.
+ * Declared together because the fake API matches by prefix, and `GET /leads`
+ * alone would answer all of them with the same JSON.
  */
 export function leadListRoutes(items: readonly unknown[]): Readonly<Record<string, Handler>> {
   return {

@@ -1,24 +1,26 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
- * Apoio dos testes E2E. Todo dado criado aqui e ficticio (doc 10 §10) e leva
- * sufixo unico: o banco do ambiente persiste entre execucoes, e nome ou
- * telefone repetido viraria duplicata ou bloqueio de uma execucao anterior.
+ * Support for the end-to-end tests. Every value created here is fictitious
+ * (doc 10 §10) and carries a unique suffix: the environment's database
+ * persists between runs, and a repeated name or phone would become a
+ * duplicate, or a block left over from an earlier run.
  */
 
 export function uniqueSuffix(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-/** Celular ficticio de MG com nove digitos aleatorios depois do DDD. */
+/** A fictitious Minas Gerais mobile number, nine random digits after the area code. */
 export function fictitiousPhone(): { readonly formatted: string; readonly e164: string } {
   const digits = `9${String(Math.floor(Math.random() * 100_000_000)).padStart(8, '0')}`;
   return { formatted: `(35) ${digits.slice(0, 5)}-${digits.slice(5)}`, e164: `+5535${digits}` };
 }
 
 /**
- * Falha o teste se o navegador recusar recurso pela CSP: o cabecalho e de
- * producao, e uma violacao quebraria a tela sem nenhum teste unitario notar.
+ * Fails the test if the browser refuses a resource through the CSP: the
+ * header is the production one, and a violation would break a screen without
+ * any unit test noticing.
  */
 export function collectCspViolations(page: Page): string[] {
   const violations: string[] = [];
@@ -49,7 +51,7 @@ export interface FictitiousCompany {
   readonly email: string;
 }
 
-/** Importa uma empresa por CSV, pela tela, abrindo lead; devolve na pagina do lead. */
+/** Imports a company by CSV through the UI, opening a lead; leaves you on the lead page. */
 export async function importCompanyWithLead(page: Page, company: FictitiousCompany): Promise<void> {
   const csv = `nome;cidade;uf;telefone;email\n${company.name};Cidade Exemplo;MG;${company.phone};${company.email}\n`;
 
