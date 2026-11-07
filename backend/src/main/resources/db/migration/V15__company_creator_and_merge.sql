@@ -1,16 +1,17 @@
--- V15 — Autor da empresa e destino da mesclagem gravados na propria empresa (D32).
+-- V15 — The company's author and merge target stored on the company itself
+-- (D32).
 --
--- A V14 deduzia quem cadastrou pela primeira proveniencia, e o desfazer
--- importacao pelas linhas do lote. Mesclar move proveniencia e linhas de
--- importacao de uma empresa para outra, e com isso o "autor" e a "importacao
--- de origem" do destino podiam mudar. Os dois fatos passam a ser colunas que
--- nunca se movem.
+-- V14 inferred who registered a company from its first provenance, and the
+-- import undo from the batch's rows. Merging moves provenance and import rows
+-- from one company to another, and with that the target's "author" and
+-- "originating import" could change. Both facts are now columns that never
+-- move.
 --
--- Migration imutavel apos aplicada (doc 04 §6). Corrigir em V16, nunca aqui.
+-- Immutable once applied (doc 04 §6). Correct in V16, never here.
 ALTER TABLE company ADD COLUMN created_by_user_id uuid;
 ALTER TABLE company ADD COLUMN merged_into_company_id uuid;
 
--- Empresas existentes: autor da primeira proveniencia gravada.
+-- Existing companies: the author of the first recorded provenance.
 UPDATE company c
    SET created_by_user_id = (
        SELECT s.collected_by_user_id FROM lead_source s

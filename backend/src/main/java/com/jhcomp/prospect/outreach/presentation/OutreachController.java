@@ -36,10 +36,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Outreach e lista de nao contato (doc 05 §10, D26).
+ * Outreach and the do-not-contact list (doc 05 §10, D26).
  *
- * <p>{@code record-send} registra envio ja feito pelo operador; nao existe
- * rota que dispare mensagem.
+ * <p>{@code record-send} records a send the operator has already made; there
+ * is no route that dispatches a message.
  */
 @RestController
 public class OutreachController {
@@ -52,7 +52,7 @@ public class OutreachController {
         this.suppressionService = suppressionService;
     }
 
-    // ---- Mensagens ----------------------------------------------------------
+    // ---- Messages -----------------------------------------------------------
 
     @GetMapping("/leads/{leadId}/outreach-context")
     public ComposeContextResponse composeContext(@PathVariable UUID leadId) {
@@ -98,9 +98,9 @@ public class OutreachController {
         return MessageResponse.from(outreachService.cancel(messageId));
     }
 
-    // ---- Nao contato --------------------------------------------------------
+    // ---- Do not contact -----------------------------------------------------
 
-    /** Qualquer membro registra: o pedido precisa valer na hora (doc 06 §9). */
+    /** Any member may record one: the request has to take effect immediately (doc 06 §9). */
     @PostMapping("/suppression-entries")
     @ResponseStatus(HttpStatus.CREATED)
     public SuppressionResponse registerSuppression(@Valid @RequestBody SuppressionRequest request) {
@@ -109,7 +109,7 @@ public class OutreachController {
                 request.requestedAt()));
     }
 
-    /** Acesso restrito (doc 07 §10): a lista reune dados de contato de quem pediu para nao ser contatado. */
+    /** Restricted access (doc 07 §10): the list gathers contact data of people who asked not to be contacted. */
     @GetMapping("/suppression-entries")
     @PreAuthorize("hasRole('ADMIN')")
     public PageResponse<SuppressionResponse> suppressionEntries(
@@ -121,7 +121,7 @@ public class OutreachController {
         return PageResponse.from(suppressionService.list(identifierType, search, pageable), SuppressionResponse::from);
     }
 
-    /** Totais por tipo. Restrito como a lista: contagem por tipo ja e informacao da lista. */
+    /** Totals per type. Restricted like the list: a count per type is already information about the list. */
     @GetMapping("/suppression-entries/summary")
     @PreAuthorize("hasRole('ADMIN')")
     public Map<IdentifierType, Long> suppressionSummary() {
@@ -129,9 +129,10 @@ public class OutreachController {
     }
 
     /**
-     * Qualquer membro confere se um contato esta bloqueado, antes de abordar
-     * por fora do sistema. Por POST: o contato nao vai para a URL nem para log
-     * de acesso. Responde so se esta bloqueado e em quais canais.
+     * Any member may check whether a contact is blocked, before approaching
+     * from outside the system. A POST, so the contact reaches neither the URL
+     * nor an access log. It answers only whether it is blocked, and on which
+     * channels.
      */
     @PostMapping("/suppression-entries/check")
     public SuppressionService.CheckResult checkSuppression(@Valid @RequestBody SuppressionCheckRequest request) {
@@ -141,7 +142,7 @@ public class OutreachController {
     public record SuppressionCheckRequest(
             @NotNull IdentifierType identifierType, @NotBlank @Size(max = 320) String identifier) {}
 
-    // ---- Contratos ----------------------------------------------------------
+    // ---- Contracts ----------------------------------------------------------
 
     public enum SendResult {
         SENT,

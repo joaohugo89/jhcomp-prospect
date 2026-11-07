@@ -1,16 +1,17 @@
--- V1 — Baseline do schema.
+-- V1 — Schema baseline.
 --
--- Esta migration nao cria entidade de dominio: as tabelas de identidade e
--- organizacao entram na Etapa 3 (V2). Aqui ficam apenas os pre-requisitos de
--- banco usados por todo o projeto.
+-- This migration creates no domain entity: the identity and organisation
+-- tables arrive in stage 3 (V2). Only the database prerequisites used across
+-- the whole project live here.
 --
--- Migrations aplicadas sao imutaveis (doc 04 §6). Para corrigir algo definido
--- aqui, criar a proxima versao; nunca editar este arquivo.
+-- Applied migrations are immutable (doc 04 §6). To correct anything defined
+-- here, create the next version; never edit this file.
 
--- unaccent e usado pela normalizacao de nomes compartilhada entre a
--- deduplicacao (doc 06 §4) e a lista de nao contato (doc 07 §10) — decisao D10.
--- Instalado no baseline porque criar extensao exige privilegio elevado, que o
--- usuario da aplicacao pode nao ter nos ambientes gerenciados.
+-- unaccent is used by the name normalisation shared between deduplication
+-- (doc 06 §4) and the do-not-contact list (doc 07 §10) — decision D10.
+-- Installed in the baseline because creating an extension requires elevated
+-- privilege, which the application user may not have in managed
+-- environments.
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
 COMMENT ON EXTENSION unaccent IS

@@ -11,9 +11,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Ultimo acesso de cada membro, lido da auditoria de login (doc 07 §11): o
- * administrador ve quem nunca entrou e quem parou de usar, sem uma coluna a
- * mais que precisaria ser mantida a cada login.
+ * Each member's last access, read from the login audit trail (doc 07 §11):
+ * the administrator can see who never signed in and who stopped using the
+ * system, without an extra column that would have to be maintained on every
+ * login.
  */
 @Repository
 public class MemberActivityQuery {
@@ -24,7 +25,7 @@ public class MemberActivityQuery {
         this.jdbc = jdbc;
     }
 
-    /** Login bem-sucedido mais recente por usuario, so nesta organizacao. Quem nunca entrou fica de fora. */
+    /** The most recent successful login per user, in this organisation only. Those who never signed in are absent. */
     public Map<UUID, Instant> lastLogins(UUID organizationId, Collection<UUID> userIds) {
         Map<UUID, Instant> result = new HashMap<>();
         if (userIds.isEmpty()) {

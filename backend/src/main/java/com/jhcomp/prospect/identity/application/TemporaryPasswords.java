@@ -3,11 +3,11 @@ package com.jhcomp.prospect.identity.application;
 import java.security.SecureRandom;
 
 /**
- * Senha temporaria para membro novo ou redefinido (D28).
+ * A temporary password for a new or reset member (D28).
  *
- * <p>20 caracteres de um alfabeto sem simbolos ambiguos (sem 0/O, 1/l/I),
- * cerca de 113 bits: o administrador a dita ou copia para o membro, que a
- * troca no primeiro acesso.
+ * <p>20 characters from an alphabet without ambiguous symbols (no 0/O, 1/l/I),
+ * around 113 bits: the administrator reads or copies it to the member, who
+ * changes it on first access.
  */
 final class TemporaryPasswords {
 

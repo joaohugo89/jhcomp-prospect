@@ -12,7 +12,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
-/** Trabalho em segundo plano, persistido para sobreviver a reinicializacao (D15). */
+/** Background work, persisted so it survives a restart (D15). */
 @Entity
 @Table(name = "job")
 public class JobEntity extends AssignedIdEntity {
@@ -24,7 +24,7 @@ public class JobEntity extends AssignedIdEntity {
         FAILED
     }
 
-    /** Resumo de erro guardado no job: curto e sem detalhe interno. */
+    /** The error summary kept on the job: short, and free of internal detail. */
     private static final int MAX_ERROR_LENGTH = 500;
 
     @Column(name = "organization_id", nullable = false, updatable = false)
@@ -68,7 +68,7 @@ public class JobEntity extends AssignedIdEntity {
     private Instant completedAt;
 
     protected JobEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     JobEntity(
@@ -99,10 +99,10 @@ public class JobEntity extends AssignedIdEntity {
     }
 
     /**
-     * Registra a falha: volta para a fila com espera crescente ou, esgotadas
-     * as tentativas, falha de vez.
+     * Records the failure: it returns to the queue with increasing backoff
+     * or, once the attempts are exhausted, fails for good.
      *
-     * @return {@code true} se nao havera nova tentativa
+     * @return {@code true} when there will be no further attempt
      */
     boolean fail(String error, Instant now) {
         this.lastError = error.length() > MAX_ERROR_LENGTH ? error.substring(0, MAX_ERROR_LENGTH) : error;
@@ -114,7 +114,7 @@ public class JobEntity extends AssignedIdEntity {
             return true;
         }
         this.status = Status.PENDING;
-        // 30 s, 2 min, 8 min...: falha transitoria de rede tem tempo de passar.
+        // 30 s, 2 min, 8 min…: a transient network failure has time to pass.
         this.runAfter = now.plus(Duration.ofSeconds(30L << (2 * (attempts - 1))));
         return false;
     }

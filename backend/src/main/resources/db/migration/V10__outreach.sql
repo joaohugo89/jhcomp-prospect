@@ -1,10 +1,11 @@
--- V10 — Outreach: mensagens revisadas e lista de nao contato (RF-050 a RF-053, D26).
+-- V10 — Outreach: reviewed messages and the do-not-contact list (RF-050 to
+-- RF-053, D26).
 --
--- Nenhuma coluna de envio automatico: o MVP so registra envio feito pelo
--- operador (regras 1 e 5 do produto).
+-- No column for automatic sending: the MVP only records a send made by the
+-- operator (product rules 1 and 5).
 
 -- ---------------------------------------------------------------------------
--- outreach_message — rascunho, aprovacao e registro de envio
+-- outreach_message — draft, approval and send record
 -- ---------------------------------------------------------------------------
 CREATE TABLE outreach_message (
     id                         uuid        PRIMARY KEY,
@@ -13,7 +14,7 @@ CREATE TABLE outreach_message (
     channel                    text        NOT NULL,
     subject                    text,
     body                       text        NOT NULL,
-    -- Afirmacoes que a IA marcou como nao verificadas, uma por linha.
+    -- The claims the AI flagged as unverified, one per line.
     unverified_claims          text,
     status                     text        NOT NULL,
     generated_by               text,
@@ -39,11 +40,11 @@ CREATE TABLE outreach_message (
     CONSTRAINT outreach_message_body_length CHECK (length(btrim(body)) BETWEEN 1 AND 4000),
     CONSTRAINT outreach_message_subject_length CHECK (subject IS NULL OR length(subject) <= 200),
     CONSTRAINT outreach_message_subject_email_only CHECK (subject IS NULL OR channel = 'EMAIL'),
-    -- Aprovada, enviada ou falha sempre tem aprovacao registrada.
+    -- Approved, sent or failed always has an approval recorded.
     CONSTRAINT outreach_message_approval_consistent CHECK (
         (status IN ('APPROVED', 'SENT', 'FAILED')) = (approved_at IS NOT NULL AND approved_by_user_id IS NOT NULL)
         OR status = 'CANCELLED'),
-    -- SENT e FAILED so com registro do operador (regra 5).
+    -- SENT and FAILED only with the operator's record (rule 5).
     CONSTRAINT outreach_message_send_consistent CHECK (
         (status IN ('SENT', 'FAILED')) = (sent_at IS NOT NULL AND send_recorded_by_user_id IS NOT NULL))
 );
@@ -51,16 +52,16 @@ CREATE TABLE outreach_message (
 CREATE INDEX outreach_message_by_lead ON outreach_message (organization_id, lead_id, created_at DESC);
 
 -- ---------------------------------------------------------------------------
--- suppression_entry — lista de nao contato (doc 07 §10)
+-- suppression_entry — the do-not-contact list (doc 07 §10)
 -- ---------------------------------------------------------------------------
--- Guarda so o identificador normalizado: e o minimo para impedir novo
--- contato. Nao ha remocao no MVP (D26).
+-- It keeps only the normalised identifier: the minimum needed to prevent
+-- further contact. There is no removal in the MVP (D26).
 CREATE TABLE suppression_entry (
     id                  uuid        PRIMARY KEY,
     organization_id     uuid        NOT NULL,
     identifier_type     text        NOT NULL,
     identifier          text        NOT NULL,
-    -- Nulo: vale para todos os canais.
+    -- Null: it applies to every channel.
     channel             text,
     reason              text        NOT NULL,
     requested_at        timestamptz NOT NULL,
@@ -76,7 +77,7 @@ CREATE TABLE suppression_entry (
     CONSTRAINT suppression_entry_reason_length CHECK (length(btrim(reason)) BETWEEN 1 AND 500)
 );
 
--- Uma entrada por identificador e escopo de canal.
+-- One entry per identifier and channel scope.
 CREATE UNIQUE INDEX suppression_entry_unique
     ON suppression_entry (organization_id, identifier_type, identifier, coalesce(channel, ''));
 CREATE INDEX suppression_entry_by_org ON suppression_entry (organization_id, created_at DESC);

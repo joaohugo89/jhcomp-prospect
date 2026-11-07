@@ -17,10 +17,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * Associacao entre usuario e organizacao, com papel (RF-003).
+ * The membership between a user and an organisation, with a role (RF-003).
  *
- * <p>E esta entidade, e nao o usuario, que define a organizacao ativa e o papel
- * usados na autorizacao.
+ * <p>It is this entity, not the user, that defines the active organisation
+ * and the role used by authorisation.
  */
 @Entity
 @Table(name = "organization_member")
@@ -46,7 +46,7 @@ public class OrganizationMemberEntity extends AssignedIdEntity {
     private Instant createdAt;
 
     protected OrganizationMemberEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public OrganizationMemberEntity(
@@ -64,12 +64,12 @@ public class OrganizationMemberEntity extends AssignedIdEntity {
         this.createdAt = now;
     }
 
-    /** Vale na requisicao seguinte do membro, pela revalidacao da sessao (D21). */
+    /** Takes effect on the member's next request, through session revalidation (D21). */
     public void changeRole(OrganizationRole newRole) {
         this.role = newRole;
     }
 
-    /** Revogar encerra a sessao do membro na requisicao seguinte (D21). */
+    /** Revoking ends the member's session on their next request (D21). */
     public void changeStatus(MemberStatus newStatus) {
         this.status = newStatus;
     }

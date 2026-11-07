@@ -8,11 +8,12 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.stereotype.Component;
 
 /**
- * Prompt versionado da geracao de mensagens (D26).
+ * The versioned prompt for message generation (D26).
  *
- * <p>O texto vive em resource e a versao vai gravada em cada mensagem, para
- * saber depois com que instrucao um rascunho foi gerado. Mudar o texto exige
- * nova versao, nunca editar a existente.
+ * <p>The text lives in a resource and the version is stored on every message,
+ * so it is possible to know later which instruction produced a draft.
+ * Changing the text requires a new version, never editing the existing
+ * one.
  */
 @Component
 class OutreachPrompt {

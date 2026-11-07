@@ -1,14 +1,14 @@
 package com.jhcomp.prospect.outreach.domain;
 
 /**
- * Estado da mensagem (doc 04, D26).
+ * The message's state (doc 04, D26).
  *
- * <p>Aprovada nao e enviada, e {@code SENT} so existe com registro do
- * operador (regra 5 do produto).
+ * <p>Approved is not sent, and {@code SENT} only exists once the operator
+ * records it (product rule 5).
  */
 public enum MessageStatus {
     DRAFT,
-    /** A IA marcou afirmacoes nao verificadas: aprovar exige confirmacao explicita. */
+    /** The AI flagged unverified claims: approving requires explicit confirmation. */
     NEEDS_REVIEW,
     APPROVED,
     SENT,

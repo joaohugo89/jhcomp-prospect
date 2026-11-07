@@ -4,12 +4,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
- * Regra unica de senha (D28).
+ * The single password rule (D28).
  *
- * <p>Comprimento em vez de regra de composicao, como recomenda o NIST SP
- * 800-63B: exigir simbolo e numero produz senhas previsiveis e curtas. O teto
- * e em bytes UTF-8, nao em caracteres: o BCrypt so considera os primeiros 72
- * bytes, e o codificador do Spring recusa senha maior em vez de truncar.
+ * <p>Length rather than a composition rule, as NIST SP 800-63B recommends:
+ * demanding a symbol and a digit produces predictable, short passwords. The
+ * ceiling is in UTF-8 bytes, not characters: BCrypt only considers the first
+ * 72 bytes, and Spring's encoder refuses a longer password instead of
+ * truncating it.
  */
 public final class PasswordPolicy {
 
@@ -19,7 +20,7 @@ public final class PasswordPolicy {
     private PasswordPolicy() {
     }
 
-    /** Motivo da recusa, ou vazio quando a senha atende a politica. */
+    /** The reason for refusal, or empty when the password meets the policy. */
     public static Optional<String> violation(String password) {
         if (password == null || password.isBlank()) {
             return Optional.of("Password must not be blank");

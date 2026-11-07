@@ -25,10 +25,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Visoes salvas da lista de leads (D31): as proprias e as compartilhadas com
- * a equipe. No maximo {@value LeadViewService#MAX_VIEWS_PER_USER} privadas por
- * pessoa e {@value LeadViewService#MAX_SHARED_VIEWS} compartilhadas por
- * organizacao; lista sem paginacao por isso. So administrador compartilha.
+ * Saved views of the lead list (D31): your own and those shared with the
+ * team. At most {@value LeadViewService#MAX_VIEWS_PER_USER} private ones per
+ * person and {@value LeadViewService#MAX_SHARED_VIEWS} shared ones per
+ * organisation, which is why the listing is not paginated. Only an
+ * administrator shares.
  */
 @RestController
 @RequestMapping("/leads/views")
@@ -41,8 +42,9 @@ public class LeadViewController {
     }
 
     /**
-     * {@code query} e a query string da lista ja codificada: so os caracteres
-     * de uma URL, sem espaco nem controle. A tela so aplica os filtros que conhece.
+     * {@code query} is the list's query string, already encoded: URL
+     * characters only, with no spaces and no control characters. The screen
+     * applies only the filters it knows.
      */
     public record CreateViewRequest(
             @NotBlank @Size(max = 60) @Pattern(regexp = InputPatterns.NOT_BLANK_WHEN_PRESENT) String name,
@@ -50,7 +52,7 @@ public class LeadViewController {
                     String query,
             Boolean shared) {}
 
-    /** {@code canDelete}: a tela so oferece apagar quando o servidor aceitaria. */
+    /** {@code canDelete}: the screen only offers deletion when the server would accept it. */
     public record ViewResponse(
             UUID id, String name, String query, boolean shared, boolean canDelete, Instant createdAt) {
         static ViewResponse from(LeadViewService.VisibleView visible) {

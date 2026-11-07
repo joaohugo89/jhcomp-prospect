@@ -3,8 +3,9 @@ package com.jhcomp.prospect.shared.error;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
 /**
- * Operacao valida em formato, mas incompativel com o estado atual do recurso:
- * transicao de status nao permitida, empresa arquivada, oportunidade ja aberta.
+ * An operation that is valid in shape but incompatible with the resource's
+ * current state: a transition that is not allowed, an archived company, an
+ * opportunity that is already open.
  */
 public class ConflictException extends ApplicationException {
 

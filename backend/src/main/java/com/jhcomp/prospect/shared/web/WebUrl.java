@@ -10,10 +10,10 @@ import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
 /**
- * URL web: {@code http}, {@code https} ou sem esquema, com host valido.
+ * A web URL: {@code http}, {@code https} or no scheme, with a valid host.
  *
- * <p>Nulo e texto vazio sao aceitos ("sem valor"). Ver {@link WebUrlValidator}
- * para a razao de nao usar expressao regular.
+ * <p>Null and the empty string are accepted ("no value"). See
+ * {@link WebUrlValidator} for why no regular expression is used.
  */
 @Documented
 @Constraint(validatedBy = WebUrlValidator.class)

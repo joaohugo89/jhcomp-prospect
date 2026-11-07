@@ -20,10 +20,10 @@ import com.jhcomp.prospect.identity.infrastructure.persistence.UserEntity;
 import com.jhcomp.prospect.identity.infrastructure.persistence.UserRepository;
 
 /**
- * Cria organizacao e administrador iniciais (D19).
+ * Creates the initial organisation and administrator (D19).
  *
- * <p>Usado pelo bootstrap local e pelo comando de producao. Nunca por
- * migration: isso colocaria uma senha conhecida em todo ambiente.
+ * <p>Used by the local bootstrap and by the production command. Never by a
+ * migration: that would put a known password into every environment.
  */
 @Service
 class InitialSetupService {
@@ -55,7 +55,7 @@ class InitialSetupService {
         return userRepository.existsByEmail(normalizedEmail);
     }
 
-    /** Organizacao, administrador e associacao na mesma transacao: ou os tres, ou nenhum. */
+    /** Organisation, administrator and membership in one transaction: all three, or none. */
     @Transactional
     void create(String organizationName, String slug, String normalizedEmail, String rawPassword) {
         Instant now = clock.instant();

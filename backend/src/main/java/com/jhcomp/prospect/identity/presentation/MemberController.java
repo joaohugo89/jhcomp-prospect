@@ -36,13 +36,14 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Membros da organizacao ativa (RF-003, D28).
+ * Members of the active organisation (RF-003, D28).
  *
- * <p>Operacao administrativa: bloqueada para operador sem permissao, conforme o
- * critério de aceite do RF-003.
+ * <p>An administrative operation: refused to an operator without permission,
+ * per RF-003's acceptance criterion.
  *
- * <p>Nao recebe {@code organizationId} em lugar algum — nem no path, nem em
- * query, nem no corpo. A organizacao vem da sessao (RF-002).
+ * <p>It takes {@code organizationId} nowhere — not in the path, not in a
+ * query parameter, not in the body. The organisation comes from the session
+ * (RF-002).
  */
 @RestController
 @RequestMapping("/organizations/members")
@@ -62,7 +63,7 @@ public class MemberController {
         this.memberService = memberService;
     }
 
-    /** Ativos por padrao; {@code includeRevoked} mostra tambem quem perdeu o acesso, para reativar. */
+    /** Active by default; {@code includeRevoked} also shows those who lost access, so they can be restored. */
     @GetMapping
     public PageResponse<MemberResponse> listMembers(
             @RequestParam(defaultValue = "0") int page,
@@ -71,15 +72,16 @@ public class MemberController {
             @RequestParam(required = false) MemberStatus status,
             @RequestParam(required = false) String search) {
 
-        // Teto no tamanho da pagina: um size arbitrario permitiria extrair a
-        // base inteira numa requisicao e sobrecarregar o servidor (doc 05 §12).
+        // A cap on page size: an arbitrary size would allow the whole base to
+        // be extracted in one request and would overload the server
+        // (doc 05 §12).
         var pageable = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE));
 
-        // A ordenacao fica na propria consulta do repositorio.
+        // The ordering lives in the repository query itself.
         if (search != null && search.length() > 200) {
             throw new InvalidRequestException("search must have at most 200 characters");
         }
-        // Sem status explicito, vale o includeRevoked de antes: so ativos por padrao.
+        // With no explicit status, the older includeRevoked applies: active only by default.
         MemberStatus effective = status != null ? status : includeRevoked ? null : MemberStatus.ACTIVE;
         Page<OrganizationMemberEntity> members = memberQueryService.search(effective, search, pageable);
         UUID organizationId = members.isEmpty() ? null : members.getContent().getFirst().getOrganization().getId();
@@ -91,7 +93,7 @@ public class MemberController {
                 member -> MemberResponse.from(member, lastLogins.get(member.getUser().getId())));
     }
 
-    /** Visao geral da equipe, para o topo da tela. */
+    /** The team overview, for the top of the screen. */
     @GetMapping("/summary")
     public MemberQueryService.TeamSummary summary() {
         return memberQueryService.summary();
@@ -102,7 +104,7 @@ public class MemberController {
         return MemberResponse.from(memberQueryService.findMember(memberId));
     }
 
-    /** A senha temporaria so aparece nesta resposta: nao e guardada nem pode ser consultada depois. */
+    /** The temporary password appears only in this response: it is not stored and cannot be read again. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public MemberWithPasswordResponse createMember(@Valid @RequestBody NewMemberRequest request) {
@@ -124,7 +126,7 @@ public class MemberController {
             @NotBlank @Size(max = 120) @Pattern(regexp = InputPatterns.NOT_BLANK_WHEN_PRESENT) String displayName,
             @NotNull OrganizationRole role) {}
 
-    /** Campo ausente nao muda. */
+    /** An absent field changes nothing. */
     public record UpdateMemberRequest(OrganizationRole role, MemberStatus status) {}
 
     public record MemberWithPasswordResponse(MemberResponse member, String temporaryPassword) {
@@ -133,7 +135,7 @@ public class MemberController {
             return new MemberWithPasswordResponse(MemberResponse.from(created.member()), created.temporaryPassword());
         }
 
-        /** A senha temporaria nunca vai para log (RNF-007). */
+        /** The temporary password never reaches a log (RNF-007). */
         @Override
         public String toString() {
             return "MemberWithPasswordResponse[member=" + member.memberId() + ", temporaryPassword=***]";

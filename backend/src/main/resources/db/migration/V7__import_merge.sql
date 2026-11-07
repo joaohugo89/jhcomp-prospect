@@ -1,8 +1,8 @@
--- V7 — Completar empresa existente a partir da importacao (D23, revisada).
+-- V7 — Completing an existing company from an import (D23, revised).
 --
--- Uma linha marcada como possivel duplicata de empresa ja cadastrada pode,
--- por escolha do operador, preencher os campos VAZIOS dessa empresa. Nunca
--- sobrescreve valor existente (RF-023: nao sobrescrever silenciosamente).
+-- A row flagged as a possible duplicate of an already registered company may,
+-- at the operator's choice, fill that company's EMPTY fields. It never
+-- overwrites an existing value (RF-023: no silent overwriting).
 
 ALTER TABLE import_batch ADD COLUMN merged_rows integer NOT NULL DEFAULT 0;
 
@@ -14,7 +14,7 @@ ALTER TABLE import_batch ADD CONSTRAINT import_batch_counts CHECK (
     AND imported_rows + merged_rows <= total_rows
     AND leads_created >= 0 AND leads_created <= imported_rows + merged_rows);
 
--- Campos que a linha preencheu na empresa existente, como JSON.
+-- The fields this row filled in on the existing company, as JSON.
 ALTER TABLE import_row ADD COLUMN merged_fields text;
 
 ALTER TABLE import_row DROP CONSTRAINT import_row_status_valid;

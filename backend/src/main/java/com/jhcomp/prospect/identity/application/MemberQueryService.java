@@ -20,10 +20,11 @@ import com.jhcomp.prospect.shared.persistence.LikePatterns;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Consultas de membros da organizacao ativa (RF-003).
+ * Queries over the active organisation's members (RF-003).
  *
- * <p>A organizacao vem do {@link OrganizationContext}, nunca de parametro: e
- * este servico, e nao o controller, que garante o escopo (RNF-001).
+ * <p>The organisation comes from {@link OrganizationContext}, never from a
+ * parameter: it is this service, not the controller, that guarantees the scope
+ * (RNF-001).
  */
 @Service
 public class MemberQueryService {
@@ -43,8 +44,9 @@ public class MemberQueryService {
     }
 
     /**
-     * Tela de administracao: {@code status} nulo traz ativos e removidos;
-     * {@code search} procura no nome e no e-mail, sem distinguir caixa.
+     * The administration screen: a null {@code status} returns both active and
+     * revoked members; {@code search} looks in name and e-mail, ignoring
+     * case.
      */
     @Transactional(readOnly = true)
     public Page<OrganizationMemberEntity> search(MemberStatus status, String search, Pageable pageable) {
@@ -63,10 +65,11 @@ public class MemberQueryService {
     }
 
     /**
-     * Membro por id, restrito a organizacao ativa.
+     * A member by id, restricted to the active organisation.
      *
-     * <p>Um id valido de outra organizacao resulta em 404, nao em 403: dizer
-     * que o recurso existe mas pertence a outra organizacao ja e vazamento.
+     * <p>A valid id from another organisation yields 404, not 403: saying the
+     * resource exists but belongs to another organisation is already a
+     * leak.
      */
     @Transactional(readOnly = true)
     public OrganizationMemberEntity findMember(UUID memberId) {
@@ -75,7 +78,7 @@ public class MemberQueryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Member"));
     }
 
-    /** Usuario e membro ativo da organizacao ativa. */
+    /** The user is an active member of the active organisation. */
     @Transactional(readOnly = true)
     public boolean isActiveMember(UUID userId) {
         return memberRepository.existsActiveMember(organizationContext.requireOrganizationId(), userId);

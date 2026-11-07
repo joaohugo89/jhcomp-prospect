@@ -1,21 +1,21 @@
--- V4 — Isolamento de tenant garantido pelo banco (doc 04 §4).
+-- V4 — Tenant isolation enforced by the database (doc 04 §4).
 --
--- Na V3, lead.company_id referenciava company(id) sem organization_id, entao o
--- banco aceitava um lead da organizacao A apontando para empresa da
--- organizacao B. A aplicacao impede, mas uma unica consulta esquecida sem
--- escopo bastaria para cruzar tenants. Aqui toda referencia entre entidades
--- privadas passa a incluir organization_id, e a associacao cruzada vira erro
--- de integridade.
+-- In V3, lead.company_id referenced company(id) without organization_id, so
+-- the database accepted a lead of organisation A pointing at a company of
+-- organisation B. The application prevents it, but a single forgotten query
+-- without a scope would be enough to cross tenants. Here every reference
+-- between private entities includes organization_id, and a cross-tenant
+-- association becomes an integrity error.
 --
--- Referencias a usuario passam a apontar para organization_member: alem de o
--- usuario existir, ele precisa ser membro da mesma organizacao. Associacao
--- revogada continua valida como referencia historica, porque a revogacao muda
--- o status e nao apaga a linha.
+-- References to a user now point at organization_member: besides the user
+-- existing, they have to be a member of the same organisation. A revoked
+-- membership remains valid as a historical reference, because revocation
+-- changes the status and does not delete the row.
 --
--- Corrige a V3 em nova versao porque a V3 ja foi aplicada (migrations sao
--- imutaveis apos aplicadas).
+-- It corrects V3 in a new version because V3 had already been applied
+-- (migrations are immutable once applied).
 
--- Alvos das chaves compostas. id ja e unico; o par existe para ser referenciado.
+-- The targets of the composite keys. id is already unique; the pair exists to be referenced.
 ALTER TABLE company ADD CONSTRAINT company_org_id_unique UNIQUE (organization_id, id);
 ALTER TABLE lead    ADD CONSTRAINT lead_org_id_unique    UNIQUE (organization_id, id);
 
@@ -30,8 +30,8 @@ ALTER TABLE lead
         REFERENCES organization_member (organization_id, user_id);
 
 -- lead_source --------------------------------------------------------------
--- lead_id e collected_by_user_id sao opcionais: com MATCH SIMPLE, o padrao, a
--- chave composta so e verificada quando a coluna esta preenchida.
+-- lead_id and collected_by_user_id are optional: with MATCH SIMPLE, the
+-- default, the composite key is only checked when the column is filled.
 ALTER TABLE lead_source
     DROP CONSTRAINT lead_source_company_id_fkey,
     DROP CONSTRAINT lead_source_lead_id_fkey,

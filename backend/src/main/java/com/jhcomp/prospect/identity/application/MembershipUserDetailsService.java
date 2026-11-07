@@ -16,16 +16,16 @@ import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMembe
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 
 /**
- * Carrega o usuario e resolve sua organizacao ativa no login (RF-002).
+ * Loads the user and resolves their active organisation at login (RF-002).
  *
- * <p>Carrega pela associacao, nao pelo usuario: sem associacao ativa a uma
- * organizacao ativa nao existe contexto em que operar, portanto nao ha
- * autenticacao possivel.
+ * <p>It loads through the membership, not through the user: without an active
+ * membership in an active organisation there is no context to operate in, so
+ * no authentication is possible.
  *
- * <p>Todas as recusas lancam {@link UsernameNotFoundException}, que o
- * provedor de autenticacao converte em credenciais invalidas. Isso mantem a
- * resposta identica para e-mail inexistente, usuario desabilitado e
- * organizacao suspensa, como exige o critério de aceite do RF-001.
+ * <p>Every refusal throws {@link UsernameNotFoundException}, which the
+ * authentication provider turns into invalid credentials. That keeps the
+ * response identical for an unknown e-mail, a disabled user and a suspended
+ * organisation, as RF-001's acceptance criterion requires.
  */
 @Service
 public class MembershipUserDetailsService implements UserDetailsService {
@@ -46,15 +46,16 @@ public class MembershipUserDetailsService implements UserDetailsService {
         List<OrganizationMemberEntity> memberships = memberRepository.findActiveMembershipsByEmail(email);
 
         if (memberships.isEmpty()) {
-            // Sem e-mail no log: evita registrar dado pessoal de quem talvez
-            // nem seja usuario do sistema (RNF-007).
+            // No e-mail in the log: it avoids recording personal data about
+            // someone who may not even be a user of the system (RNF-007).
             throw new UsernameNotFoundException("No active membership");
         }
 
         if (memberships.size() > 1) {
-            // No MVP um usuario pertence a uma organizacao. Varias associacoes
-            // ativas tornariam a organizacao ambigua, e deixar o cliente
-            // escolher violaria o RF-002; recusar e a opcao segura.
+            // In the MVP a user belongs to one organisation. Several active
+            // memberships would make the organisation ambiguous, and letting
+            // the client choose would violate RF-002; refusing is the safe
+            // option.
             log.error(
                     "Usuario com {} associacoes ativas; esperado 1. Login recusado por ambiguidade.",
                     memberships.size());
@@ -74,12 +75,12 @@ public class MembershipUserDetailsService implements UserDetailsService {
                 membership.getUser().getDisplayName(),
                 membership.getRole(),
                 membership.getUser().isPasswordChangeRequired(),
-                // Preenchido pelo login, ao gravar o principal na sessao.
+                // Filled by the login, when the principal is written to the session.
                 null,
                 membership.getUser().getPasswordHash());
     }
 
-    /** O e-mail e persistido normalizado; comparar sem normalizar impediria o login. */
+    /** The e-mail is stored normalised; comparing without normalising would prevent login. */
     public static String normalizeEmail(String rawEmail) {
         return rawEmail == null ? "" : rawEmail.strip().toLowerCase(Locale.ROOT);
     }

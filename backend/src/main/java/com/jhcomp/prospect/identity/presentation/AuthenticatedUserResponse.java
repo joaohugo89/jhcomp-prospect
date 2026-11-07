@@ -6,11 +6,11 @@ import com.jhcomp.prospect.identity.domain.OrganizationRole;
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 
 /**
- * Resposta de {@code /auth/login} e {@code /auth/me}.
+ * The response of {@code /auth/login} and {@code /auth/me}.
  *
- * <p>Expoe a organizacao ativa apenas para exibicao. Enviar este valor de volta
- * em outra requisicao nao concede acesso algum: a autorizacao usa sempre a
- * organizacao da sessao (RF-002).
+ * <p>It exposes the active organisation for display only. Sending that value
+ * back in another request grants no access whatsoever: authorisation always
+ * uses the session's organisation (RF-002).
  */
 public record AuthenticatedUserResponse(
         UUID userId,
@@ -18,7 +18,7 @@ public record AuthenticatedUserResponse(
         String displayName,
         UUID organizationId,
         OrganizationRole role,
-        /** Senha temporaria: a interface leva direto a troca de senha (D28). */
+        /** A temporary password: the interface goes straight to the password change (D28). */
         boolean passwordChangeRequired) {
 
     public static AuthenticatedUserResponse from(AuthenticatedUser user) {

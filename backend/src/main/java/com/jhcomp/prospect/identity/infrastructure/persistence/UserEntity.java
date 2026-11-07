@@ -14,7 +14,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 /**
- * Usuario. O hash de senha nunca sai desta camada (doc 07 §4).
+ * A user. The password hash never leaves this layer (doc 07 §4).
  */
 @Entity
 @Table(name = "app_user")
@@ -33,11 +33,11 @@ public class UserEntity extends AssignedIdEntity {
     @Column(nullable = false)
     private UserStatus status;
 
-    /** Senha temporaria: precisa ser trocada antes de qualquer outra operacao (D28). */
+    /** A temporary password: it must be changed before any other operation (D28). */
     @Column(name = "password_change_required", nullable = false)
     private boolean passwordChangeRequired;
 
-    /** Ultima troca ou redefinicao de senha; sessao anterior a ele e encerrada (D28). */
+    /** The last password change or reset; a session older than it is ended (D28). */
     @Column(name = "credentials_changed_at")
     private Instant credentialsChangedAt;
 
@@ -48,7 +48,7 @@ public class UserEntity extends AssignedIdEntity {
     private Instant updatedAt;
 
     protected UserEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public UserEntity(
@@ -70,16 +70,17 @@ public class UserEntity extends AssignedIdEntity {
     }
 
     /**
-     * Grava nova senha. {@code changeRequired} verdadeiro quando quem definiu
-     * foi o administrador (senha temporaria), falso quando foi o proprio usuario.
+     * Stores a new password. {@code changeRequired} is true when an
+     * administrator set it (a temporary password), false when the user set it
+     * themselves.
      */
     public void replacePassword(String newPasswordHash, boolean changeRequired, Instant now) {
         this.passwordHash = newPasswordHash;
         this.passwordChangeRequired = changeRequired;
-        // Precisao do timestamptz. O PostgreSQL arredonda, e nao trunca, o que
-        // passa de microssegundo: sem isto o valor gravado podia ficar depois do
-        // instante guardado na sessao de quem trocou a senha, e a revalidacao
-        // encerrava justamente essa sessao.
+        // timestamptz precision. PostgreSQL rounds, rather than truncates,
+        // anything below the microsecond: without this the stored value could
+        // land after the instant kept in the session of whoever changed the
+        // password, and revalidation would end precisely that session.
         this.credentialsChangedAt = now.truncatedTo(ChronoUnit.MICROS);
         this.updatedAt = now;
     }
@@ -116,7 +117,7 @@ public class UserEntity extends AssignedIdEntity {
         return updatedAt;
     }
 
-    /** Nao inclui e-mail nem hash: log e mensagem de erro nao devem vazar dado pessoal (RNF-007). */
+    /** It includes neither e-mail nor hash: logs and error messages must not leak personal data (RNF-007). */
     @Override
     public String toString() {
         return "UserEntity[id=" + getId() + ", status=" + status + "]";

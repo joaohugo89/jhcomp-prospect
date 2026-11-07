@@ -6,11 +6,11 @@ import java.util.function.Function;
 import org.springframework.data.domain.Page;
 
 /**
- * Envelope de listagem paginada (RNF-002, doc 05 §1).
+ * The paginated listing envelope (RNF-002, doc 05 §1).
  *
- * <p>Nao se devolve o {@code Page} do Spring Data diretamente: sua
- * serializacao nao e um contrato estavel e expoe estrutura interna de
- * paginacao, o que ja gerou aviso em versoes recentes do Spring.
+ * <p>Spring Data's {@code Page} is not returned directly: its serialisation
+ * is not a stable contract and exposes internal pagination structure, which
+ * recent Spring versions already warn about.
  */
 public record PageResponse<T>(
         List<T> content,

@@ -11,22 +11,22 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/** Requisicoes do modulo de lead (doc 05 §5). Nenhuma carrega organizacao. */
+/** Requests of the lead module (doc 05 §5). None of them carries an organisation. */
 public final class LeadRequests {
 
     private LeadRequests() {
     }
 
-    /** Prioridade ausente vira {@code MEDIUM}; origem ausente, cadastro manual. */
+    /** An absent priority becomes {@code MEDIUM}; an absent origin becomes manual entry. */
     public record CreateLeadRequest(@NotNull UUID companyId, LeadPriority priority, @Valid SourceRequest source) {}
 
     /**
-     * Mudanca de status.
+     * A status change.
      *
-     * @param contactConfirmed obrigatorio para ir a {@code CONTACTED}: o operador
-     *     confirma que o contato de fato ocorreu (doc 06 §2). {@code Boolean}, e
-     *     nao primitivo: o Jackson 3 recusa primitivo ausente no corpo, e
-     *     ausente aqui significa "nao confirmado"
+     * @param contactConfirmed required in order to reach {@code CONTACTED}:
+     *     the operator confirms the contact actually happened (doc 06 §2).
+     *     {@code Boolean}, not a primitive: Jackson 3 refuses a missing
+     *     primitive in the body, and missing here means "not confirmed"
      */
     public record ChangeStatusRequest(
             @NotNull LeadStatus status, @Size(max = 500) String reason, Boolean contactConfirmed) {
@@ -38,15 +38,15 @@ public final class LeadRequests {
 
     public record ChangePriorityRequest(@NotNull LeadPriority priority) {}
 
-    /** Dados editaveis do lead. {@code assignedUserId} nulo remove o responsavel. */
+    /** The lead's editable data. A null {@code assignedUserId} clears the owner. */
     public record UpdateLeadRequest(UUID assignedUserId) {}
 
-    /** O que uma acao em lote muda. Status nao: exige confirmacao lead a lead. */
+    /** What a bulk action changes. Not the status: that requires confirmation lead by lead. */
     public enum BulkAction { ASSIGN, PRIORITY }
 
     /**
-     * Acao em lote. {@code ASSIGN} usa {@code assignedUserId} (nulo remove o
-     * responsavel); {@code PRIORITY} exige {@code priority}.
+     * A bulk action. {@code ASSIGN} uses {@code assignedUserId} (null clears
+     * the owner); {@code PRIORITY} requires {@code priority}.
      */
     public record BulkUpdateRequest(
             @NotNull @Size(min = 1, max = 100) List<@NotNull UUID> leadIds,

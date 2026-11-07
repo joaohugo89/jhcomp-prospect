@@ -20,11 +20,12 @@ import com.jhcomp.prospect.shared.error.ResourceNotFoundException;
 import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 
 /**
- * Troca da propria senha (RF-003, D28).
+ * Changing your own password (RF-003, D28).
  *
- * <p>Exige a senha atual, inclusive quando a atual e temporaria: quem tem so a
- * sessao aberta, e nao a senha, nao consegue tomar a conta trocando-a. O
- * limite de tentativas fica no controller, que conhece o IP.
+ * <p>It requires the current password, even when that password is temporary:
+ * whoever holds only the open session, and not the password, cannot take over
+ * the account by changing it. The attempt limit lives in the controller,
+ * which knows the IP.
  */
 @Service
 public class PasswordService {
@@ -43,8 +44,8 @@ public class PasswordService {
     }
 
     /**
-     * Grava a nova senha e devolve o instante da troca. As outras sessoes do
-     * usuario abertas antes dele sao encerradas na proxima requisicao delas.
+     * Stores the new password and returns the instant of the change. The
+     * user's other sessions, opened before it, end on their next request.
      */
     @Transactional
     public Instant changeOwnPassword(AuthenticatedUser user, String currentPassword, String newPassword, String ipAddress) {
@@ -65,7 +66,7 @@ public class PasswordService {
         account.replacePassword(passwordEncoder.encode(newPassword), false, clock.instant());
         auditService.record(new AuditEntry(user.organizationId(), user.userId(), AuditAction.PASSWORD_CHANGE,
                 AuditOutcome.SUCCESS, "User", user.userId().toString(), ipAddress, null));
-        // O mesmo valor gravado no banco vai para a sessao.
+        // The very value written to the database goes into the session.
         return account.getCredentialsChangedAt();
     }
 }

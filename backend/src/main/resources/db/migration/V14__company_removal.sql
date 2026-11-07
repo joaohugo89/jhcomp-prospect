@@ -1,11 +1,12 @@
--- V14 — Excluir empresa cadastrada por engano e desfazer importacao (D32).
+-- V14 — Deleting a company registered by mistake, and undoing an import
+-- (D32).
 --
--- Excluir apaga a empresa de verdade, mas so quando nao ha atividade comercial
--- sobre ela. A linha de importacao que a criou (ou completou) continua no lote,
--- com status REMOVED e sem empresa: o lote nao perde o historico do que trouxe.
--- undone_at marca o lote que foi desfeito.
+-- Deleting really removes the company, but only when it carries no commercial
+-- activity. The import row that created (or completed) it stays in the batch,
+-- with status REMOVED and no company: the batch does not lose the history of
+-- what it brought. undone_at marks a batch that was undone.
 --
--- Migration imutavel apos aplicada (doc 04 §6). Corrigir em V15, nunca aqui.
+-- Immutable once applied (doc 04 §6). Correct in V15, never here.
 ALTER TABLE import_row DROP CONSTRAINT import_row_status_valid;
 ALTER TABLE import_row ADD CONSTRAINT import_row_status_valid
     CHECK (status IN ('VALID', 'REJECTED', 'DUPLICATE', 'IMPORTED', 'SKIPPED', 'MERGED', 'REMOVED'));

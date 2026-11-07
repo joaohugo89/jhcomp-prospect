@@ -11,19 +11,19 @@ import com.jhcomp.prospect.shared.web.InputPatterns;
 import com.jhcomp.prospect.shared.web.WebUrlValidator;
 
 /**
- * Validacao de uma linha importada.
+ * Validation of an imported row.
  *
- * <p>Mesmas regras e mesmas mensagens do cadastro manual
- * ({@code CreateCompanyRequest}): uma planilha nao pode gravar o que o
- * formulario recusaria, inclusive URL com esquema perigoso. As mensagens
- * ficam em ingles, como no resto da API; a interface traduz.
+ * <p>The same rules and the same messages as manual entry
+ * ({@code CreateCompanyRequest}): a spreadsheet must not be able to store what
+ * the form would refuse, a URL with a dangerous scheme included. The messages
+ * are in English, as everywhere in the API; the interface translates them.
  */
 final class ImportRowValidator {
 
-    /** Erro de um campo da linha. {@code field} e a chave da API, ou "row" para a linha inteira. */
+    /** An error on one field of the row. {@code field} is the API key, or "row" for the whole line. */
     record RowError(String field, String message) {}
 
-    /** Valores limpos e erros encontrados. */
+    /** The cleaned values and the errors found. */
     record Result(Map<ImportField, String> values, List<RowError> errors) {}
 
     private static final Map<ImportField, Integer> MAX_LENGTH = Map.ofEntries(
@@ -74,8 +74,8 @@ final class ImportRowValidator {
         }
 
         if (extraCells > 0) {
-            // Celula fora de qualquer coluna costuma ser delimitador dentro de
-            // um valor sem aspas: o resto da linha estaria deslocado.
+            // A cell outside any column is usually a delimiter inside an
+            // unquoted value: the rest of the line would be shifted.
             errors.add(new RowError("row", "has more cells than the header"));
         }
 

@@ -6,12 +6,12 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Campos da empresa que uma coluna de CSV pode preencher.
+ * The company fields a CSV column can fill.
  *
- * <p>{@code key} e o nome usado na API, igual ao do cadastro de empresa
- * (doc 05 §4), para que um erro de validacao aponte o mesmo campo nos dois
- * fluxos. Os apelidos permitem reconhecer cabecalhos comuns de planilha sem
- * mapeamento manual.
+ * <p>{@code key} is the name used by the API, identical to the company form's
+ * (doc 05 §4), so a validation error points at the same field in both flows.
+ * The aliases allow common spreadsheet headers to be recognised without manual
+ * mapping.
  */
 public enum ImportField {
     NAME("name", true, Set.of("nome", "name", "empresa", "razaosocial", "nomedaempresa", "companyname")),
@@ -53,7 +53,7 @@ public enum ImportField {
         return Optional.empty();
     }
 
-    /** Campo sugerido para um cabecalho: sem acento, caixa, espaco nem pontuacao. */
+    /** The field suggested for a header: ignoring accents, case, spacing and punctuation. */
     public static Optional<ImportField> guess(String header) {
         String normalized = Normalizer.normalize(header, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "")

@@ -3,11 +3,11 @@ package com.jhcomp.prospect.shared.error;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
 /**
- * Recurso inexistente ou fora da organizacao do solicitante.
+ * A resource that does not exist, or lies outside the caller's organisation.
  *
- * <p>Um recurso de outra organizacao responde 404, nao 403: informar que o
- * recurso existe mas pertence a outra organizacao ja e vazamento de
- * informacao.
+ * <p>A resource from another organisation answers 404, not 403: saying that
+ * it exists but belongs to another organisation is already an information
+ * leak.
  */
 public class ResourceNotFoundException extends ApplicationException {
 

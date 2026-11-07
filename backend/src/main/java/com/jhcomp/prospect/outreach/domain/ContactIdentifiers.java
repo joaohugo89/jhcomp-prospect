@@ -5,10 +5,10 @@ import java.util.Optional;
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 
 /**
- * Normaliza identificadores pela mesma regra do resto do sistema (D10).
+ * Normalises identifiers by the same rule as the rest of the system (D10).
  *
- * <p>Divergir da deduplicacao permitiria burlar um pedido de nao contato com
- * outra formatacao do mesmo telefone.
+ * <p>Diverging from deduplication would allow a do-not-contact request to be
+ * bypassed with another formatting of the same phone number.
  */
 public final class ContactIdentifiers {
 

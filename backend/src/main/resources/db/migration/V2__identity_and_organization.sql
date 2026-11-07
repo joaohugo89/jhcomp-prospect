@@ -1,9 +1,10 @@
--- V2 — Identidade, organizacao e auditoria (RF-001, RF-002, RF-003).
+-- V2 — Identity, organisation and auditing (RF-001, RF-002, RF-003).
 --
--- Convencoes do doc 04 §1: PK uuid, created_at/updated_at em entidades
--- mutaveis, timestamps em UTC (timestamptz), enums como texto com CHECK.
+-- Conventions from doc 04 §1: uuid primary keys, created_at/updated_at on
+-- mutable entities, timestamps in UTC (timestamptz), enums as text with a
+-- CHECK.
 --
--- Migration imutavel apos aplicada (doc 04 §6). Corrigir em V3, nunca aqui.
+-- Immutable once applied (doc 04 §6). Correct in V3, never here.
 
 -- ---------------------------------------------------------------------------
 -- Organization
@@ -26,8 +27,8 @@ CREATE UNIQUE INDEX organization_slug_key ON organization (slug);
 -- ---------------------------------------------------------------------------
 -- app_user
 --
--- Nao se chama "user": e palavra reservada no PostgreSQL e exigiria aspas em
--- toda consulta.
+-- It is not called "user": that is a reserved word in PostgreSQL and would
+-- require quoting in every query.
 -- ---------------------------------------------------------------------------
 CREATE TABLE app_user (
     id            uuid        PRIMARY KEY,
@@ -43,8 +44,8 @@ CREATE TABLE app_user (
     CONSTRAINT app_user_status_valid      CHECK (status IN ('ACTIVE', 'DISABLED'))
 );
 
--- Unicidade de e-mail. A coluna ja e normalizada para minusculas pelo CHECK,
--- portanto o indice simples basta e serve a busca de login.
+-- E-mail uniqueness. The column is already lower-cased by the CHECK, so a
+-- plain index is enough and also serves the login lookup.
 CREATE UNIQUE INDEX app_user_email_key ON app_user (email);
 
 COMMENT ON COLUMN app_user.password_hash IS
@@ -65,11 +66,11 @@ CREATE TABLE organization_member (
     CONSTRAINT organization_member_status_valid CHECK (status IN ('ACTIVE', 'REVOKED'))
 );
 
--- Restricao unica exigida pelo doc 04 §2.
+-- The unique constraint required by doc 04 §2.
 CREATE UNIQUE INDEX organization_member_unique
     ON organization_member (organization_id, user_id);
 
--- Indice iniciando por organization_id, conforme doc 03 §8.
+-- An index starting with organization_id, per doc 03 §8.
 CREATE INDEX organization_member_by_organization
     ON organization_member (organization_id, status);
 
@@ -87,9 +88,9 @@ CREATE TABLE audit_event (
     outcome         text        NOT NULL,
     resource_type   text,
     resource_id     text,
-    -- text, e nao inet: o driver envia o parametro como varchar e o
-    -- PostgreSQL nao faz a conversao implicita para inet, o que quebra a
-    -- insercao. A validacao de formato nao compensa o atrito de mapeamento.
+    -- text, not inet: the driver sends the parameter as varchar and
+    -- PostgreSQL performs no implicit conversion to inet, which breaks the
+    -- insert. The format validation is not worth the mapping friction.
     ip_address      text,
     detail          text,
     occurred_at     timestamptz NOT NULL DEFAULT now(),
@@ -103,8 +104,8 @@ CREATE INDEX audit_event_by_organization ON audit_event (organization_id, occurr
 CREATE INDEX audit_event_by_actor        ON audit_event (actor_user_id, occurred_at DESC);
 CREATE INDEX audit_event_by_action       ON audit_event (action, occurred_at DESC);
 
--- organization_id e actor_user_id sao nulos de proposito: uma falha de login
--- ocorre antes de haver usuario ou organizacao identificados.
+-- organization_id and actor_user_id are nullable on purpose: a login failure
+-- happens before there is any identified user or organisation.
 COMMENT ON TABLE audit_event IS
   'Trilha de auditoria de acoes criticas. Nao armazenar conteudo de mensagem, '
   'senha, token nem dado pessoal desnecessario (doc 07 §6).';

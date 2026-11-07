@@ -14,16 +14,16 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Fila persistente de jobs (D15).
+ * The persistent job queue (D15).
  *
- * <p>Polling em tabela, sem broker (docs/03 §7). A tomada usa
- * {@code FOR UPDATE SKIP LOCKED}: varias instancias podem consumir a mesma
- * fila sem pegar o mesmo job.
+ * <p>Polling a table, with no broker (docs/03 §7). Claiming uses
+ * {@code FOR UPDATE SKIP LOCKED}: several instances can consume the same queue
+ * without picking up the same job.
  */
 @Component
 public class JobQueue {
 
-    /** Job em execucao ha mais que isso e de um worker que caiu. */
+    /** A job running for longer than this belongs to a worker that died. */
     static final Duration STALE_AFTER = Duration.ofMinutes(10);
 
     private static final String CLAIM = """
@@ -50,11 +50,11 @@ public class JobQueue {
     }
 
     /**
-     * Enfileira na transacao de quem chama: o job so existe se o registro que
-     * o motivou tambem for gravado.
+     * Enqueues inside the caller's transaction: the job only exists if the
+     * record that motivated it is written too.
      *
-     * @param idempotencyKey impede um segundo job igual enquanto o primeiro
-     *     estiver ativo (indice unico parcial)
+     * @param idempotencyKey prevents a second identical job while the first is
+     *     still active (a partial unique index)
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public UUID enqueue(UUID organizationId, String jobType, String payload, int maxAttempts, String idempotencyKey) {
@@ -63,7 +63,7 @@ public class JobQueue {
                 .getId();
     }
 
-    /** Toma o proximo job pronto, ou nenhum. Transacao curta, so a tomada. */
+    /** Claims the next ready job, or none. A short transaction, the claim only. */
     @Transactional
     public Optional<JobEntity> claimNext() {
         Instant now = clock.instant();
@@ -81,7 +81,7 @@ public class JobQueue {
         repository.findById(jobId).ifPresent(job -> job.succeed(clock.instant()));
     }
 
-    /** @return o job, se nao havera nova tentativa */
+    /** @return the job, when there will be no further attempt */
     @Transactional
     public Optional<JobEntity> markFailed(UUID jobId, String error) {
         return repository.findById(jobId).filter(job -> job.fail(error, clock.instant()));

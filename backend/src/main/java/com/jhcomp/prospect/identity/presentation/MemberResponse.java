@@ -8,10 +8,10 @@ import com.jhcomp.prospect.identity.domain.OrganizationRole;
 import com.jhcomp.prospect.identity.infrastructure.persistence.OrganizationMemberEntity;
 
 /**
- * Membro da organizacao (RF-003).
+ * A member of the organisation (RF-003).
  *
- * <p>Nao expoe hash de senha nem o id da organizacao: quem consulta ja opera
- * dentro dela.
+ * <p>It exposes neither the password hash nor the organisation's id: whoever
+ * is reading already operates inside it.
  */
 public record MemberResponse(
         UUID memberId,
@@ -20,9 +20,9 @@ public record MemberResponse(
         String displayName,
         OrganizationRole role,
         MemberStatus status,
-        /** Senha temporaria ainda nao trocada: a pessoa nao fez o primeiro acesso. */
+        /** A temporary password not yet changed: the person has not signed in for the first time. */
         boolean passwordChangeRequired,
-        /** Ultimo login nesta organizacao; ausente quando nunca entrou ou quando nao foi consultado. */
+        /** The last login in this organisation; absent when they never signed in, or when it was not queried. */
         Instant lastLoginAt,
         Instant createdAt) {
 

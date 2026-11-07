@@ -15,9 +15,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 /**
- * Entrada da lista de nao contato (RF-053, doc 07 §10).
+ * An entry in the do-not-contact list (RF-053, doc 07 §10).
  *
- * <p>Imutavel: nao ha remocao nem edicao no MVP (doc 06 §9, D26).
+ * <p>Immutable: there is no removal and no editing in the MVP (doc 06 §9,
+ * D26).
  */
 @Entity
 @Table(name = "suppression_entry")
@@ -33,7 +34,7 @@ public class SuppressionEntryEntity extends AssignedIdEntity {
     @Column(nullable = false, updatable = false)
     private String identifier;
 
-    /** Nulo: vale para todos os canais. */
+    /** Null: it applies to every channel. */
     @Enumerated(EnumType.STRING)
     @Column(updatable = false)
     private OutreachChannel channel;
@@ -51,7 +52,7 @@ public class SuppressionEntryEntity extends AssignedIdEntity {
     private Instant createdAt;
 
     protected SuppressionEntryEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public SuppressionEntryEntity(
@@ -81,7 +82,7 @@ public class SuppressionEntryEntity extends AssignedIdEntity {
         return identifier;
     }
 
-    /** Nulo: vale para todos os canais. */
+    /** Null: it applies to every channel. */
     public OutreachChannel getChannel() {
         return channel;
     }

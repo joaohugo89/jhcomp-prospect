@@ -3,8 +3,8 @@ package com.jhcomp.prospect.shared.error;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
 /**
- * Parametro invalido que a validacao declarativa do DTO nao alcanca, como um
- * campo de ordenacao fora da lista permitida.
+ * An invalid parameter that the DTO's declarative validation cannot reach,
+ * such as a sort field outside the permitted list.
  */
 public class InvalidRequestException extends ApplicationException {
 

@@ -14,17 +14,18 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Valida a saida da IA antes de virar rascunho (regra 9, doc 07 §7).
+ * Validates the AI's output before it becomes a draft (rule 9, doc 07 §7).
  *
- * <p>Estrutura estrita: objeto com {@code body} texto, {@code subject} texto
- * ou nulo e {@code unverifiedClaims} lista de textos. Campo desconhecido,
- * tipo errado ou tamanho acima do limite recusa a saida inteira; aproveitar
- * parte de uma resposta malformada seria confiar justamente no que falhou.
+ * <p>A strict structure: an object with {@code body} as text, {@code subject}
+ * as text or null, and {@code unverifiedClaims} as a list of strings. An
+ * unknown field, a wrong type or a size over the limit refuses the whole
+ * output; salvaging part of a malformed response would mean trusting exactly
+ * what failed.
  */
 @Component
 class GeneratedOutputParser {
 
-    /** Teto antes de interpretar: protege o parser de resposta desproporcional. */
+    /** A ceiling before parsing: it protects the parser from a disproportionate response. */
     static final int MAX_RAW_LENGTH = 20_000;
 
     private static final Set<String> FIELDS = Set.of("subject", "body", "unverifiedClaims");
@@ -35,7 +36,7 @@ class GeneratedOutputParser {
         this.objectMapper = objectMapper;
     }
 
-    /** Rascunho valido, ou o motivo da recusa (sem o conteudo, que nao vai para log). */
+    /** A valid draft, or the reason for refusal — without the content, which never reaches a log. */
     MessageDraft.Result parse(OutreachChannel channel, String raw) {
         if (raw == null || raw.isBlank()) {
             return invalid("empty output");

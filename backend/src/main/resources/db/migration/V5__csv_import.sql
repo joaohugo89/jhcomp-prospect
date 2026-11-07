@@ -1,28 +1,29 @@
--- V5 — Importacao CSV (RF-015, D14, D23).
+-- V5 — CSV import (RF-015, D14, D23).
 --
--- Duas fases: a analise grava a importacao e uma linha por registro do arquivo,
--- com o resultado da validacao e da deduplicacao, sem tocar em company. A
--- confirmacao cria as empresas das linhas aceitas. Assim o operador revisa
--- antes de persistir, e o relatorio fica consultavel depois (aceite do
--- RF-015: erros por linha consultaveis).
+-- Two phases: the analysis writes the import and one row per record in the
+-- file, with the validation and deduplication results, without touching
+-- company. The confirmation creates the companies of the accepted rows. That
+-- way the operator reviews before anything is persisted, and the report stays
+-- readable afterwards (RF-015's acceptance criterion: per-row errors are
+-- inspectable).
 --
--- Chaves compostas com organization_id desde a criacao, como na V4.
+-- Composite keys with organization_id from creation, as in V4.
 
 CREATE TABLE import_batch (
     id                  uuid        PRIMARY KEY,
     organization_id     uuid        NOT NULL REFERENCES organization (id),
 
     file_name           text        NOT NULL,
-    -- Hash do conteudo: identifica reenvio do mesmo arquivo (doc 10 §4).
+    -- The content hash: it identifies a resend of the same file (doc 10 §4).
     file_sha256         varchar(64) NOT NULL,
     source_name         text        NOT NULL,
     dataset_note        text,
 
-    -- Cabecalho do arquivo -> campo da empresa, como JSON. Texto, e nao jsonb:
-    -- so e lido e escrito inteiro pela aplicacao, nunca consultado por chave.
+    -- File header -> company field, as JSON. Text, not jsonb: the application
+    -- only reads and writes it whole, never queries it by key.
     column_mapping      text        NOT NULL,
-    -- Cabecalhos do arquivo que nao viraram campo, como JSON. Guardados para o
-    -- operador conferir o mapeamento; os valores dessas colunas nao sao lidos.
+    -- The file's headers that became no field, as JSON. Kept so the operator
+    -- can check the mapping; the values of those columns are never read.
     ignored_columns     text        NOT NULL,
 
     status              text        NOT NULL,
@@ -48,7 +49,7 @@ CREATE TABLE import_batch (
         AND valid_rows + rejected_rows + duplicate_rows = total_rows
         AND imported_rows >= 0 AND imported_rows <= total_rows
         AND leads_created >= 0 AND leads_created <= imported_rows),
-    -- Limite da D14, tambem no banco.
+    -- D14's limit, enforced in the database too.
     CONSTRAINT import_batch_row_limit CHECK (total_rows <= 2000),
     CONSTRAINT import_batch_completed_consistent CHECK (
         (status IN ('COMPLETED', 'DISCARDED')) = (completed_at IS NOT NULL))
@@ -61,14 +62,14 @@ CREATE TABLE import_row (
     id                       uuid    PRIMARY KEY,
     organization_id          uuid    NOT NULL,
     import_id                uuid    NOT NULL,
-    -- Linha no arquivo, contando o cabecalho como linha 1, como o operador ve
-    -- na planilha.
+    -- The line in the file, counting the header as line 1, as the operator
+    -- sees it in the spreadsheet.
     row_number               integer NOT NULL,
 
     status                   text    NOT NULL,
 
-    -- Valores ja mapeados para os campos da empresa. Nulos apos o descarte da
-    -- importacao (minimizacao, doc 07 §2).
+    -- Values already mapped to the company's fields. Null once the import is
+    -- discarded (minimisation, doc 07 §2).
     name                     text,
     trade_name               text,
     segment                  text,
@@ -81,7 +82,7 @@ CREATE TABLE import_row (
     address                  text,
     notes                    text,
 
-    -- Erros de validacao como JSON [{"field": ..., "message": ...}].
+    -- Validation errors as JSON [{"field": ..., "message": ...}].
     errors                   text,
 
     duplicate_of_company_id  uuid,

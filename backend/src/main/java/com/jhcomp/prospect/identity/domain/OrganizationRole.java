@@ -1,16 +1,16 @@
 package com.jhcomp.prospect.identity.domain;
 
 /**
- * Papel do membro dentro da organizacao (RF-003, doc 01 §6).
+ * A member's role within the organisation (RF-003, doc 01 §6).
  *
- * <p>Menor privilegio necessario: {@link #OPERATOR} conduz o processo
- * comercial, {@link #ADMIN} administra a organizacao.
+ * <p>Least privilege needed: {@link #OPERATOR} runs the commercial process,
+ * {@link #ADMIN} administers the organisation.
  */
 public enum OrganizationRole {
     ADMIN,
     OPERATOR;
 
-    /** Nome da authority usada pelo Spring Security, que espera o prefixo ROLE_. */
+    /** The authority name Spring Security uses, which expects the ROLE_ prefix. */
     public String authority() {
         return "ROLE_" + name();
     }

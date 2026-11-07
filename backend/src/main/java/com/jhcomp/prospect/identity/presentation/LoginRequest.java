@@ -5,11 +5,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Credenciais de login (RF-001).
+ * Login credentials (RF-001).
  *
- * <p>O limite de tamanho da senha nao e cosmetico: sem ele, uma senha enorme
- * forcaria o BCrypt a trabalhar a cada tentativa, o que viabiliza negacao de
- * servico por consumo de CPU.
+ * <p>The password length limit is not cosmetic: without it, an enormous
+ * password would make BCrypt work on every attempt, which enables a denial of
+ * service through CPU consumption.
  */
 public record LoginRequest(
         @NotBlank(message = "must not be blank")
@@ -21,7 +21,7 @@ public record LoginRequest(
         @Size(min = 8, max = 128, message = "must be between 8 and 128 characters")
         String password) {
 
-    /** Evita que a senha apareca em log ou mensagem de erro (RNF-007). */
+    /** Keeps the password out of logs and error messages (RNF-007). */
     @Override
     public String toString() {
         return "LoginRequest[email=***, password=***]";

@@ -1,15 +1,15 @@
 package com.jhcomp.prospect.outreach.domain;
 
 /**
- * Provedor de IA (doc 03 §6, D26).
+ * The AI provider (doc 03 §6, D26).
  *
- * <p>Unica capacidade: devolver texto. Nao recebe repositorio, servico nem
- * cliente de envio, e nao ha metodo que grave, envie, publique ou remova
- * bloqueio (doc 06 §11, regra 1 do produto). Um teste estrutural garante que
- * as implementacoes continuem assim.
+ * <p>A single capability: returning text. It receives no repository, no
+ * service and no sending client, and there is no method that writes, sends,
+ * publishes or removes a block (doc 06 §11, product rule 1). A structural test
+ * keeps implementations that way.
  *
- * <p>Implementacoes que chamam a rede aplicam timeout e tratam limite de
- * taxa do fornecedor; falha vira {@link AIProviderException}.
+ * <p>Implementations that call the network apply a timeout and handle the
+ * provider's rate limit; a failure becomes {@link AIProviderException}.
  */
 public interface AIProvider {
 

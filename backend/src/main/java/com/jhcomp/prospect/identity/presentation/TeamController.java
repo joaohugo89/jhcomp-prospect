@@ -12,13 +12,13 @@ import com.jhcomp.prospect.identity.application.MemberQueryService;
 import com.jhcomp.prospect.shared.web.PageResponse;
 
 /**
- * Equipe da organizacao, para qualquer membro: escolher o responsavel de um
- * lead e filtrar o dashboard por responsavel.
+ * The organisation's team, available to any member: for choosing a lead's
+ * owner and filtering the dashboard by owner.
  *
- * <p>So os ativos e so id e nome de exibicao. E-mail, papel e situacao ficam
- * na gestao de membros ({@code /organizations/members}), que e do
- * administrador: o operador nao precisa deles para atribuir um lead (LGPD,
- * minimo necessario).
+ * <p>Active members only, and only their id and display name. E-mail, role
+ * and status stay in member management ({@code /organizations/members}),
+ * which belongs to the administrator: an operator does not need them in order
+ * to assign a lead (LGPD, the minimum necessary).
  */
 @RestController
 @RequestMapping("/team")

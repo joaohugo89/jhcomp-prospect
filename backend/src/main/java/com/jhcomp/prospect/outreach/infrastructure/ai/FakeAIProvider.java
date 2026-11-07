@@ -17,13 +17,13 @@ import com.jhcomp.prospect.outreach.domain.OutreachChannel;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Provedor deterministico, sem rede (D26).
+ * A deterministic provider, with no network (D26).
  *
- * <p>E o unico provedor do MVP e o usado nos testes. Monta o texto so com o
- * contexto recebido e devolve o mesmo formato JSON que um modelo devolveria,
- * para que a validacao de saida seja exercitada de verdade. Sem achados
- * confirmados, a mensagem fala de presenca digital em termos gerais e marca
- * isso como afirmacao nao verificada, levando o rascunho a revisao.
+ * <p>It is the MVP's only provider and the one the tests use. It builds the
+ * text from the supplied context alone and returns the same JSON shape a model
+ * would, so output validation is genuinely exercised. With no confirmed
+ * findings, the message speaks of digital presence in general terms and flags
+ * that as an unverified claim, which sends the draft to review.
  */
 @Component
 @ConditionalOnProperty(name = "jhcomp.outreach.ai.provider", havingValue = "fake", matchIfMissing = true)

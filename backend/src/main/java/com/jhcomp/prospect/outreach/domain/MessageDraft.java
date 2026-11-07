@@ -6,11 +6,13 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * Conteudo de mensagem ja saneado e validado contra as regras do canal.
+ * Message content already sanitised and validated against the channel's
+ * rules.
  *
- * <p>Vale para a saida da IA e para a edicao do operador: as duas passam pelas
- * mesmas regras. Construir so por {@link #of}, que devolve o motivo da recusa
- * em vez de lancar, para a camada de aplicacao escolher o erro certo.
+ * <p>It covers both the AI's output and the operator's edit: the two go
+ * through the same rules. Construct only through {@link #of}, which returns
+ * the reason for refusal instead of throwing, so the application layer can
+ * choose the right error.
  */
 public record MessageDraft(String subject, String body, List<String> unverifiedClaims) {
 
@@ -18,7 +20,7 @@ public record MessageDraft(String subject, String body, List<String> unverifiedC
     public static final int MAX_CLAIMS = 10;
     public static final int MAX_CLAIM_LENGTH = 300;
 
-    /** Controles C0 e DEL, exceto quebra de linha e tabulacao. */
+    /** C0 controls and DEL, apart from line break and tab. */
     private static final Pattern CONTROL = Pattern.compile("[\\x00-\\x08\\x0B-\\x1F\\x7F]");
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
@@ -27,7 +29,7 @@ public record MessageDraft(String subject, String body, List<String> unverifiedC
         unverifiedClaims = List.copyOf(unverifiedClaims);
     }
 
-    /** Resultado de {@link #of}: rascunho valido ou motivo da recusa. */
+    /** The result of {@link #of}: a valid draft, or the reason for refusal. */
     public record Result(Optional<MessageDraft> draft, String violation) {
 
         public static Result valid(MessageDraft draft) {

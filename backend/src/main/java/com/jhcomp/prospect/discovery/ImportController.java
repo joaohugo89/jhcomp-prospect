@@ -35,11 +35,11 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Importacao CSV (RF-015, doc 05 §6, D14, D23).
+ * CSV import (RF-015, doc 05 §6, D14, D23).
  *
- * <p>Fluxo: {@code POST /imports/csv} analisa e devolve o relatorio;
- * {@code POST /imports/{id}/confirm} grava; {@code POST /imports/{id}/discard}
- * desiste. Nada vira empresa sem a confirmacao.
+ * <p>The flow: {@code POST /imports/csv} analyses and returns the report;
+ * {@code POST /imports/{id}/confirm} writes; {@code POST /imports/{id}/discard}
+ * gives up. Nothing becomes a company without the confirmation.
  */
 @RestController
 @RequestMapping("/imports")
@@ -56,10 +56,10 @@ public class ImportController {
     }
 
     /**
-     * Analisa o arquivo.
+     * Analyses the file.
      *
-     * @param mapping JSON opcional {@code {"name": "Cabecalho", ...}}; ausente,
-     *     os cabecalhos sao reconhecidos automaticamente
+     * @param mapping an optional JSON {@code {"name": "Header", ...}}; when
+     *     absent, the headers are recognised automatically
      */
     @PostMapping(path = "/csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -72,7 +72,7 @@ public class ImportController {
         String fileName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
         String lower = fileName.toLowerCase(Locale.ROOT);
         if (!lower.endsWith(".csv") && !lower.endsWith(".txt")) {
-            // Planilha .xlsx enviada por engano e o caso mais comum.
+            // An .xlsx spreadsheet sent by mistake is the most common case.
             throw new InvalidRequestException("File must be a CSV (save the spreadsheet as CSV UTF-8)");
         }
         if (file.getSize() > CsvTable.MAX_BYTES) {
@@ -100,7 +100,7 @@ public class ImportController {
                         batch, importService.mappingOf(batch), importService.ignoredColumnsOf(batch), null));
     }
 
-    /** Visao geral do historico, para o topo da tela de importacoes. */
+    /** The history overview, for the top of the imports screen. */
     @GetMapping("/summary")
     public ImportService.Summary summary() {
         return importService.summary();
@@ -111,7 +111,7 @@ public class ImportController {
         return detailed(importService.find(importId));
     }
 
-    /** Resultado por linha (aceite do RF-015), filtravel por status. */
+    /** The per-row result (RF-015's acceptance criterion), filterable by status. */
     @GetMapping("/{importId}/report")
     public PageResponse<ImportRowResponse> report(
             @PathVariable UUID importId,
@@ -137,7 +137,7 @@ public class ImportController {
         return detailed(importService.discard(importId));
     }
 
-    /** Resposta completa, com o aviso de reenvio do mesmo arquivo. */
+    /** The full response, including the warning about a resent file. */
     private ImportResponse detailed(ImportBatchEntity batch) {
         return ImportResponse.from(
                 batch,
@@ -158,14 +158,15 @@ public class ImportController {
     }
 
     /**
-     * Confirmacao.
+     * Confirmation.
      *
-     * @param includeDuplicateRows linhas marcadas como possivel duplicata que o
-     *     operador decidiu importar mesmo assim
-     * @param mergeDuplicateRows duplicatas de empresa ja cadastrada que devem
-     *     completar os campos vazios dessa empresa, em vez de criar outra
-     * @param createLeads abre um lead {@code NEW} para cada empresa importada ou
-     *     completada que nao tenha oportunidade aberta
+     * @param includeDuplicateRows rows flagged as possible duplicates that the
+     *     operator decided to import anyway
+     * @param mergeDuplicateRows duplicates of an already registered company
+     *     that should fill that company's empty fields instead of creating
+     *     another
+     * @param createLeads opens a {@code NEW} lead for every company imported
+     *     or completed that has no open opportunity
      */
     public record ConfirmImportRequest(
             @Size(max = 2000) Set<Integer> includeDuplicateRows,

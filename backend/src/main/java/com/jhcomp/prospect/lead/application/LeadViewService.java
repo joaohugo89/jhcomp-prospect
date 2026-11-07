@@ -17,18 +17,18 @@ import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Visoes salvas da lista de leads (D31). Privada: so o dono ve e apaga.
- * Compartilhada: o administrador publica, a equipe toda ve, so administrador
- * apaga. Privada de outra pessoa, ou visao de outra organizacao, responde como
- * inexistente.
+ * Saved views of the lead list (D31). Private: only the owner sees and
+ * deletes it. Shared: an administrator publishes it, the whole team sees it,
+ * only an administrator deletes it. Someone else's private view, or a view
+ * from another organisation, answers as non-existent.
  */
 @Service
 public class LeadViewService {
 
-    /** Mais que isso deixa de ser atalho e vira outra lista para procurar. */
+    /** Beyond this it stops being a shortcut and becomes another list to search through. */
     public static final int MAX_VIEWS_PER_USER = 20;
 
-    /** Teto das publicadas para a equipe, pela mesma razao. */
+    /** The cap on those published to the team, for the same reason. */
     public static final int MAX_SHARED_VIEWS = 20;
 
     private final LeadViewRepository repository;
@@ -41,7 +41,7 @@ public class LeadViewService {
         this.clock = clock;
     }
 
-    /** Visao com o que quem pergunta pode fazer com ela. */
+    /** A view, together with what the caller may do with it. */
     public record VisibleView(LeadViewEntity view, boolean canDelete) {}
 
     @Transactional(readOnly = true)
@@ -88,7 +88,7 @@ public class LeadViewService {
         LeadViewEntity view = repository.findByIdAndOrganizationId(viewId, user.organizationId())
                 .filter(found -> found.isShared() || found.getUserId().equals(user.userId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Saved view"));
-        // Compartilhada e visivel para todos: negar e 403, nao 404 (para quem pergunta, ela existe).
+        // A shared view is visible to everyone: refusing is 403, not 404 — to the caller, it exists.
         if (!canDelete(view, user)) {
             throw new AccessDeniedException("Only administrators remove shared views");
         }

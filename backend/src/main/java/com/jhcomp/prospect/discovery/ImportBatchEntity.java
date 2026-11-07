@@ -11,19 +11,19 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
-/** Uma importacao CSV e seus totais (RF-015, D23). */
+/** One CSV import and its totals (RF-015, D23). */
 @Entity
 @Table(name = "import_batch")
 public class ImportBatchEntity extends AssignedIdEntity {
 
-    /** Ciclo da importacao. */
+    /** The import's lifecycle. */
     public enum Status {
-        /** Analisada, aguardando confirmacao do operador. Nada foi gravado em company. */
+        /** Analysed, awaiting the operator's confirmation. Nothing was written to company. */
         ANALYZED,
-        /** Confirmacao em andamento; impede confirmar duas vezes. */
+        /** Confirmation in progress; it prevents confirming twice. */
         IMPORTING,
         COMPLETED,
-        /** Descartada sem importar; os valores das linhas foram apagados. */
+        /** Discarded without importing; the row values were erased. */
         DISCARDED
     }
 
@@ -82,12 +82,12 @@ public class ImportBatchEntity extends AssignedIdEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
-    /** Gravado so pelo desfazer importacao (modulo de CRM, D32); a entidade apenas le. */
+    /** Written only by the undo (the CRM module, D32); this entity merely reads it. */
     @Column(name = "undone_at", insertable = false, updatable = false)
     private Instant undoneAt;
 
     protected ImportBatchEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public ImportBatchEntity(
@@ -122,10 +122,11 @@ public class ImportBatchEntity extends AssignedIdEntity {
     }
 
     /**
-     * Registra o resultado da confirmacao.
+     * Records the outcome of the confirmation.
      *
-     * @param newlyDuplicated linhas validas na analise que, na confirmacao, ja
-     *     tinham empresa correspondente gravada por outro caminho
+     * @param newlyDuplicated rows that were valid at analysis time but, by
+     *     confirmation, already had a matching company written through
+     *     another path
      */
     void complete(int imported, int merged, int leads, int newlyDuplicated, Instant now) {
         this.mergedRows = merged;

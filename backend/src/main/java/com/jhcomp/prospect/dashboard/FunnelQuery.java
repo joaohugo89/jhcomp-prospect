@@ -15,22 +15,23 @@ import org.springframework.transaction.annotation.Transactional;
 import com.jhcomp.prospect.lead.domain.LeadStatus;
 
 /**
- * Funil de conversao e velocidade (RF-071, D29).
+ * The conversion funnel and its velocity (RF-071, D29).
  *
- * <p>Coorte: leads abertos no periodo, nos filtros. Alcance de uma etapa:
- * quantos chegaram a ela ou alem, pelo historico de status; ganho conta como
- * tendo passado por todas. Perdido e bloqueado nao avancam ninguem: um lead
- * perdido depois da proposta alcancou a proposta, e e isso que conta.
+ * <p>Cohort: leads opened in the period, within the filters. A stage's reach:
+ * how many got to it or beyond, by the status history; won counts as having
+ * passed through all of them. Lost and blocked advance nobody: a lead lost
+ * after the proposal did reach the proposal, and that is what counts.
  *
- * <p>Velocidade: media de dias que quem saiu de uma etapa ficou nela, entre a
- * entrada e a mudanca seguinte (ordem de gravacao). Quem ainda esta na etapa
- * nao entra: o tempo dele nao terminou. Abaixo de
- * {@link DashboardQuery#MINIMUM_SAMPLE} saidas, a media nao e apresentada.
+ * <p>Velocity: the average days spent in a stage by those who left it,
+ * between the entry and the next change (by recording order). Those still in
+ * the stage are excluded: their time has not ended. Below
+ * {@link DashboardQuery#MINIMUM_SAMPLE} exits, the average is not
+ * presented.
  */
 @Repository
 public class FunnelQuery {
 
-    /** Etapas do funil, na ordem; a posicao e 1 a 7. */
+    /** The funnel's stages, in order; positions run from 1 to 7. */
     static final List<LeadStatus> STAGES = List.of(
             LeadStatus.NEW,
             LeadStatus.QUALIFIED,
@@ -41,8 +42,9 @@ public class FunnelQuery {
             LeadStatus.WON);
 
     /**
-     * {@code reached}: leads da coorte que chegaram a esta etapa ou alem.
-     * {@code avgDays}: media de permanencia de quem ja saiu (ausente sem amostra).
+     * {@code reached}: leads in the cohort that got to this stage or beyond.
+     * {@code avgDays}: the average stay of those who have left (absent without
+     * a sample).
      */
     public record Stage(
             String status, long reached, long exits, BigDecimal avgDays, boolean sufficientSample) {}
@@ -72,7 +74,7 @@ public class FunnelQuery {
                      where s.organization_id = :organizationId and s.lead_id in (select id from cohort)
                 )""".formatted(DashboardSql.LEAD_FILTER);
 
-        // Posicao da etapa no funil; perdido e bloqueado ficam nulos e nao contam como avanco.
+        // The stage's position in the funnel; lost and blocked stay null and do not count as progress.
         String position = "case ch.to_status %s end".formatted(String.join(" ", STAGES.stream()
                 .map(stage -> "when '%s' then %d".formatted(stage.name(), STAGES.indexOf(stage) + 1))
                 .toList()));

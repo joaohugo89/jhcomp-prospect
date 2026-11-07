@@ -3,10 +3,11 @@ package com.jhcomp.prospect.shared.error;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
 /**
- * Senha atual informada nao confere, na troca de senha (D28).
+ * The current password supplied does not match, during a password change
+ * (D28).
  *
- * <p>400, e nao 401: a sessao continua valida. Um 401 faria a interface
- * tratar como sessao expirada e voltar ao login.
+ * <p>400, not 401: the session is still valid. A 401 would make the interface
+ * treat it as an expired session and return to login.
  */
 public class IncorrectPasswordException extends ApplicationException {
 

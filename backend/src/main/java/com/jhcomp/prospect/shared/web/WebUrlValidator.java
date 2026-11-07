@@ -9,25 +9,25 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 /**
- * Valida {@link WebUrl} por parsing, e nao por expressao regular.
+ * Validates {@link WebUrl} by parsing, not by regular expression.
  *
- * <p>A URL vira link na interface, entao um esquema diferente de
- * {@code http}/{@code https} e execucao de script no clique. A primeira versao
- * decidia o esquema com um lookahead que deixava passar {@code host:porta}, e
- * por isso aceitava {@code javascript:1,alert(1)}: depois dos dois-pontos vinha
- * um digito. Decidir o esquema com regex e fragil por natureza; aqui o valor e
- * interpretado como URI e as partes sao verificadas uma a uma.
+ * <p>The URL becomes a link in the interface, so a scheme other than
+ * {@code http}/{@code https} means script execution on click. The first
+ * version decided the scheme with a lookahead that let {@code host:port}
+ * through, and therefore accepted {@code javascript:1,alert(1)}: after the
+ * colon came a digit. Deciding a scheme with a regex is fragile by nature;
+ * here the value is parsed as a URI and its parts are checked one by one.
  *
- * <p>Sem {@code ://}, o valor e tratado como host (com porta e caminho
- * opcionais) e recebe {@code https://} so para ser interpretado. Um esquema
- * como {@code javascript:} vira entao um host sem ponto ou uma porta que nao e
- * numero, e e recusado.
+ * <p>Without {@code ://}, the value is treated as a host — with optional port
+ * and path — and receives {@code https://} purely so it can be parsed. A
+ * scheme such as {@code javascript:} then becomes either a host with no dot or
+ * a port that is not a number, and is refused.
  */
 public class WebUrlValidator implements ConstraintValidator<WebUrl, String> {
 
     private static final Pattern EXPLICIT_SCHEME = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]*://.*");
 
-    /** Rotulos DNS separados por ponto; pelo menos um ponto. */
+    /** DNS labels separated by dots; at least one dot. */
     private static final Pattern HOSTNAME =
             Pattern.compile("^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.?$");
 
@@ -64,15 +64,15 @@ public class WebUrlValidator implements ConstraintValidator<WebUrl, String> {
             return false;
         }
 
-        // Autoridade sem host interpretavel (porta nao numerica, por exemplo)
-        // e o caso de "javascript:1,alert(1)" sem esquema explicito.
+        // An authority with no parsable host — a non-numeric port, say — is
+        // the case of "javascript:1,alert(1)" with no explicit scheme.
         String host = uri.getHost();
         if (host == null || !HOSTNAME.matcher(host.toLowerCase(Locale.ROOT)).matches()) {
             return false;
         }
 
-        // Usuario na URL ("https://banco.test@atacante.test") serve para
-        // disfarcar o destino do link; site de empresa nao precisa disso.
+        // Userinfo in a URL ("https://bank.test@attacker.test") exists to
+        // disguise the link's destination; a company website has no need of it.
         return uri.getRawUserInfo() == null;
     }
 }

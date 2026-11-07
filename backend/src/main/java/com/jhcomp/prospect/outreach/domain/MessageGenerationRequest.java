@@ -1,10 +1,10 @@
 package com.jhcomp.prospect.outreach.domain;
 
 /**
- * Pedido ao provedor de IA.
+ * A request to the AI provider.
  *
- * <p>Instrucoes e dados chegam separados: o adaptador deve envia-los em
- * partes distintas do prompt, para que dado nunca seja lido como instrucao
+ * <p>Instructions and data arrive separately: the adapter must send them in
+ * distinct parts of the prompt, so data is never read as an instruction
  * (doc 07 §7).
  */
 public record MessageGenerationRequest(String promptVersion, String instructions, MessageContext context) {}

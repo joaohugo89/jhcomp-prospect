@@ -11,12 +11,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Forca a emissao do cookie com o token CSRF.
+ * Forces the CSRF token cookie to be issued.
  *
- * <p>O Spring Security carrega o token de forma diferida: o cookie so e escrito
- * quando alguem efetivamente le o valor. Numa API consumida por SPA isso cria
- * um impasse — o cliente precisa do token para fazer o primeiro POST, mas
- * nenhum GET anterior emitiu o cookie. Ler o valor aqui resolve o impasse.
+ * <p>Spring Security loads the token lazily: the cookie is only written once
+ * something actually reads the value. In an API consumed by a single-page
+ * application that creates a deadlock — the client needs the token to make the
+ * first POST, but no earlier GET issued the cookie. Reading the value here
+ * breaks the deadlock.
  */
 public class CsrfCookieFilter extends OncePerRequestFilter {
 
@@ -26,7 +27,7 @@ public class CsrfCookieFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         if (request.getAttribute(CsrfToken.class.getName()) instanceof CsrfToken token) {
-            // A chamada em si e o que dispara a escrita do cookie.
+            // The call itself is what triggers the cookie being written.
             token.getToken();
         }
 

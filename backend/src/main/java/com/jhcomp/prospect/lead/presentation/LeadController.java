@@ -39,8 +39,8 @@ import jakarta.validation.Valid;
 /**
  * Leads (RF-011, RF-012, RF-013; doc 05 §5).
  *
- * <p>Mover card no Kanban e {@code PATCH /leads/{id}/status} (D2): nao existe
- * rota de etapa de deal.
+ * <p>Moving a Kanban card is {@code PATCH /leads/{id}/status} (D2): there is
+ * no deal stage route.
  */
 @RestController
 @RequestMapping("/leads")
@@ -105,7 +105,7 @@ public class LeadController {
                 leadId, request.status(), request.reason(), request.isContactConfirmed()));
     }
 
-    /** Responsavel ou prioridade de varios leads de uma vez (D31); tudo ou nada. */
+    /** Owner or priority across several leads at once (D31); all or nothing. */
     @PostMapping("/bulk")
     public BulkUpdateResponse bulk(@Valid @RequestBody BulkUpdateRequest request) {
         if (request.action() == BulkAction.PRIORITY && request.priority() == null) {
@@ -123,7 +123,7 @@ public class LeadController {
         return LeadResponse.from(leadService.changePriority(leadId, request.priority()));
     }
 
-    /** Historico consolidado (RF-013): status e origens, do mais recente ao mais antigo. */
+    /** The consolidated history (RF-013): statuses and origins, newest first. */
     @GetMapping("/{leadId}/timeline")
     public PageResponse<TimelineEntryResponse> timeline(
             @PathVariable UUID leadId,

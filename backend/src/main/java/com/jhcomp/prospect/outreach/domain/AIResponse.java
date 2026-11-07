@@ -1,10 +1,10 @@
 package com.jhcomp.prospect.outreach.domain;
 
 /**
- * Resposta bruta do provedor.
+ * The provider's raw response.
  *
- * <p>{@code content} e dado nao confiavel (regra 9 do produto): so vira
- * rascunho depois de passar pela validacao de estrutura e tamanho.
- * {@code generatedBy} identifica provedor e modelo, sem segredo.
+ * <p>{@code content} is untrusted data (product rule 9): it only becomes a
+ * draft after passing structure and size validation. {@code generatedBy}
+ * identifies the provider and model, with no secret in it.
  */
 public record AIResponse(String generatedBy, String content) {}

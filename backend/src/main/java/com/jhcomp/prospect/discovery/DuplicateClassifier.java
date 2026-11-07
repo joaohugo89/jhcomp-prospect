@@ -17,20 +17,20 @@ import com.jhcomp.prospect.company.infrastructure.persistence.CompanyEntity;
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 
 /**
- * Marca como possivel duplicata as linhas validas que coincidem com uma empresa
- * ja cadastrada ou com uma linha anterior do mesmo arquivo (doc 06 §4).
+ * Flags as possible duplicates the valid rows that coincide with an already
+ * registered company, or with an earlier row of the same file (doc 06 §4).
  *
- * <p>Mesmos sinais e mesma normalizacao do detalhe da empresa (D10): dominio,
- * telefone e nome normalizado na mesma cidade e estado. Nome parecido nao e
- * sinal. Marcar nao descarta: a linha fica no relatorio, e o operador decide
- * se importa (RF-014).
+ * <p>The same signals and the same normalisation as the company detail (D10):
+ * domain, phone, and normalised name in the same city and state. A similar
+ * name is not a signal. Flagging does not discard: the row stays in the
+ * report and the operator decides whether to import it (RF-014).
  */
 final class DuplicateClassifier {
 
     private DuplicateClassifier() {
     }
 
-    /** Chaves de comparacao de uma linha. Nulo quando o valor nao normaliza. */
+    /** A row's comparison keys. Null when the value does not normalise. */
     private record Keys(String domain, String phone, String nameCityState) {
 
         static Keys of(Map<ImportField, String> values) {
@@ -49,11 +49,11 @@ final class DuplicateClassifier {
     }
 
     /**
-     * Classifica as linhas com status {@code VALID}.
+     * Classifies the rows with status {@code VALID}.
      *
-     * @param checkWithinFile {@code false} na confirmacao, quando so interessa o
-     *     que foi gravado na base desde a analise
-     * @return quantas linhas passaram a duplicata
+     * @param checkWithinFile {@code false} at confirmation, when only what was
+     *     written to the database since the analysis matters
+     * @return how many rows became duplicates
      */
     static int classify(List<ImportRowEntity> rows, CompanyService companyService, boolean checkWithinFile) {
         Map<ImportRowEntity, Keys> keys = new HashMap<>();
@@ -78,8 +78,8 @@ final class DuplicateClassifier {
 
         List<CompanyEntity> existing = companyService.findByNormalizedValues(domains, phones, names);
 
-        // Primeira linha do arquivo com cada chave. Duplicatas tambem entram:
-        // a segunda copia de uma linha ja duplicada continua sendo copia.
+        // The first row in the file holding each key. Duplicates go in too:
+        // the second copy of an already duplicated row is still a copy.
         Map<String, Integer> firstRowByKey = new HashMap<>();
         int marked = 0;
 

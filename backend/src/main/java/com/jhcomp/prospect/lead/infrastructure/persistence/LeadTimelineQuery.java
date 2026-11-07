@@ -14,28 +14,28 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Historico consolidado do lead (RF-013): mudancas de status, origens e
- * interacoes do CRM, em ordem cronologica decrescente.
+ * The lead's consolidated history (RF-013): status changes, origins and CRM
+ * interactions, newest first.
  *
- * <p>SQL direto porque une duas tabelas numa unica paginacao; com duas
- * consultas paginadas separadas, a ordem entre elas so seria correta pagina a
- * pagina. Ambos os lados filtram por organizacao.
+ * <p>Plain SQL, because it unions two tables into a single pagination; with
+ * two separately paginated queries the order between them would only be right
+ * page by page. Both sides filter by organisation.
  *
- * <p>Empate de instante e desempatado pela ordem de gravacao
- * ({@code recorded_seq}, V6), e nao pelo id aleatorio: o relogio pode dar o
- * mesmo instante a eventos gravados em sequencia.
+ * <p>A tie on the instant is broken by recording order ({@code recorded_seq},
+ * V6) rather than by the random id: the clock can give the same instant to
+ * events written in sequence.
  */
 @Repository
 public class LeadTimelineQuery {
 
-    /** Tipo do evento no historico. */
+    /** The type of event in the history. */
     public enum EntryType {
         STATUS_CHANGE,
         SOURCE,
         INTERACTION
     }
 
-    /** Evento do historico. Campos de status ou de origem conforme o tipo. */
+    /** A history event. Status or origin fields, depending on the type. */
     public record Entry(
             EntryType type,
             UUID id,

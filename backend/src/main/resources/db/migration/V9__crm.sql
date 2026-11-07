@@ -1,18 +1,18 @@
--- V9 — CRM: deals, interacoes e tarefas (RF-040 a RF-043, D2, D25).
+-- V9 — CRM: deals, interactions and tasks (RF-040 to RF-043, D2, D25).
 --
--- Etapas da pipeline nao tem tabela (D25): sao 1:1 com lead.status (D2) e
--- vivem no codigo. Deal nao guarda resultado: ganho ou perdido e o status do
--- lead, fonte unica do estado comercial.
+-- Pipeline stages have no table (D25): they map 1:1 onto lead.status (D2) and
+-- live in code. A deal stores no outcome: won or lost is the lead's status,
+-- the single source of commercial state.
 
 -- ---------------------------------------------------------------------------
--- deal — dados comerciais do fechamento
+-- deal — the commercial facts of a closing
 -- ---------------------------------------------------------------------------
 CREATE TABLE deal (
     id               uuid          PRIMARY KEY,
     organization_id  uuid          NOT NULL,
     lead_id          uuid          NOT NULL,
     service          text,
-    -- Dinheiro em NUMERIC, nunca ponto flutuante (regra 10 do produto).
+    -- Money in NUMERIC, never floating point (product rule 10).
     estimated_value  numeric(12, 2),
     currency         varchar(3)    NOT NULL DEFAULT 'BRL',
     loss_reason      text,
@@ -20,7 +20,7 @@ CREATE TABLE deal (
     updated_at       timestamptz   NOT NULL,
 
     CONSTRAINT deal_org_id_unique UNIQUE (organization_id, id),
-    -- Uma negociacao por lead no MVP (D2).
+    -- One negotiation per lead in the MVP (D2).
     CONSTRAINT deal_one_per_lead UNIQUE (organization_id, lead_id),
     CONSTRAINT deal_lead_same_org FOREIGN KEY (organization_id, lead_id) REFERENCES lead (organization_id, id),
     CONSTRAINT deal_value_non_negative CHECK (estimated_value IS NULL OR estimated_value >= 0),
@@ -30,7 +30,7 @@ CREATE TABLE deal (
 );
 
 -- ---------------------------------------------------------------------------
--- interaction — eventos de relacionamento (RF-041)
+-- interaction — relationship events (RF-041)
 -- ---------------------------------------------------------------------------
 CREATE TABLE interaction (
     id                  uuid        PRIMARY KEY,
@@ -44,7 +44,7 @@ CREATE TABLE interaction (
     notes               text,
     created_by_user_id  uuid        NOT NULL,
     created_at          timestamptz NOT NULL,
-    -- Desempate da timeline, na mesma sequencia de status e origens (V6).
+    -- The timeline tiebreak, on the same sequence as statuses and origins (V6).
     recorded_seq        bigint      NOT NULL DEFAULT nextval('timeline_event_seq'),
 
     CONSTRAINT interaction_lead_same_org FOREIGN KEY (organization_id, lead_id) REFERENCES lead (organization_id, id),
@@ -63,7 +63,7 @@ CREATE INDEX interaction_by_lead ON interaction (organization_id, lead_id, occur
 CREATE INDEX interaction_by_org ON interaction (organization_id, occurred_at DESC);
 
 -- ---------------------------------------------------------------------------
--- task — tarefas do lead (RF-042)
+-- task — the lead's tasks (RF-042)
 -- ---------------------------------------------------------------------------
 CREATE TABLE task (
     id                  uuid        PRIMARY KEY,

@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-/** Importacoes. Toda consulta recebe {@code organizationId} (RNF-001). */
+/** Imports. Every query takes {@code organizationId} (RNF-001). */
 interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, UUID> {
 
     Optional<ImportBatchEntity> findByIdAndOrganizationId(UUID id, UUID organizationId);
@@ -22,7 +22,7 @@ interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, UUID> {
     Page<ImportBatchEntity> findByOrganizationIdAndStatusOrderByCreatedAtDescIdAsc(
             UUID organizationId, ImportBatchEntity.Status status, Pageable pageable);
 
-    /** Visao geral do historico (doc 08 §9): uma consulta, contagens por situacao. */
+    /** The history overview (doc 08 §9): one query, counts per status. */
     @Query("""
             select count(case when b.status = com.jhcomp.prospect.discovery.ImportBatchEntity.Status.ANALYZED
                               then 1 end),
@@ -38,7 +38,7 @@ interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, UUID> {
             """)
     List<Object[]> summarize(@Param("organizationId") UUID organizationId);
 
-    /** Importacao anterior do mesmo arquivo, para avisar reenvio (doc 10 §4). */
+    /** An earlier import of the same file, to flag a resend (doc 10 §4). */
     Optional<ImportBatchEntity> findFirstByOrganizationIdAndFileSha256AndIdNotAndCreatedAtBeforeAndStatusNotOrderByCreatedAtDesc(
             UUID organizationId,
             String fileSha256,
@@ -47,12 +47,13 @@ interface ImportBatchRepository extends JpaRepository<ImportBatchEntity, UUID> {
             ImportBatchEntity.Status excludedStatus);
 
     /**
-     * Passa de {@code from} para {@code to} so se ainda estiver em {@code from}.
+     * Moves from {@code from} to {@code to} only while it is still in
+     * {@code from}.
      *
-     * <p>Atomico: duas confirmacoes simultaneas nao importam o mesmo arquivo
-     * duas vezes, porque so uma consegue a transicao.
+     * <p>Atomic: two simultaneous confirmations cannot import the same file
+     * twice, because only one of them wins the transition.
      *
-     * @return 1 se a transicao ocorreu, 0 caso contrario
+     * @return 1 when the transition happened, 0 otherwise
      */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""

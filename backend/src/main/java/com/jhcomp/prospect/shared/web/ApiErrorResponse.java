@@ -5,14 +5,14 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Formato unico de erro da API, exatamente como especificado no doc 05 §1.
+ * The API's single error format, exactly as specified in doc 05 §1.
  *
- * <p>Nao se usa o {@code ProblemDetail} do Spring aqui porque o campo
- * {@code type} do contrato e um codigo estavel como {@code VALIDATION_ERROR},
- * enquanto {@code ProblemDetail.type} e um {@code URI}. Manter o contrato
- * documentado e mais importante que reaproveitar a classe do framework.
+ * <p>Spring's {@code ProblemDetail} is not used here because the contract's
+ * {@code type} field is a stable code such as {@code VALIDATION_ERROR}, while
+ * {@code ProblemDetail.type} is a {@code URI}. Keeping the documented contract
+ * matters more than reusing the framework's class.
  *
- * <p>Nunca carrega stack trace nem mensagem interna (RNF-003).
+ * <p>It never carries a stack trace or an internal message (RNF-003).
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiErrorResponse(

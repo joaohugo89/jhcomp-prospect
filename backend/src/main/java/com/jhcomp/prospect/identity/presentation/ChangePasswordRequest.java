@@ -4,9 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Troca da propria senha (D28). A politica da senha nova (tamanho minimo e
- * teto do BCrypt) e conferida no servico; o teto aqui so impede que um corpo
- * enorme chegue ao hash.
+ * Changing your own password (D28). The new password's policy — minimum
+ * length and the BCrypt ceiling — is checked in the service; the limit here
+ * only stops an enormous body from reaching the hash.
  */
 public record ChangePasswordRequest(
         @NotBlank(message = "must not be blank") @Size(max = 128, message = "must be at most 128 characters")
@@ -14,7 +14,7 @@ public record ChangePasswordRequest(
         @NotBlank(message = "must not be blank") @Size(max = 128, message = "must be at most 128 characters")
         String newPassword) {
 
-    /** Evita que as senhas aparecam em log ou mensagem de erro (RNF-007). */
+    /** Keeps the passwords out of logs and error messages (RNF-007). */
     @Override
     public String toString() {
         return "ChangePasswordRequest[currentPassword=***, newPassword=***]";

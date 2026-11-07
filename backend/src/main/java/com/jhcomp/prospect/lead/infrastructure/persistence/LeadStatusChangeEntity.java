@@ -13,10 +13,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 /**
- * Mudanca de estado do lead, com ator, data e estado anterior (doc 06 §2).
+ * A lead's state change, with the actor, the date and the previous state
+ * (doc 06 §2).
  *
- * <p>Alimenta o historico do RF-013. Registro acrescido, nunca alterado: nao ha
- * metodo de atualizacao nesta classe.
+ * <p>It feeds the history of RF-013. An append-only record, never altered:
+ * this class has no update method.
  */
 @Entity
 @Table(name = "lead_status_change")
@@ -28,7 +29,7 @@ public class LeadStatusChangeEntity extends AssignedIdEntity {
     @Column(name = "lead_id", nullable = false, updatable = false)
     private UUID leadId;
 
-    /** Nulo na criacao do lead, quando nao havia estado anterior. */
+    /** Null when the lead was created, as there was no previous state. */
     @Enumerated(EnumType.STRING)
     @Column(name = "from_status")
     private LeadStatus fromStatus;
@@ -47,7 +48,7 @@ public class LeadStatusChangeEntity extends AssignedIdEntity {
     private Instant changedAt;
 
     protected LeadStatusChangeEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public LeadStatusChangeEntity(

@@ -9,15 +9,15 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Registro da trilha de auditoria (RNF-008, doc 07 §11).
+ * Writing to the audit trail (RNF-008, doc 07 §11).
  *
- * <p>Grava em transacao propria ({@code REQUIRES_NEW}). Uma tentativa de login
- * recusada precisa ficar registrada mesmo que a requisicao termine em erro: se
- * o registro participasse da transacao do chamador, o rollback apagaria
- * justamente a evidencia que se quer guardar.
+ * <p>It writes in its own transaction ({@code REQUIRES_NEW}). A refused login
+ * attempt has to stay recorded even when the request ends in an error: if the
+ * record took part in the caller's transaction, the rollback would erase
+ * precisely the evidence worth keeping.
  *
- * <p>Nunca recebe senha, token nem conteudo de mensagem. O campo
- * {@code detail} e um resumo curto e nao sensivel (doc 07 §6).
+ * <p>It never receives a password, a token or message content. The
+ * {@code detail} field is a short, non-sensitive summary (doc 07 §6).
  */
 @Service
 public class AuditService {
@@ -27,8 +27,9 @@ public class AuditService {
     private final AuditEventRepository repository;
     private final Clock clock;
 
-    // Anotado porque a classe tem dois construtores com argumentos: sem a
-    // anotacao o Spring nao consegue escolher e falha ao criar o bean.
+    // Annotated because the class has two argument-taking constructors:
+    // without the annotation Spring cannot choose and fails to create the
+    // bean.
     @Autowired
     AuditService(AuditEventRepository repository) {
         this(repository, Clock.systemUTC());
@@ -62,10 +63,10 @@ public class AuditService {
     }
 
     /**
-     * Dados de um evento auditado.
+     * The data of an audited event.
      *
-     * <p>{@code organizationId} e {@code actorUserId} podem ser nulos: uma
-     * falha de login ocorre antes de haver usuario ou organizacao conhecidos.
+     * <p>{@code organizationId} and {@code actorUserId} may be null: a login
+     * failure happens before there is any known user or organisation.
      */
     public record AuditEntry(
             UUID organizationId,
@@ -83,11 +84,12 @@ public class AuditService {
         }
 
         /**
-         * Falha de login.
+         * A login failure.
          *
-         * <p>O motivo registrado e generico de proposito. O e-mail tentado nao
-         * e armazenado: seria dado pessoal de alguem que pode nem ser usuario
-         * do sistema, coletado sem finalidade necessaria (doc 07 §2).
+         * <p>The reason recorded is generic on purpose. The e-mail attempted
+         * is not stored: it would be personal data about someone who may not
+         * even be a user of the system, collected with no necessary purpose
+         * (doc 07 §2).
          */
         public static AuditEntry loginFailure(String ipAddress, String reason) {
             return new AuditEntry(

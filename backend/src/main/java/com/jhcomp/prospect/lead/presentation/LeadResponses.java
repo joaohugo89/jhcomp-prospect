@@ -12,13 +12,13 @@ import com.jhcomp.prospect.lead.domain.LeadStatusTransitions;
 import com.jhcomp.prospect.lead.infrastructure.persistence.LeadEntity;
 import com.jhcomp.prospect.lead.infrastructure.persistence.LeadTimelineQuery;
 
-/** Respostas do modulo de lead. Nao expoem {@code organizationId}. */
+/** Responses of the lead module. They do not expose {@code organizationId}. */
 public final class LeadResponses {
 
     private LeadResponses() {
     }
 
-    /** Resumo da empresa, suficiente para listar e navegar ate ela. */
+    /** A company summary, enough to list it and navigate to it. */
     public record CompanySummary(UUID id, String name, String segment, String city, String state, boolean archived) {
 
         static CompanySummary from(CompanyEntity company) {
@@ -33,11 +33,11 @@ public final class LeadResponses {
     }
 
     /**
-     * Lead.
+     * A lead.
      *
-     * <p>{@code score} nulo significa "sem analise", nunca zero (D7).
-     * {@code allowedTransitions} orienta a interface; a regra continua no
-     * servidor.
+     * <p>A null {@code score} means "no analysis", never zero (D7).
+     * {@code allowedTransitions} guides the interface; the rule itself stays
+     * on the server.
      */
     public record LeadResponse(
             UUID id,

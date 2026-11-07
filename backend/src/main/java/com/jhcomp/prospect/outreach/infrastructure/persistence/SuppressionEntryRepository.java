@@ -43,8 +43,8 @@ public interface SuppressionEntryRepository extends JpaRepository<SuppressionEnt
     }
 
     /**
-     * Entradas com algum dos valores, de qualquer tipo e canal. O chamador
-     * filtra tipo e canal: sao poucas linhas por empresa.
+     * Entries holding any of the values, of any type and channel. The caller
+     * filters type and channel: there are few rows per company.
      */
     List<SuppressionEntryEntity> findByOrganizationIdAndIdentifierIn(UUID organizationId, Collection<String> identifiers);
 }

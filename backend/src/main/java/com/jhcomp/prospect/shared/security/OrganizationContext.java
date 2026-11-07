@@ -10,26 +10,26 @@ import org.springframework.stereotype.Component;
 import com.jhcomp.prospect.shared.error.UnauthenticatedException;
 
 /**
- * Unica fonte da organizacao ativa (RF-002, RNF-001).
+ * The single source of the active organisation (RF-002, RNF-001).
  *
- * <p>Todo caso de uso que toque dado privado obtem a organizacao aqui, e nunca
- * do corpo, do path ou de um parametro da requisicao. Confiar em
- * {@code organizationId} enviado pelo cliente e o que a especificacao proibe
- * explicitamente (doc 03 §5, doc 07 §5).
+ * <p>Every use case that touches private data obtains the organisation here,
+ * never from the body, the path or a request parameter. Trusting an
+ * {@code organizationId} sent by the client is exactly what the specification
+ * forbids explicitly (doc 03 §5, doc 07 §5).
  */
 @Component
 public class OrganizationContext {
 
-    /** Organizacao ativa, ou falha se nao houver usuario autenticado. */
+    /** The active organisation, or a failure when there is no authenticated user. */
     public UUID requireOrganizationId() {
-        // Deriva do usuario exigido em vez de mapear o Optional: encadear
-        // map(AuthenticatedUser::organizationId) faz as ferramentas de analise
-        // de nulidade reclamarem do receptor da referencia de metodo, sem
-        // ganho de clareza.
+        // Derived from the required user rather than by mapping the Optional:
+        // chaining map(AuthenticatedUser::organizationId) makes null-analysis
+        // tools complain about the method reference's receiver, with no gain
+        // in clarity.
         return requireCurrentUser().organizationId();
     }
 
-    /** Usuario autenticado, ou falha se nao houver. */
+    /** The authenticated user, or a failure when there is none. */
     public AuthenticatedUser requireCurrentUser() {
         return currentUser().orElseThrow(UnauthenticatedException::new);
     }
@@ -45,7 +45,7 @@ public class OrganizationContext {
             return Optional.of(user);
         }
 
-        // Principal anonimo do Spring Security cai aqui.
+        // Spring Security's anonymous principal lands here.
         return Optional.empty();
     }
 }

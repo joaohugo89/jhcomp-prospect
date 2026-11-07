@@ -10,11 +10,12 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * Encerra o processo depois do {@link AdminBootstrapCommand} (D27).
+ * Ends the process after {@link AdminBootstrapCommand} (D27).
  *
- * <p>Separado do comando para que ele possa ser testado sem derrubar a JVM.
- * Roda por ultimo; se o comando falhou, o contexto nem termina de subir e o
- * processo sai com erro antes de chegar aqui.
+ * <p>Kept separate from the command so that the command can be tested without
+ * tearing down the JVM. It runs last; if the command failed, the context never
+ * finishes starting and the process exits with an error before reaching
+ * here.
  */
 @Component
 @Profile("bootstrap")

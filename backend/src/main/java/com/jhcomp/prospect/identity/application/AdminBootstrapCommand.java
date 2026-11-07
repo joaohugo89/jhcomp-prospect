@@ -15,14 +15,14 @@ import com.jhcomp.prospect.identity.domain.PasswordPolicy;
 import com.jhcomp.prospect.shared.normalization.ContactNormalizer;
 
 /**
- * Cria o primeiro administrador de producao (D19, D27).
+ * Creates the first administrator in production (D19, D27).
  *
- * <p>Comando de execucao unica: o perfil {@code bootstrap} sobe sem porta
- * publicada nem worker, roda este passo e termina. So funciona com o banco ainda
- * sem organizacao; rodar de novo e recusado. Falha
- * com excecao, e portanto com codigo de saida diferente de zero, em vez de
- * apenas registrar aviso: em producao, um bootstrap que nao fez nada precisa
- * ser percebido por quem o executou.
+ * <p>A single-use command: the {@code bootstrap} profile starts with no
+ * published port and no worker, runs this step and exits. It only works while
+ * the database still has no organisation; running it again is refused. It
+ * fails with an exception, and therefore with a non-zero exit code, rather
+ * than merely logging a warning: in production, a bootstrap that did nothing
+ * has to be noticed by whoever ran it.
  */
 @Component
 @Profile("bootstrap")
@@ -55,7 +55,7 @@ class AdminBootstrapCommand implements ApplicationRunner {
         if (email.isBlank() || !email.contains("@")) {
             throw new IllegalStateException("BOOTSTRAP_ADMIN_EMAIL must be a valid e-mail");
         }
-        // Mesma politica da troca de senha na aplicacao (D28).
+        // The same policy as the in-application password change (D28).
         PasswordPolicy.violation(adminPassword).ifPresent(violation -> {
             throw new IllegalStateException("BOOTSTRAP_ADMIN_PASSWORD: " + violation);
         });
@@ -68,7 +68,7 @@ class AdminBootstrapCommand implements ApplicationRunner {
     }
 
     static String slugOf(String name) {
-        // Mesma normalizacao do resto do sistema: sem acento e em minusculas.
+        // The same normalisation as the rest of the system: unaccented and lower case.
         String slug = NON_SLUG.matcher(ContactNormalizer.name(name).orElse("")).replaceAll("-")
                 .replaceAll("^-+|-+$", "");
         return slug.isEmpty() ? "org" : slug;

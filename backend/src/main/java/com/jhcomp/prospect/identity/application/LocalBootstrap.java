@@ -9,16 +9,17 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Cria a organizacao e o administrador iniciais em desenvolvimento local.
+ * Creates the initial organisation and administrator in local development.
  *
- * <p>Restrito ao perfil {@code local} de proposito. Semear um usuario por
- * migration Flyway colocaria uma senha conhecida em todo ambiente que rodasse
- * as migrations, producao incluida — e migrations sao imutaveis, de modo que o
- * erro nao poderia ser simplesmente corrigido depois. Em producao, o
- * equivalente e o {@link AdminBootstrapCommand}, executado uma unica vez.
+ * <p>Restricted to the {@code local} profile on purpose. Seeding a user
+ * through a Flyway migration would put a known password into every
+ * environment that ran the migrations, production included — and migrations
+ * are immutable, so the mistake could not simply be corrected afterwards. In
+ * production the equivalent is {@link AdminBootstrapCommand}, run exactly
+ * once.
  *
- * <p>A senha vem de {@code LOCAL_ADMIN_PASSWORD} e nao tem valor padrao: um
- * default seria uma credencial conhecida publicamente.
+ * <p>The password comes from {@code LOCAL_ADMIN_PASSWORD} and has no default:
+ * a default would be a publicly known credential.
  */
 @Component
 @Profile("local")
@@ -64,7 +65,7 @@ public class LocalBootstrap implements ApplicationRunner {
 
         setup.create(organizationName, "jhcomp", email, adminPassword);
 
-        // Registra o e-mail, que o operador precisa para entrar, e nunca a senha.
+        // Logs the e-mail, which the operator needs in order to sign in, and never the password.
         log.info("Bootstrap local: organizacao '{}' e administrador '{}' criados.", organizationName, email);
     }
 }

@@ -13,8 +13,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /**
- * Leads. Toda consulta recebe {@code organizationId} (RNF-001); listagens
- * filtradas usam {@link LeadSpecifications}, que sempre aplica o escopo.
+ * Leads. Every query takes {@code organizationId} (RNF-001); filtered
+ * listings use {@link LeadSpecifications}, which always applies the scope.
  */
 public interface LeadRepository extends JpaRepository<LeadEntity, UUID>, JpaSpecificationExecutor<LeadEntity> {
 
@@ -26,10 +26,10 @@ public interface LeadRepository extends JpaRepository<LeadEntity, UUID>, JpaSpec
             """)
     Optional<LeadEntity> findScoped(@Param("leadId") UUID leadId, @Param("organizationId") UUID organizationId);
 
-    /** Oportunidade aberta da empresa: o MVP admite uma por vez (doc 06 §3). */
+    /** The company's open opportunity: the MVP allows one at a time (doc 06 §3). */
     boolean existsByOrganizationIdAndCompanyIdAndClosedAtIsNull(UUID organizationId, UUID companyId);
 
-    /** Carrega a empresa junto: a listagem exibe nome e cidade em toda linha. */
+    /** Loads the company alongside: the listing shows name and city on every row. */
     @Override
     @EntityGraph(attributePaths = "company")
     Page<LeadEntity> findAll(Specification<LeadEntity> specification, Pageable pageable);

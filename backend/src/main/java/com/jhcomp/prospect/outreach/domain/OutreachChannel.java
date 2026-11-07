@@ -1,16 +1,17 @@
 package com.jhcomp.prospect.outreach.domain;
 
 /**
- * Canal de abordagem (D26).
+ * An outreach channel (D26).
  *
- * <p>Cada canal tem limite proprio de tamanho e o tipo de identificador que
- * aponta o destinatario: e por ele que a lista de nao contato e conferida.
+ * <p>Each channel has its own size limit and the identifier type that points
+ * at the recipient: that identifier is what the do-not-contact list is
+ * checked against.
  */
 public enum OutreachChannel {
     WHATSAPP(1_000, IdentifierType.PHONE),
     EMAIL(4_000, IdentifierType.EMAIL),
     INSTAGRAM(1_000, IdentifierType.INSTAGRAM),
-    /** Roteiro de ligacao, nao mensagem escrita. */
+    /** A call script, not a written message. */
     PHONE_CALL(2_000, IdentifierType.PHONE);
 
     private final int maxBodyLength;

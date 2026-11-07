@@ -3,13 +3,13 @@ package com.jhcomp.prospect.shared.error;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
 /**
- * Base das excecoes tratadas pela API.
+ * The base of the exceptions the API handles.
  *
- * <p>Cada subclasse declara o tipo de erro e o status, de modo que o handler
- * global nao precise de uma cadeia de {@code instanceof}.
+ * <p>Each subclass declares its error type and status, so the global handler
+ * needs no chain of {@code instanceof}.
  *
- * <p>A mensagem e exibida ao cliente: nao colocar nela detalhe interno, SQL,
- * caminho de arquivo nem dado pessoal (RNF-003, RNF-007).
+ * <p>The message is shown to the client: never put internal detail, SQL, a
+ * file path or personal data in it (RNF-003, RNF-007).
  */
 public abstract class ApplicationException extends RuntimeException {
 

@@ -3,12 +3,12 @@ package com.jhcomp.prospect.outreach.domain;
 import java.util.List;
 
 /**
- * Tudo o que a IA pode usar para redigir a mensagem (doc 06 §8, D26).
+ * Everything the AI may use to write the message (doc 06 §8, D26).
  *
- * <p>Contem apenas dados da empresa e achados confirmados; telefone, e-mail,
- * Instagram, notas do operador e conteudo de pagina externa ficam de fora de
- * proposito (doc 07 §7). Os achados sao descricoes fixas do sistema, nunca
- * texto vindo de fora.
+ * <p>It holds only company data and confirmed findings; phone, e-mail,
+ * Instagram, the operator's notes and any external page content are left out
+ * on purpose (doc 07 §7). The findings are the system's own fixed
+ * descriptions, never text coming from outside.
  */
 public record MessageContext(
         OutreachChannel channel,

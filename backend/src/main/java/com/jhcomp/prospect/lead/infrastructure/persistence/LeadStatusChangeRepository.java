@@ -8,16 +8,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-/** Historico de status. Leitura pela {@link LeadTimelineQuery}, sempre escopada. */
+/** The status history. Read through {@link LeadTimelineQuery}, always scoped. */
 public interface LeadStatusChangeRepository extends JpaRepository<LeadStatusChangeEntity, UUID> {
 
     /**
-     * Ultima mudanca de cada lead, que o levou ao status atual (toda mudanca
-     * grava uma linha, inclusive a abertura). Uma consulta para o quadro todo.
+     * Each lead's last change, the one that brought it to its current status
+     * (every change writes a row, the opening included). One query for the
+     * whole board.
      *
-     * <p>"Ultima" e pela ordem de gravacao ({@code recorded_seq}, a mesma da
-     * timeline), nao pelo maior {@code changed_at}: relogios de maquinas
-     * diferentes nao sao confiaveis para ordenar eventos.
+     * <p>"Last" means by recording order ({@code recorded_seq}, the same as
+     * the timeline), not by the greatest {@code changed_at}: clocks on
+     * different machines are not reliable for ordering events.
      */
     @Query(value = """
             select distinct on (lead_id) *

@@ -1,14 +1,15 @@
 package com.jhcomp.prospect.shared.jobs;
 
 /**
- * Executor de um tipo de job.
+ * The executor of one job type.
  *
- * <p>Roda fora de requisicao HTTP: nao ha sessao nem
- * {@code OrganizationContext}. A organizacao vem do proprio job, gravado a
- * partir da sessao de quem pediu, e nunca do payload.
+ * <p>It runs outside an HTTP request: there is no session and no
+ * {@code OrganizationContext}. The organisation comes from the job itself,
+ * written from the session of whoever requested it, and never from the
+ * payload.
  *
- * <p>Nao deve manter transacao aberta durante chamada de rede. Uma excecao
- * lancada faz o job ser tentado de novo, ate o limite de tentativas.
+ * <p>It must not hold a transaction open during a network call. An exception
+ * thrown makes the job be retried, up to the attempt limit.
  */
 public interface JobHandler {
 
@@ -17,8 +18,8 @@ public interface JobHandler {
     void handle(JobEntity job);
 
     /**
-     * Chamado quando o job falha de vez, para que o recurso ligado a ele nao
-     * fique esperando para sempre.
+     * Called when the job fails for good, so the resource attached to it does
+     * not wait forever.
      */
     void onGiveUp(JobEntity job);
 }

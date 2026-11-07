@@ -1,11 +1,11 @@
 package com.jhcomp.prospect.lead.domain;
 
 /**
- * Faixa de prioridade do lead.
+ * A lead's priority band.
  *
- * <p>As faixas de score sugeridas no doc 06 §7 ainda nao calibram esta
- * prioridade: no MVP ela e definida pelo operador. A derivacao automatica
- * entra com o score, na Etapa 6.
+ * <p>The score bands suggested in doc 06 §7 do not calibrate this priority
+ * yet: in the MVP the operator sets it. Automatic derivation arrives with the
+ * score, in stage 6.
  */
 public enum LeadPriority {
     LOW,

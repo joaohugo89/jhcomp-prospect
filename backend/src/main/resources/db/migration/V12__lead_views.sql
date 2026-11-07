@@ -1,11 +1,12 @@
--- V12 — Visoes salvas da lista de leads (D31).
+-- V12 — Saved views of the lead list (D31).
 --
--- Cada membro guarda as suas buscas ("Minhas propostas", "Importados ontem").
--- A visao e de quem a criou: nem o administrador ve as dos outros. A consulta
--- guardada e a query string da lista; quem a aplica e a tela, que so le os
--- filtros que conhece. Valer em qualquer aparelho e o motivo de estar no banco.
+-- Each member keeps their own searches ("my proposals", "imported
+-- yesterday"). A view belongs to whoever created it: not even the
+-- administrator sees anyone else's. The stored query is the list's query
+-- string; what applies it is the screen, which reads only the filters it
+-- knows. Working on any device is why it lives in the database.
 --
--- Migration imutavel apos aplicada (doc 04 §6). Corrigir em V13, nunca aqui.
+-- Immutable once applied (doc 04 §6). Correct in V13, never here.
 CREATE TABLE lead_view (
     id               uuid         PRIMARY KEY,
     organization_id  uuid         NOT NULL,
@@ -19,5 +20,5 @@ CREATE TABLE lead_view (
     CONSTRAINT lead_view_name_not_blank CHECK (length(btrim(name)) > 0)
 );
 
--- Nome unico por pessoa, sem distinguir maiusculas: duas "Propostas" seria confuso.
+-- One name per person, case-insensitively: two "Propostas" would be confusing.
 CREATE UNIQUE INDEX lead_view_name_per_user ON lead_view (organization_id, user_id, lower(name));

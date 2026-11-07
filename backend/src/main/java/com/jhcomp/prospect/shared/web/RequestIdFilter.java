@@ -14,14 +14,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Correlation ID por requisicao (doc 03 §11).
+ * A correlation id per request (doc 03 §11).
  *
- * <p>Fica disponivel no MDC para todo log da requisicao e e devolvido no
- * cabecalho de resposta, permitindo ligar o que o usuario viu ao que o servidor
- * registrou.
+ * <p>It is available in the MDC for every log line of the request and is
+ * returned in a response header, which is what links what the user saw to what
+ * the server recorded.
  *
- * <p>Um identificador recebido do cliente nao e reaproveitado: valor controlado
- * externamente poderia poluir ou falsificar a correlacao dos logs.
+ * <p>An identifier received from the client is not reused: an externally
+ * controlled value could pollute or forge the correlation of the logs.
  */
 @Component
 @Order(Integer.MIN_VALUE)
@@ -42,7 +42,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // Obrigatorio: a thread volta ao pool e carregaria o valor antigo.
+            // Mandatory: the thread returns to the pool and would carry the old value.
             MDC.remove(MDC_KEY);
         }
     }

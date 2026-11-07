@@ -12,15 +12,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import com.jhcomp.prospect.identity.domain.OrganizationRole;
 
 /**
- * Principal autenticado.
+ * The authenticated principal.
  *
- * <p>Carrega a organizacao ativa e o papel resolvidos no login, a partir da
- * associacao persistida. O cliente nunca informa a organizacao (RF-002,
- * doc 03 §5): ela e sempre derivada daqui.
+ * <p>It carries the active organisation and the role resolved at login from
+ * the persisted membership. The client never supplies the organisation
+ * (RF-002, doc 03 §5): it is always derived from here.
  *
- * <p>{@code authenticatedAt} e o instante em que a sessao foi aberta ou teve a
- * senha trocada; a revalidacao encerra a sessao se a senha mudou depois dele
- * (D28). {@code passwordChangeRequired} restringe a sessao a troca de senha.
+ * <p>{@code authenticatedAt} is the instant the session was opened, or had its
+ * password changed; revalidation ends the session if the password changed
+ * after it (D28). {@code passwordChangeRequired} restricts the session to the
+ * password change.
  */
 public final class AuthenticatedUser implements UserDetails {
 
@@ -98,8 +99,8 @@ public final class AuthenticatedUser implements UserDetails {
     }
 
     /**
-     * Versao guardada na sessao: sem o hash, que nao precisa ficar exposto ali,
-     * e com o instante de abertura da sessao.
+     * The version kept in the session: without the hash, which has no reason
+     * to be exposed there, and with the instant the session was opened.
      */
     public AuthenticatedUser forSession(Instant openedAt) {
         return new AuthenticatedUser(
@@ -107,22 +108,22 @@ public final class AuthenticatedUser implements UserDetails {
     }
 
     /**
-     * Sessao de quem acabou de trocar a propria senha: sem exigencia de troca
-     * e com o instante da troca, para nao ser encerrada pela regra de senha
-     * alterada depois do login (D28).
+     * The session of someone who has just changed their own password: with no
+     * change required, and carrying the instant of the change, so it is not
+     * ended by the rule about a password changed after login (D28).
      */
     public AuthenticatedUser afterPasswordChange(Instant changedAt) {
         return new AuthenticatedUser(userId, organizationId, email, displayName, role, false, changedAt, "");
     }
 
-    /** Mesma sessao com papel e exigencia de troca de senha relidos do banco (D21). */
+    /** The same session with role and password-change requirement re-read from the database (D21). */
     public AuthenticatedUser withCurrentState(OrganizationRole currentRole, boolean currentPasswordChangeRequired) {
         return new AuthenticatedUser(
                 userId, organizationId, email, displayName, currentRole, currentPasswordChangeRequired,
                 authenticatedAt, "");
     }
 
-    /** Nao inclui e-mail nem hash (RNF-007). */
+    /** It includes neither e-mail nor hash (RNF-007). */
     @Override
     public String toString() {
         return "AuthenticatedUser[userId=" + userId + ", organizationId=" + organizationId + ", role=" + role + "]";

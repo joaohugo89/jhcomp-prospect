@@ -3,11 +3,12 @@ package com.jhcomp.prospect.shared.error;
 import com.jhcomp.prospect.shared.web.ApiErrorType;
 
 /**
- * Credenciais invalidas.
+ * Invalid credentials.
  *
- * <p>A mensagem e deliberadamente identica para e-mail inexistente, senha
- * errada, usuario desabilitado e organizacao suspensa: revelar a diferenca
- * permitiria enumerar contas, o que o critério de aceite do RF-001 proibe.
+ * <p>The message is deliberately identical for an unknown e-mail, a wrong
+ * password, a disabled user and a suspended organisation: revealing the
+ * difference would allow account enumeration, which RF-001's acceptance
+ * criterion forbids.
  */
 public class InvalidCredentialsException extends ApplicationException {
 

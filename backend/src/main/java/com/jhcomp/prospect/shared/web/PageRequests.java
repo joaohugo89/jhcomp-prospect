@@ -11,13 +11,13 @@ import com.jhcomp.prospect.shared.error.InvalidRequestException;
 import com.jhcomp.prospect.shared.persistence.AssignedIdEntity;
 
 /**
- * Paginacao e ordenacao recebidas da API (RNF-002, doc 05 §1).
+ * Pagination and sorting received by the API (RNF-002, doc 05 §1).
  *
- * <p>A ordenacao chega como {@code campo,direcao} e so aceita campos de uma
- * lista explicita, traduzidos para a propriedade da entidade. Repassar o texto
- * do cliente direto ao Spring Data permitiria ordenar por qualquer coluna,
- * inclusive as que nao sao expostas, e o nome publico ficaria acoplado ao nome
- * interno.
+ * <p>Sorting arrives as {@code field,direction} and only accepts fields from
+ * an explicit list, translated into the entity's property. Passing the
+ * client's text straight to Spring Data would allow sorting by any column,
+ * including those that are not exposed, and would couple the public name to
+ * the internal one.
  */
 public final class PageRequests {
 
@@ -27,12 +27,12 @@ public final class PageRequests {
     }
 
     /**
-     * @param allowedSort campo publico para propriedade da entidade
-     * @param defaultSort usada quando {@code sort} nao e informado
+     * @param allowedSort public field to entity property
+     * @param defaultSort used when {@code sort} is not supplied
      */
     public static Pageable of(int page, int size, String sort, Map<String, String> allowedSort, Sort defaultSort) {
-        // Teto no tamanho da pagina: um size arbitrario permitiria extrair a
-        // base inteira numa requisicao (doc 05 §12).
+        // A cap on page size: an arbitrary size would allow the whole base to
+        // be extracted in one request (doc 05 §12).
         int effectiveSize = Math.clamp(size, 1, MAX_PAGE_SIZE);
         int effectivePage = Math.max(page, 0);
         return PageRequest.of(effectivePage, effectiveSize, parseSort(sort, allowedSort, defaultSort));
@@ -58,8 +58,8 @@ public final class PageRequests {
             };
         }
 
-        // Desempate estavel por id: sem ele, registros com o mesmo valor podem
-        // trocar de pagina entre duas requisicoes.
+        // A stable tiebreak by id: without it, records sharing a value can
+        // swap pages between two requests.
         return Sort.by(direction, property).and(Sort.by(AssignedIdEntity::getId));
     }
 }

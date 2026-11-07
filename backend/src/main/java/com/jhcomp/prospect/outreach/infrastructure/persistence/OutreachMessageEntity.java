@@ -16,10 +16,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 /**
- * Mensagem de abordagem (RF-050 a RF-052).
+ * An outreach message (RF-050 to RF-052).
  *
- * <p>O servico confere estado e bloqueio de contato antes de chamar as
- * transicoes; a tabela repete a consistencia de aprovacao e envio em CHECK.
+ * <p>The service checks the state and the contact block before calling the
+ * transitions; the table repeats the approval and send consistency as CHECK
+ * constraints.
  */
 @Entity
 @Table(name = "outreach_message")
@@ -76,7 +77,7 @@ public class OutreachMessageEntity extends AssignedIdEntity {
     private Instant updatedAt;
 
     protected OutreachMessageEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public OutreachMessageEntity(
@@ -99,7 +100,7 @@ public class OutreachMessageEntity extends AssignedIdEntity {
         applyContent(draft, now);
     }
 
-    /** Edicao do operador. Mensagem aprovada volta a revisao e perde a aprovacao (D26). */
+    /** The operator's edit. An approved message returns to review and loses its approval (D26). */
     public void edit(MessageDraft draft, Instant now) {
         approvedByUserId = null;
         approvedAt = null;
@@ -153,7 +154,7 @@ public class OutreachMessageEntity extends AssignedIdEntity {
         return body;
     }
 
-    /** Uma por linha no banco: a validacao do rascunho garante que nenhuma tem quebra de linha. */
+    /** One per line in the database: draft validation guarantees none of them contains a line break. */
     public List<String> getUnverifiedClaims() {
         return unverifiedClaims == null ? List.of() : List.of(unverifiedClaims.split("\n"));
     }

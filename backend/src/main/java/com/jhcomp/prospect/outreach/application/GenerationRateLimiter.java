@@ -12,12 +12,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 
 /**
- * Limite de geracoes por usuario (doc 05 §12), em janela deslizante.
+ * A per-user generation limit (doc 05 §12), over a sliding window.
  *
- * <p>Reserva atomica, como o limitador de login (D20): conferir e contar
- * acontecem no mesmo {@code compute}, entao requisicoes concorrentes nao
- * furam o limite. O mapa cresce no maximo um item por membro que gerou
- * mensagem, por isso nao precisa de teto.
+ * <p>Atomic reservation, like the login limiter (D20): checking and counting
+ * happen in the same {@code compute}, so concurrent requests cannot slip
+ * through. The map grows by at most one entry per member who has generated a
+ * message, which is why it needs no cap.
  */
 @Component
 class GenerationRateLimiter {
@@ -32,7 +32,7 @@ class GenerationRateLimiter {
         this.clock = clock;
     }
 
-    /** Reserva uma geracao; falso quando o usuario esgotou a janela. */
+    /** Reserves one generation; false when the user has exhausted the window. */
     boolean tryAcquire(UUID userId) {
         Instant now = clock.instant();
         Instant windowStart = now.minus(WINDOW);

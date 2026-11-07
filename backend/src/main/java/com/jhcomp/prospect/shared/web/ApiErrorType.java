@@ -1,9 +1,8 @@
 package com.jhcomp.prospect.shared.web;
 
 /**
- * Codigos de erro da API. Fazem parte do contrato: o frontend pode decidir
- * comportamento a partir deles, portanto renomear um valor e mudanca
- * incompativel.
+ * The API's error codes. They are part of the contract: the frontend can
+ * decide behaviour from them, so renaming a value is a breaking change.
  */
 public enum ApiErrorType {
     VALIDATION_ERROR("Request validation failed"),

@@ -16,22 +16,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Verificacao de disponibilidade (doc 03 §11, D27).
+ * The availability check (doc 03 §11, D27).
  *
- * <p>Confere a conexao com o banco: sem ela a aplicacao nao atende nada, e um
- * health "UP" com o banco fora do ar enganaria o monitor externo e o health
- * check do container. Responde 503 nesse caso.
+ * <p>It verifies the database connection: without it the application serves
+ * nothing, and a health reporting "UP" with the database down would fool both
+ * the external monitor and the container's health check. It answers 503 in
+ * that case.
  *
- * <p>Nao expoe versao de dependencia, caminho de arquivo nem detalhe de
- * infraestrutura: a resposta e deliberadamente minima, e o motivo da falha
- * vai so para o log.
+ * <p>It exposes no dependency version, no file path and no infrastructure
+ * detail: the response is deliberately minimal, and the reason for a failure
+ * goes to the log only.
  */
 @RestController
 public class HealthController {
 
     private static final Logger log = LoggerFactory.getLogger(HealthController.class);
 
-    /** Segundos para o banco responder antes de o health declarar falha. */
+    /** Seconds for the database to answer before health declares a failure. */
     private static final int DATABASE_TIMEOUT_SECONDS = 2;
 
     private final String applicationVersion;
@@ -63,6 +64,6 @@ public class HealthController {
         }
     }
 
-    /** Resposta de health check. {@code checkedAt} e sempre UTC (RNF-009). */
+    /** A health check response. {@code checkedAt} is always UTC (RNF-009). */
     public record HealthResponse(String status, String version, Instant checkedAt) {}
 }

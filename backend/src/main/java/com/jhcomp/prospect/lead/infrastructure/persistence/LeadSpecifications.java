@@ -21,10 +21,10 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
 
 /**
- * Filtros combinaveis da listagem de leads (RF-012, doc 05 §5).
+ * Combinable filters for the lead listing (RF-012, doc 05 §5).
  *
- * <p>O escopo de organizacao e aplicado sempre, inclusive dentro da subconsulta
- * de origem.
+ * <p>The organisation scope is always applied, including inside the origin
+ * subquery.
  */
 public final class LeadSpecifications {
 
@@ -32,9 +32,9 @@ public final class LeadSpecifications {
     }
 
     /**
-     * Criterios de listagem. Campos nulos nao filtram. {@code closedSince}
-     * deixa so os leads encerrados a partir do instante (colunas finais do
-     * quadro); lead em aberto nao tem data de fechamento e fica de fora.
+     * Listing criteria. Null fields filter nothing. {@code closedSince} keeps
+     * only the leads closed from that instant onwards (the board's final
+     * columns); an open lead has no closing date and stays out.
      */
     public record Criteria(
             LeadStatus status,
@@ -61,8 +61,8 @@ public final class LeadSpecifications {
             if (criteria.priority() != null) {
                 predicates.add(builder.equal(root.get("priority"), criteria.priority()));
             }
-            // Filtro por faixa nao inclui lead sem score: sem analise nao e o
-            // mesmo que score baixo (doc 06 §7, D7).
+            // A range filter excludes leads with no score: no analysis is not
+            // the same as a low score (doc 06 §7, D7).
             if (criteria.scoreMin() != null) {
                 predicates.add(builder.greaterThanOrEqualTo(root.get("score"), criteria.scoreMin()));
             }
