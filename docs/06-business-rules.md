@@ -1,193 +1,200 @@
-# 06 — Regras de negócio
+# 06 — Business rules
 
-## 1. Conceitos
+## 1. Concepts
 
-- **Company:** cadastro mestre de uma empresa.
-- **Lead:** oportunidade comercial relacionada a uma empresa.
-- **Source:** origem de uma informação ou registro.
-- **Finding:** achado de uma análise.
-- **Deal:** negociação comercial acompanhada no pipeline.
-- **Interaction:** evento de relacionamento com o lead.
-- **Outreach:** preparação e registro de uma abordagem.
+- **Company** — the master record of a business.
+- **Lead** — a commercial opportunity related to a company.
+- **Source** — the origin of a piece of information or of a record.
+- **Finding** — a result of an analysis.
+- **Deal** — the commercial facts of an opportunity.
+- **Interaction** — a relationship event on a lead.
+- **Outreach** — preparing and recording an approach.
 
-Não tratar Company e Lead como sinônimos. Uma empresa pode existir sem oportunidade ativa; um lead representa uma intenção comercial concreta de avaliar ou oferecer uma solução.
+Company and Lead are not synonyms. A company can exist without an active
+opportunity; a lead is a concrete intention to evaluate or offer a solution.
 
-## 2. Ciclo de vida do lead
+## 2. Lead lifecycle
 
-Estados iniciais sugeridos:
-- `NEW`
-- `QUALIFIED`
-- `CONTACT_APPROVED`
-- `CONTACTED`
-- `IN_CONVERSATION`
-- `PROPOSAL_SENT`
-- `WON`
-- `LOST`
-- `DO_NOT_CONTACT`
+States:
 
-Regras:
-- `WON` e `LOST` são estados terminais da oportunidade, mas um novo ciclo comercial pode exigir um novo lead.
-- `DO_NOT_CONTACT` deve impedir novas abordagens abrangidas pelo pedido de não contato, mesmo que o lead seja reclassificado.
-- Mudanças relevantes devem registrar ator, data e estado anterior/novo.
-- O sistema não deve mover automaticamente um lead para `CONTACTED` ao gerar ou aprovar uma mensagem.
-- Só registrar `CONTACTED` após o operador confirmar que o contato ocorreu.
+`NEW` · `QUALIFIED` · `CONTACT_APPROVED` · `CONTACTED` · `IN_CONVERSATION` ·
+`PROPOSAL_SENT` · `WON` · `LOST` · `DO_NOT_CONTACT`
 
-## 3. Pipeline e Deal
+`Lead.status` is the **single source of commercial state** (D2). Permitted
+transitions live in `LeadStatusTransitions`; anything else answers `409`.
 
-O pipeline inicial pode conter:
-1. Novo.
-2. Qualificado.
-3. Contato aprovado.
-4. Contatado.
-5. Em conversa.
-6. Proposta enviada.
-7. Ganho.
-8. Perdido.
+Rules:
 
-A implementação deve evitar duplicar conceitos desnecessariamente. `Lead.status` pode representar a qualificação geral; `Deal.stage` representa a etapa da negociação. Se o produto mantiver ambos, documentar a diferença e manter transições consistentes.
+- `WON` and `LOST` are terminal for the opportunity. A new commercial cycle
+  requires a new lead.
+- `DO_NOT_CONTACT` blocks further outreach covered by the request **even if
+  the lead is reclassified**.
+- Relevant changes record the actor, the date and the previous and new state.
+- The system never moves a lead to `CONTACTED` when a message is generated or
+  approved.
+- `CONTACTED` is recorded only after the operator confirms the contact
+  happened — the API requires `contactConfirmed: true` for that transition.
 
-No MVP simples, é aceitável usar um pipeline principal e uma oportunidade ativa por lead. Se múltiplas vendas por empresa forem necessárias, criar Deals independentes sem duplicar Company.
+## 3. Pipeline and deal
 
-## 4. Deduplicação
+The board columns are, in order: New, Qualified, Contact approved, Contacted,
+In conversation, Proposal sent, Won, Lost.
 
-Normalização:
-- remover espaços excedentes;
-- normalizar caixa para comparação;
-- normalizar telefone para formato consistente quando possível;
-- normalizar domínio e URL;
-- preservar valores originais.
+There is no separate `Deal.stage`. The original design had both `Lead.status`
+and a deal stage, which is two sources for one fact and a guaranteed drift;
+D2 settled it: the columns map one to one onto `Lead.status`, moving a card is
+`PATCH /leads/{leadId}/status`, and the deal holds only value, service,
+outcome and loss reason.
 
-Sinais de correspondência:
-1. Identificador empresarial confiável e legitimamente coletado.
-2. Domínio do site.
-3. Telefone comercial.
-4. Nome normalizado + cidade + estado.
+One active opportunity per company. Where several sales per company are
+eventually needed, create independent leads rather than duplicating the
+company.
 
-Regras:
-- correspondência exata de identificador confiável pode ser forte candidata;
-- similaridade de nome é apenas sugestão;
-- nunca mesclar automaticamente com base apenas em nome parecido;
-- preservar fontes e histórico após uma mesclagem;
-- permitir desfazer ou auditar a operação quando tecnicamente possível.
+## 4. Deduplication
 
-## 5. Proveniência e qualidade dos dados
+Normalisation, performed by a single shared component (D10) — the same one the
+do-not-contact list uses, because two implementations would mean a phone
+blocked in one place and reachable in the other:
 
-Todo dado obtido de fonte externa deve registrar:
-- fonte;
-- referência/URL quando permitido;
-- data da coleta;
-- responsável ou integração;
-- status de verificação.
+- collapse excess whitespace;
+- normalise case for comparison;
+- normalise phone numbers to E.164 where possible;
+- normalise domain and URL;
+- **always preserve the original values.**
 
-Estados:
-- confirmado;
-- não encontrado;
-- não verificado;
-- não aplicável;
-- contradito.
+Matching signals, strongest first: a reliable, legitimately collected business
+identifier; the website domain; the business phone; the normalised name
+together with city and state.
 
-“Não encontrado” significa apenas que a pesquisa realizada não localizou a informação. Não significa prova de inexistência.
+Rules:
 
-Dados antigos devem ser marcados como potencialmente desatualizados conforme política definida por tipo de informação.
+- an exact match on a reliable identifier is a strong candidate;
+- name similarity is only a suggestion;
+- **never merge automatically on a similar name alone**;
+- sources and history are preserved through a merge;
+- the operation is audited (`COMPANY_MERGE`).
 
-## 6. Análise de presença digital
+Merging moves leads, provenance and import rows to the surviving company,
+fills only its empty fields, and archives the source. Two open leads answer
+`409` (D32).
 
-A análise deve observar sinais relevantes, por exemplo:
-- existência e acessibilidade de site;
-- HTTPS;
-- viewport/responsividade observável;
-- links de contato;
-- informações básicas de serviços;
-- presença de catálogo ou agendamento, quando aplicável.
+## 5. Provenance and data quality
 
-Não inferir qualidade comercial, faturamento, intenção de compra ou problemas operacionais sem evidência.
+Everything obtained from an external source records the source, a reference or
+URL where permitted, the collection date, the responsible user or integration,
+and a verification state.
 
-Cada achado contém:
-- critério;
-- estado;
-- descrição;
-- evidência;
-- confiança;
-- pontos atribuídos;
-- revisão humana.
+States: confirmed · not found · not verified · not applicable · contradicted.
 
-A análise automatizada deve respeitar robots.txt, termos de uso, limites técnicos e legislação aplicável ao acessar páginas. Não contornar autenticação, bloqueios ou controles de acesso.
+**"Not found" means only that the search performed did not locate the
+information. It is not proof of absence**, and it never produces deficiency
+points in the score.
 
-## 7. Lead Score
+Data beyond its freshness window is marked potentially out of date, per a
+policy set by information type.
 
-Score determinístico inicial, máximo 100:
+## 6. Digital presence analysis
 
-| Critério | Pontos |
+The analysis observes signals such as: whether a website exists and is
+reachable, HTTPS, an observable viewport, contact links, basic service
+information, and the presence of a catalogue or booking where applicable.
+
+It does not infer commercial quality, revenue, purchase intent or operational
+problems without evidence.
+
+Each finding carries a criterion, a state, a description, evidence, a
+confidence level, the points awarded, and the human review.
+
+Automated analysis respects robots.txt, terms of use, technical limits and
+applicable law. It never works around authentication, blocks or access
+controls. All fetching goes through `SafeHttpFetcher`, which blocks private,
+loopback and metadata addresses, and applies a timeout, a redirect limit and a
+response size limit (D24).
+
+## 7. Lead score
+
+Deterministic, maximum 100:
+
+| Criterion | Points |
 |---|---:|
-| Ausência de site confirmada por método adequado | 25 |
-| Problema técnico verificável no site | até 20 |
-| Necessidade funcional observável e pertinente | até 20 |
-| Informações comerciais suficientes para avaliação | até 15 |
-| Compatibilidade com serviços oferecidos | até 10 |
-| Localização atendida | até 10 |
+| Absence of a website, confirmed by an adequate method | 25 |
+| Verifiable technical problem on the site | up to 20 |
+| Observable, relevant functional need | up to 20 |
+| Business information sufficient for evaluation | 15 |
+| Fit with the services offered | 10 |
+| Location served | 10 |
 
-Regras:
-- Informação desconhecida não recebe automaticamente pontos de deficiência.
-- Critério não aplicável não deve penalizar.
-- Score deve registrar versão da fórmula.
-- Mostrar decomposição dos pontos.
-- Operador pode corrigir achados, o que pode recalcular o score.
-- Score não é probabilidade de compra nem garantia de conversão.
-- Não usar atributos sensíveis ou inferências pessoais na pontuação.
+In the implementation (`Criterion`): `SITE_ABSENT` 25; `NO_HTTPS`,
+`NO_MOBILE_VIEWPORT`, `NO_CONTACT_LINK` 10 each; `NO_ONLINE_BOOKING_OR_CATALOG`
+10; `BUSINESS_INFO_SUFFICIENT` 15; `SERVICE_FIT` 10; `LOCATION_SERVED` 10.
 
-Faixas de prioridade sugeridas:
-- 0–29: baixa.
-- 30–59: média.
-- 60–79: alta.
-- 80–100: muito alta.
+Rules (D24):
 
-Essas faixas devem ser calibradas com dados reais e não devem ser apresentadas como avaliação objetiva da empresa.
+- **A criterion scores only when `CONFIRMED`**, and nothing else.
+- Unknown information never earns deficiency points.
+- A non-applicable criterion never penalises.
+- The absence of a website is never confirmed automatically — only by human
+  review. An automated check that fails to reach a site has found nothing, not
+  proven absence.
+- `NO_ONLINE_BOOKING_OR_CATALOG` has no automatic heuristic: inferring it from
+  page text would be asserting without evidence.
+- The score records the formula version, and the breakdown is shown.
+- The operator may correct findings, which recalculates the score.
+- The score is not a purchase probability and not a guarantee of conversion.
+- No sensitive attribute and no personal inference ever enters the score.
 
-## 8. Mensagens e aprovação
+Priority bands: 0–29 low, 30–59 medium, 60–79 high, 80–100 very high. These
+must be calibrated against real outcomes and must never be presented as an
+objective assessment of a business. Until roughly fifty closed leads exist,
+treat them as a hypothesis rather than a measurement.
 
-- Mensagens geradas por IA começam como `DRAFT` ou `NEEDS_REVIEW`.
-- A IA só pode usar dados e achados disponíveis no contexto.
-- Não inventar relacionamento prévio, observação pessoal ou informação sobre a empresa.
-- Não afirmar que o operador visitou, testou ou analisou algo que não realizou.
-- Toda mensagem deve identificar claramente o remetente e o motivo do contato.
-- Operador revisa conteúdo e destinatário.
-- Nenhum envio externo automático no MVP.
-- Registrar resultado somente com confirmação do operador ou retorno confiável da integração.
+## 8. Messages and approval
 
-## 9. Não contato
+- AI-generated messages start as `DRAFT` or `NEEDS_REVIEW`.
+- The AI may use only the data and findings present in the context.
+- It must not invent a prior relationship, a personal observation or any fact
+  about the company.
+- It must not claim the operator visited, tested or analysed something they
+  did not.
+- Every message identifies the sender and the reason for contact.
+- The operator reviews both the content and the recipient.
+- **No automatic external sending.** Approved is not sent.
+- An outcome is recorded only on operator confirmation.
 
-- Registrar pedido de não contato prontamente.
-- Bloquear novas abordagens no canal/identificador e escopo aplicáveis.
-- Verificar bloqueio antes de gerar, aprovar e registrar novos contatos.
-- Não remover bloqueio sem processo autorizado e justificativa documentada.
-- Manter somente os dados mínimos necessários para respeitar a restrição.
+Statements the generated text makes that no confirmed finding supports are
+listed in `unverifiedClaims`, and approving such a message requires
+`unverifiedClaimsReviewed: true`.
 
-## 10. Website Studio
+## 9. Do not contact
 
-- Prévia é uma demonstração, não um site oficial.
-- Usar apenas informações públicas verificadas ou fornecidas/autorizadas.
-- Não utilizar logotipos, fotografias ou materiais de terceiros sem autorização/licença apropriada.
-- Não publicar em domínio associado à empresa sem autorização.
-- Não representar a demonstração como encomendada ou aprovada pelo estabelecimento.
-- Projeto contratado deve ter escopo e autorização registrados.
-- Código e templates devem ser controlados, versionados e revisados.
+- A request is recorded promptly.
+- It blocks further outreach on the applicable identifier and channel.
+- The block is checked **before generating, before approving and before
+  recording** a contact.
+- A block is never removed without an authorised process and a documented
+  justification. There is no removal path in the MVP (D26).
+- An import never clears a block.
+- Only the minimum data needed to honour the restriction is kept.
 
-## 11. IA — limites funcionais
+## 10. Website Studio — out of scope
 
-IA pode:
-- resumir achados;
-- sugerir oportunidades;
-- gerar rascunhos;
-- estruturar conteúdo de demonstração.
+Removed from the MVP by decision D13. The rules that governed it (a preview is
+a demonstration and not an official site; no third-party logos or photographs
+without a licence; never publish on a domain associated with the business
+without authorisation; never present a demonstration as commissioned or
+approved by the establishment) remain the position of record should the
+feature ever return.
 
-IA não pode:
-- enviar mensagens;
-- alterar permissões;
-- decidir base legal;
-- inventar evidências;
-- publicar site;
-- executar código gerado;
-- eliminar registros;
-- remover bloqueios de contato.
+## 11. AI — functional limits
 
-Saídas devem ser validadas e revisáveis.
+The AI **may** summarise findings, suggest opportunities and draft messages.
+
+The AI **may not** send messages, change permissions, decide a legal basis,
+invent evidence, publish anything, execute generated code, delete records or
+remove contact blocks.
+
+This is an architectural constraint, not a policy: the AI layer is given no
+write tool, so there is no code path from a model's output to any of those
+actions. A structural test enforces it. Outputs are validated and reviewable,
+and are treated as untrusted input — schema checked, size capped, never
+executed.
