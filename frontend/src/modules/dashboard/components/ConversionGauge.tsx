@@ -1,4 +1,4 @@
-import type { Conversao } from '../model/dashboardData';
+import type { ConversionView } from '../model/dashboardData';
 import { DashboardSection } from './DashboardSection';
 
 const percent = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
@@ -13,16 +13,19 @@ const ARC = Math.PI * RADIUS;
  * percentual com poucos leads engana. Medidor ao lado dos números, para o
  * cartão ter a altura do que diz.
  */
-export function ConversionGauge({ conversao }: { readonly conversao: Conversao | undefined }): React.JSX.Element {
-  const total = conversao?.total;
-  const taxa =
-    total !== undefined && total.amostraSuficiente && total.leads > 0 ? total.ganhos / total.leads : undefined;
+export function ConversionGauge({
+  conversion,
+}: {
+  readonly conversion: ConversionView | undefined;
+}): React.JSX.Element {
+  const total = conversion?.total;
+  const taxa = total !== undefined && total.sufficientSample && total.leads > 0 ? total.won / total.leads : undefined;
 
   return (
-    <DashboardSection id="taxa-conversao" title="Taxa de conversão" description="Leads abertos no período → ganhos">
+    <DashboardSection id="taxa-conversion" title="Taxa de conversão" description="Leads abertos no período → ganhos">
       <div className="mt-4 flex items-center gap-5">
         <svg aria-hidden="true" viewBox="0 0 100 56" className="w-28 shrink-0 overflow-visible">
-          {/* Trilho num tom claro da mesma rampa: a meia-lua lê como um medidor só. */}
+          {/* Trilho num tone claro da mesma rampa: a meia-lua lê como um medidor só. */}
           <path
             d="M 10 50 A 40 40 0 0 1 90 50"
             fill="none"
@@ -50,8 +53,8 @@ export function ConversionGauge({ conversao }: { readonly conversao: Conversao |
               ? 'Carregando…'
               : total.leads === 0
                 ? 'Nenhum lead aberto no período.'
-                : `${total.ganhos} de ${total.leads} ${total.leads === 1 ? 'lead' : 'leads'}${
-                    taxa === undefined ? ` · amostra pequena (mínimo ${conversao?.amostraMinima ?? 0})` : ''
+                : `${total.won} de ${total.leads} ${total.leads === 1 ? 'lead' : 'leads'}${
+                    taxa === undefined ? ` · amostra pequena (mínimo ${conversion?.minimumSample ?? 0})` : ''
                   }`}
           </p>
         </div>

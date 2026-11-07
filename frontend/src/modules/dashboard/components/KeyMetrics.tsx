@@ -1,49 +1,49 @@
 import { AlarmClock, Building, FileText, ListTodo, PhoneOutgoing, Users } from 'lucide-react';
 
-import type { MetricasAtuais, MetricasPeriodo } from '../model/dashboardData';
+import type { CurrentMetrics, PeriodMetrics } from '../model/dashboardData';
 import { MetricGrid, type MetricCardProps } from './MetricCard';
 
-/** Métricas-chave: as do período e as de agora, com a origem de cada número no subtítulo. */
+/** Métricas-key: as do período e as de agora, com a origem de cada número no subtítulo. */
 export function KeyMetrics({
-  periodo,
-  atuais,
+  period,
+  current,
   leadsHref,
 }: {
-  readonly periodo: MetricasPeriodo;
-  readonly atuais: MetricasAtuais;
+  readonly period: PeriodMetrics;
+  readonly current: CurrentMetrics;
   /** Lista de leads numa etapa, com os filtros do dashboard; ausente na pré-visualização. */
   readonly leadsHref?: (status: string) => string;
 }): React.JSX.Element {
   const link = (href: string): { readonly href?: string } => (leadsHref === undefined ? {} : { href });
   const metricas: readonly MetricCardProps[] = [
     {
-      ...contagem('Empresas', periodo.empresasAdicionadas, 'adicionadas no período', Building, 'brand'),
+      ...countCard('Empresas', period.companiesAdded, 'adicionadas no período', Building, 'brand'),
       ...link('/companies'),
     },
-    contagem('Contatos', periodo.contatosRegistrados, 'registrados no período', PhoneOutgoing, 'sky'),
-    { ...contagem('Leads ativos', atuais.leadsAtivos, 'em aberto, agora', Users, 'indigo'), ...link('/pipeline') },
+    countCard('Contatos', period.contactsRegistered, 'registrados no período', PhoneOutgoing, 'sky'),
+    { ...countCard('Leads ativos', current.activeLeads, 'em aberto, agora', Users, 'indigo'), ...link('/pipeline') },
     {
-      ...contagem('Propostas', atuais.propostasEmAberto, 'em aberto, agora', FileText, 'violet'),
+      ...countCard('Propostas', current.openProposals, 'em aberto, agora', FileText, 'violet'),
       ...link(leadsHref?.('PROPOSAL_SENT') ?? ''),
     },
-    { ...contagem('Tarefas', atuais.tarefasAbertas, 'abertas, agora', ListTodo, 'slate'), ...link('#atencao') },
+    { ...countCard('Tarefas', current.openTasks, 'abertas, agora', ListTodo, 'slate'), ...link('#atencao') },
     {
-      ...contagem('Atrasadas', atuais.tarefasAtrasadas, 'tarefas com prazo vencido', AlarmClock, 'slate', true),
+      ...countCard('Atrasadas', current.overdueTasks, 'tarefas com prazo vencido', AlarmClock, 'slate', true),
       ...link('#atencao'),
     },
   ];
-  return <MetricGrid titulo="Métricas-chave" legenda="Período e situação de agora" metricas={metricas} />;
+  return <MetricGrid title="Métricas-chave" legenda="Período e situação de agora" metricas={metricas} />;
 }
 
-function contagem(
-  titulo: string,
-  valor: number,
-  subtitulo: string,
-  icone: MetricCardProps['icone'],
-  tom: MetricCardProps['tom'],
+function countCard(
+  title: string,
+  value: number,
+  subtitle: string,
+  icon: MetricCardProps['icon'],
+  tone: MetricCardProps['tone'],
   /** Valor acima de zero pede ação (ex.: tarefa atrasada). */
-  alertaSeHouver = false,
+  alertWhenPositive = false,
 ): MetricCardProps {
-  const estado = valor === 0 ? 'vazio' : alertaSeHouver ? 'alerta' : 'normal';
-  return { titulo, valor: String(valor), subtitulo, estado, icone, tom };
+  const state = value === 0 ? 'empty' : alertWhenPositive ? 'alert' : 'normal';
+  return { title, value: String(value), subtitle, state, icon, tone };
 }

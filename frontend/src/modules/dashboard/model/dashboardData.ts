@@ -15,305 +15,308 @@ import type {
 import { LEAD_STATUSES, type LeadStatus } from '../../../types/lead';
 
 /**
- * Modelo de tela do dashboard.
+ * View model for the dashboard.
  *
- * Os componentes de apresentação recebem só estes tipos, nunca a resposta da
- * API: o contrato da API (em inglês, doc 05) pode evoluir sem tocar no layout,
- * e o mesmo layout roda com `mockDashboardData` em testes e na pré-visualização.
- * A conversão fica toda neste arquivo.
+ * Presentation components receive only these types, never the API response:
+ * the API contract can evolve without touching the layout, and the same layout
+ * runs on `mockDashboardData` in tests and in the preview screen. All of the
+ * conversion lives in this file.
+ *
+ * Type names end in `View` wherever `types/crm.ts` already uses the obvious
+ * name for the API shape — `AttentionItem`, `FunnelStage` and `ConversionRow`
+ * are the wire types, and these are what the screen consumes.
  */
 
-/** Datas de calendário (AAAA-MM-DD), inclusivas nas duas pontas. */
-export interface PeriodoSelecionado {
-  readonly de: string;
-  readonly ate: string;
+/** Calendar dates (YYYY-MM-DD), inclusive on both ends. */
+export interface SelectedPeriod {
+  readonly from: string;
+  readonly to: string;
 }
 
-/** Eventos dentro do período selecionado. */
-export interface MetricasPeriodo {
-  readonly empresasAdicionadas: number;
-  readonly contatosRegistrados: number;
-  readonly negociosGanhos: number;
-  /** Em reais. */
-  readonly valorGanho: number;
+/** Events inside the selected period. */
+export interface PeriodMetrics {
+  readonly companiesAdded: number;
+  readonly contactsRegistered: number;
+  readonly dealsWon: number;
+  /** In Brazilian reais. */
+  readonly wonValue: number;
 }
 
-/** Situação de agora, independente do período. */
-export interface MetricasAtuais {
-  readonly leadsAtivos: number;
-  readonly propostasEmAberto: number;
-  readonly tarefasAbertas: number;
-  readonly tarefasAtrasadas: number;
+/** The situation right now, independent of the period. */
+export interface CurrentMetrics {
+  readonly activeLeads: number;
+  readonly openProposals: number;
+  readonly openTasks: number;
+  readonly overdueTasks: number;
 }
 
-export interface StatusLead {
+export interface LeadStatusCount {
   readonly status: LeadStatus;
-  readonly nome: string;
-  readonly quantidade: number;
+  readonly label: string;
+  readonly count: number;
 }
 
-/** O que aconteceu: mudança de etapa (sem `de` é a abertura do lead) ou interação. */
-export type Transicao =
-  | { readonly tipo: 'status'; readonly de?: LeadStatus; readonly para?: LeadStatus }
-  | { readonly tipo: 'interacao'; readonly interacao?: InteractionType; readonly canal?: InteractionChannel };
+/** What happened: a stage change (no `from` means the lead was opened) or an interaction. */
+export type Transition =
+  | { readonly kind: 'status'; readonly from?: LeadStatus; readonly to?: LeadStatus }
+  | { readonly kind: 'interaction'; readonly interaction?: InteractionType; readonly channel?: InteractionChannel };
 
-export interface AtividadeRecente {
+export interface RecentActivity {
   readonly id: string;
   readonly leadId: string;
-  readonly empresa: string;
-  readonly transicao: Transicao;
-  /** Instante ISO-8601 em UTC. */
-  readonly data: string;
-  readonly usuario?: string;
+  readonly company: string;
+  readonly transition: Transition;
+  /** ISO-8601 instant in UTC. */
+  readonly at: string;
+  readonly user?: string;
 }
 
-/** Tudo o que o resumo do dashboard mostra. A atividade é paginada e vem à parte. */
+/** Everything the dashboard summary shows. Activity is paginated and fetched separately. */
 export interface DashboardData {
-  readonly periodo: PeriodoSelecionado;
-  readonly metricasPeriodo: MetricasPeriodo;
-  readonly metricasAtuais: MetricasAtuais;
-  /** Todas as etapas, na ordem do funil, inclusive as vazias. */
-  readonly leadsPorStatus: readonly StatusLead[];
-  /** Empresas ativas sem segmento: a conversão por segmento fica incompleta. */
-  readonly empresasSemSegmento: number;
+  readonly period: SelectedPeriod;
+  readonly periodMetrics: PeriodMetrics;
+  readonly currentMetrics: CurrentMetrics;
+  /** Every stage, in funnel order, including the empty ones. */
+  readonly leadsByStatus: readonly LeadStatusCount[];
+  /** Active companies with no segment: conversion by segment is incomplete without them. */
+  readonly companiesWithoutSegment: number;
 }
 
 export function toDashboardData(response: DashboardSummary): DashboardData {
   const { summary } = response;
   return {
-    periodo: { de: response.from, ate: response.to },
-    metricasPeriodo: {
-      empresasAdicionadas: summary.companiesAdded,
-      contatosRegistrados: summary.contactsRegistered,
-      negociosGanhos: summary.dealsWon,
-      valorGanho: summary.wonValue,
+    period: { from: response.from, to: response.to },
+    periodMetrics: {
+      companiesAdded: summary.companiesAdded,
+      contactsRegistered: summary.contactsRegistered,
+      dealsWon: summary.dealsWon,
+      wonValue: summary.wonValue,
     },
-    metricasAtuais: {
-      leadsAtivos: summary.activeLeads,
-      propostasEmAberto: summary.openProposals,
-      tarefasAbertas: summary.openTasks,
-      tarefasAtrasadas: summary.overdueTasks,
+    currentMetrics: {
+      activeLeads: summary.activeLeads,
+      openProposals: summary.openProposals,
+      openTasks: summary.openTasks,
+      overdueTasks: summary.overdueTasks,
     },
-    leadsPorStatus: LEAD_STATUSES.map((status) => ({
+    leadsByStatus: LEAD_STATUSES.map((status) => ({
       status,
-      nome: STATUS_LABEL[status],
-      quantidade: summary.leadsByStatus[status] ?? 0,
+      label: STATUS_LABEL[status],
+      count: summary.leadsByStatus[status] ?? 0,
     })),
-    empresasSemSegmento: summary.companiesWithoutSegment,
+    companiesWithoutSegment: summary.companiesWithoutSegment,
   };
 }
 
-export function toAtividade(activity: Activity): AtividadeRecente {
+export function toActivity(activity: Activity): RecentActivity {
   const { interactionType, channel, fromStatus, toStatus, actorName } = activity;
-  const transicao: Transicao =
+  const transition: Transition =
     activity.type === 'INTERACTION'
       ? {
-          tipo: 'interacao',
-          ...(interactionType === undefined ? {} : { interacao: interactionType }),
-          ...(channel === undefined ? {} : { canal: channel }),
+          kind: 'interaction',
+          ...(interactionType === undefined ? {} : { interaction: interactionType }),
+          ...(channel === undefined ? {} : { channel }),
         }
       : {
-          tipo: 'status',
-          ...(fromStatus === undefined ? {} : { de: fromStatus }),
-          ...(toStatus === undefined ? {} : { para: toStatus }),
+          kind: 'status',
+          ...(fromStatus === undefined ? {} : { from: fromStatus }),
+          ...(toStatus === undefined ? {} : { to: toStatus }),
         };
   return {
-    // A API não dá id ao evento; tipo, lead e instante o identificam na lista.
+    // The API gives the event no id; type, lead and instant identify it in the list.
     id: `${activity.type}-${activity.leadId}-${activity.occurredAt}`,
     leadId: activity.leadId,
-    empresa: activity.companyName,
-    transicao,
-    data: activity.occurredAt,
-    // Campo opcional só quando há valor (exactOptionalPropertyTypes).
-    ...(actorName === undefined ? {} : { usuario: actorName }),
+    company: activity.companyName,
+    transition,
+    at: activity.occurredAt,
+    // Optional property set only when there is a value (exactOptionalPropertyTypes).
+    ...(actorName === undefined ? {} : { user: actorName }),
   };
 }
 
-/** Um intervalo da série; `inicio` é o primeiro dia dele dentro do período. */
-export interface PontoSerie extends MetricasPeriodo {
-  readonly inicio: string;
+/** One interval of the series; `start` is its first day inside the period. */
+export interface SeriesPoint extends PeriodMetrics {
+  readonly start: string;
 }
 
-export interface SerieTemporal {
-  readonly granularidade: Granularity;
-  readonly pontos: readonly PontoSerie[];
+export interface TimeSeries {
+  readonly granularity: Granularity;
+  readonly points: readonly SeriesPoint[];
 }
 
-export function toSerie(response: DashboardTimeline): SerieTemporal {
+export function toTimeSeries(response: DashboardTimeline): TimeSeries {
   return {
-    granularidade: response.granularity,
-    pontos: response.points.map((point) => ({
-      inicio: point.start,
-      empresasAdicionadas: point.companiesAdded,
-      contatosRegistrados: point.contactsRegistered,
-      negociosGanhos: point.dealsWon,
-      valorGanho: point.wonValue,
+    granularity: response.granularity,
+    points: response.points.map((point) => ({
+      start: point.start,
+      companiesAdded: point.companiesAdded,
+      contactsRegistered: point.contactsRegistered,
+      dealsWon: point.dealsWon,
+      wonValue: point.wonValue,
     })),
   };
 }
 
-/** Leads abertos no período de um grupo (origem ou segmento) e o que deles resultou (RF-071). */
-export interface GrupoConversao {
-  /** Ausente: segmento não informado ou origem não registrada. */
-  readonly chave?: string;
-  readonly nome: string;
+/** Leads opened in the period for one group (origin or segment) and what came of them (RF-071). */
+export interface ConversionGroup {
+  /** Absent when the segment is unset or the origin was never recorded. */
+  readonly key?: string;
+  readonly label: string;
   readonly leads: number;
-  readonly contatados: number;
-  readonly ganhos: number;
-  /** Abaixo da amostra mínima a taxa não é apresentada (D29). */
-  readonly amostraSuficiente: boolean;
+  readonly contacted: number;
+  readonly won: number;
+  /** Below the minimum sample the rate is not presented at all (D29). */
+  readonly sufficientSample: boolean;
 }
 
-export interface Conversao {
-  readonly amostraMinima: number;
-  readonly porOrigem: readonly GrupoConversao[];
-  readonly porSegmento: readonly GrupoConversao[];
-  /** Todos os leads abertos no período, somando as origens. */
-  readonly total: Omit<GrupoConversao, 'chave' | 'nome'>;
+export interface ConversionView {
+  readonly minimumSample: number;
+  readonly bySource: readonly ConversionGroup[];
+  readonly bySegment: readonly ConversionGroup[];
+  /** Every lead opened in the period, summed across origins. */
+  readonly total: Omit<ConversionGroup, 'key' | 'label'>;
 }
 
-export function toConversao(response: DashboardConversion): Conversao {
+export function toConversion(response: DashboardConversion): ConversionView {
   const { minimumSample, bySource, bySegment } = response.conversion;
-  const grupo = (row: (typeof bySource)[number], nome: string): GrupoConversao => ({
-    ...(row.key === undefined ? {} : { chave: row.key }),
-    nome,
+  const group = (row: (typeof bySource)[number], label: string): ConversionGroup => ({
+    ...(row.key === undefined ? {} : { key: row.key }),
+    label,
     leads: row.leads,
-    contatados: row.contacted,
-    ganhos: row.won,
-    amostraSuficiente: row.sufficientSample,
+    contacted: row.contacted,
+    won: row.won,
+    sufficientSample: row.sufficientSample,
   });
-  const leads = bySource.reduce((soma, row) => soma + row.leads, 0);
+  const leads = bySource.reduce((sum, row) => sum + row.leads, 0);
   return {
-    amostraMinima: minimumSample,
-    porOrigem: bySource.map((row) => grupo(row, nomeDaOrigem(row.key))),
-    porSegmento: bySegment.map((row) => grupo(row, row.key ?? 'Sem segmento')),
+    minimumSample,
+    bySource: bySource.map((row) => group(row, sourceLabel(row.key))),
+    bySegment: bySegment.map((row) => group(row, row.key ?? 'Sem segmento')),
     total: {
       leads,
-      contatados: bySource.reduce((soma, row) => soma + row.contacted, 0),
-      ganhos: bySource.reduce((soma, row) => soma + row.won, 0),
-      amostraSuficiente: leads >= minimumSample,
+      contacted: bySource.reduce((sum, row) => sum + row.contacted, 0),
+      won: bySource.reduce((sum, row) => sum + row.won, 0),
+      sufficientSample: leads >= minimumSample,
     },
   };
 }
 
-function nomeDaOrigem(key: string | undefined): string {
-  const tipo = SOURCE_TYPES.find((type) => type === key);
-  return tipo === undefined ? 'Sem origem registrada' : SOURCE_TYPE_LABEL[tipo];
+function sourceLabel(key: string | undefined): string {
+  const type = SOURCE_TYPES.find((candidate) => candidate === key);
+  return type === undefined ? 'Sem origem registrada' : SOURCE_TYPE_LABEL[type];
 }
 
 /**
- * Variação em relação ao período anterior de mesmo tamanho. Sem base (zero
- * antes), não há percentual: "+∞%" seria enganoso.
+ * Change against the previous period of the same length. With no base — zero
+ * before — there is no percentage: "+∞%" would be misleading.
  */
-export type Variacao =
-  | { readonly tipo: 'percentual'; readonly valor: number }
-  | { readonly tipo: 'semBase' }
-  | { readonly tipo: 'semDados' };
+export type Variation =
+  { readonly kind: 'percent'; readonly value: number } | { readonly kind: 'noBase' } | { readonly kind: 'noData' };
 
-export function variacao(atual: number, anterior: number | undefined): Variacao {
-  if (anterior === undefined || (anterior === 0 && atual === 0)) {
-    return { tipo: 'semDados' };
+export function variation(current: number, previous: number | undefined): Variation {
+  if (previous === undefined || (previous === 0 && current === 0)) {
+    return { kind: 'noData' };
   }
-  if (anterior === 0) {
-    return { tipo: 'semBase' };
+  if (previous === 0) {
+    return { kind: 'noBase' };
   }
-  return { tipo: 'percentual', valor: ((atual - anterior) / anterior) * 100 };
+  return { kind: 'percent', value: ((current - previous) / previous) * 100 };
 }
 
-/** Período imediatamente anterior, com o mesmo número de dias. */
-export function periodoAnterior(periodo: PeriodoSelecionado): PeriodoSelecionado {
-  const inicio = Date.parse(`${periodo.de}T00:00:00Z`);
-  const fim = Date.parse(`${periodo.ate}T00:00:00Z`);
-  const dia = 86_400_000;
-  const novoFim = inicio - dia;
-  return { de: isoDate(novoFim - (fim - inicio)), ate: isoDate(novoFim) };
+/** The period immediately before, with the same number of days. */
+export function previousPeriod(period: SelectedPeriod): SelectedPeriod {
+  const start = Date.parse(`${period.from}T00:00:00Z`);
+  const end = Date.parse(`${period.to}T00:00:00Z`);
+  const day = 86_400_000;
+  const newEnd = start - day;
+  return { from: isoDate(newEnd - (end - start)), to: isoDate(newEnd) };
 }
 
 function isoDate(epoch: number): string {
   return new Date(epoch).toISOString().slice(0, 10);
 }
 
-export interface ItemAtencao {
+export interface AttentionRow {
   readonly leadId: string;
-  readonly empresa: string;
+  readonly company: string;
   readonly status: LeadStatus;
-  readonly em: string;
-  readonly detalhe?: string;
-  readonly atrasada: boolean;
+  readonly at: string;
+  readonly detail?: string;
+  readonly overdue: boolean;
 }
 
-export interface SecaoAtencao {
+export interface AttentionSectionView {
   readonly total: number;
-  readonly itens: readonly ItemAtencao[];
+  readonly items: readonly AttentionRow[];
 }
 
-/** O que pede ação agora (doc 08 §4). */
-export interface Atencao {
-  readonly tarefas: SecaoAtencao;
-  readonly parados: SecaoAtencao;
-  readonly propostasFrias: SecaoAtencao;
-  readonly semTarefa: SecaoAtencao;
+/** What needs action now (doc 08 §4). */
+export interface AttentionView {
+  readonly tasks: AttentionSectionView;
+  readonly staleLeads: AttentionSectionView;
+  readonly quietProposals: AttentionSectionView;
+  readonly withoutTask: AttentionSectionView;
 }
 
-export function toAtencao(response: DashboardAttention): Atencao {
+export function toAttention(response: DashboardAttention): AttentionView {
   return {
-    tarefas: toSecao(response.tasks),
-    parados: toSecao(response.staleLeads),
-    propostasFrias: toSecao(response.quietProposals),
-    semTarefa: toSecao(response.withoutTask),
+    tasks: toSection(response.tasks),
+    staleLeads: toSection(response.staleLeads),
+    quietProposals: toSection(response.quietProposals),
+    withoutTask: toSection(response.withoutTask),
   };
 }
 
-function toSecao(section: AttentionSection): SecaoAtencao {
+function toSection(section: AttentionSection): AttentionSectionView {
   return {
     total: section.total,
-    itens: section.items.map((item) => ({
+    items: section.items.map((item) => ({
       leadId: item.leadId,
-      empresa: item.companyName,
+      company: item.companyName,
       status: item.status,
-      em: item.at,
-      ...(item.detail === undefined ? {} : { detalhe: item.detail }),
-      atrasada: item.overdue,
+      at: item.at,
+      ...(item.detail === undefined ? {} : { detail: item.detail }),
+      overdue: item.overdue,
     })),
   };
 }
 
-export interface EtapaFunil {
+export interface FunnelStageView {
   readonly status: LeadStatus;
-  readonly nome: string;
-  /** Leads da coorte que chegaram a esta etapa ou além. */
-  readonly alcancados: number;
-  /** Dos que chegaram à etapa anterior, quantos chegaram a esta; ausente sem amostra. */
-  readonly passagem?: number;
-  /** Média de dias de quem já saiu da etapa; ausente sem amostra. */
-  readonly mediaDias?: number;
-  readonly saidas: number;
+  readonly label: string;
+  /** Leads in the cohort that reached this stage or went beyond it. */
+  readonly reached: number;
+  /** Of those that reached the previous stage, how many reached this one; absent without a sample. */
+  readonly passthrough?: number;
+  /** Average days for those who have already left the stage; absent without a sample. */
+  readonly avgDays?: number;
+  readonly exits: number;
 }
 
-export interface Funil {
-  readonly amostraMinima: number;
-  readonly coorte: number;
-  readonly etapas: readonly EtapaFunil[];
+export interface FunnelView {
+  readonly minimumSample: number;
+  readonly cohort: number;
+  readonly stages: readonly FunnelStageView[];
 }
 
 /**
- * Funil de conversão. A passagem de uma etapa para a seguinte só tem
- * percentual quando a anterior tem amostra mínima (D29): "1 de 1" seria 100%.
+ * Conversion funnel. The step from one stage to the next only gets a
+ * percentage when the previous stage has the minimum sample (D29): "1 of 1"
+ * would read as 100%.
  */
-export function toFunil(response: DashboardFunnel): Funil {
+export function toFunnel(response: DashboardFunnel): FunnelView {
   const { minimumSample, cohort, stages } = response.funnel;
   return {
-    amostraMinima: minimumSample,
-    coorte: cohort,
-    etapas: stages.map((stage, index) => {
-      const anterior = index === 0 ? cohort : (stages[index - 1]?.reached ?? 0);
+    minimumSample,
+    cohort,
+    stages: stages.map((stage, index) => {
+      const previous = index === 0 ? cohort : (stages[index - 1]?.reached ?? 0);
       return {
         status: stage.status,
-        nome: STATUS_LABEL[stage.status],
-        alcancados: stage.reached,
-        ...(index > 0 && anterior >= minimumSample ? { passagem: stage.reached / anterior } : {}),
-        ...(stage.avgDays === undefined ? {} : { mediaDias: stage.avgDays }),
-        saidas: stage.exits,
+        label: STATUS_LABEL[stage.status],
+        reached: stage.reached,
+        ...(index > 0 && previous >= minimumSample ? { passthrough: stage.reached / previous } : {}),
+        ...(stage.avgDays === undefined ? {} : { avgDays: stage.avgDays }),
+        exits: stage.exits,
       };
     }),
   };

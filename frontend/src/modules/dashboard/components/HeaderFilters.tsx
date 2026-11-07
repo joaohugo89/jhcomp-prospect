@@ -90,11 +90,11 @@ export function HeaderFilters({
       </button>
 
       <div className="relative">
-        <label htmlFor="periodo" className="sr-only">
+        <label htmlFor="period" className="sr-only">
           Período
         </label>
         <select
-          id="periodo"
+          id="period"
           className={`${toolbarButton} appearance-none border border-brand-700 bg-brand-600 pr-7 text-white hover:bg-brand-700`}
           value={activePreset === undefined ? 'custom' : String(activePreset)}
           onChange={(event) => {

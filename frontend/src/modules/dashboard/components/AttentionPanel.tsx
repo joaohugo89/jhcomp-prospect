@@ -4,13 +4,13 @@ import { formatDateTime } from '../../../app/format';
 import { STATUS_LABEL } from '../../../app/labels';
 import { Link } from '../../../app/router';
 import { card } from '../../../components/styles';
-import type { Atencao, ItemAtencao, SecaoAtencao } from '../model/dashboardData';
+import type { AttentionView, AttentionRow, AttentionSectionView } from '../model/dashboardData';
 
 interface SectionSpec {
-  readonly key: keyof Atencao;
+  readonly key: keyof AttentionView;
   readonly title: string;
   /** Por que o item está aqui; aparece sob o nome da empresa. */
-  readonly reason: (item: ItemAtencao, now: number) => string;
+  readonly reason: (item: AttentionRow, now: number) => string;
   readonly icon: LucideIcon;
   readonly tone: string;
 }
@@ -23,28 +23,28 @@ function daysAgo(iso: string, now: number): number {
 
 const SECTIONS: readonly SectionSpec[] = [
   {
-    key: 'tarefas',
+    key: 'tasks',
     title: 'Tarefas atrasadas ou de hoje',
-    reason: (item) => `${item.detalhe ?? 'Tarefa'} · ${item.atrasada ? 'venceu' : 'vence'} ${formatDateTime(item.em)}`,
+    reason: (item) => `${item.detail ?? 'Tarefa'} · ${item.overdue ? 'venceu' : 'vence'} ${formatDateTime(item.at)}`,
     icon: AlarmClock,
     tone: 'bg-red-50 text-red-700',
   },
   {
-    key: 'parados',
+    key: 'staleLeads',
     title: 'Parados há 7 dias ou mais',
-    reason: (item, now) => `${STATUS_LABEL[item.status]} há ${daysAgo(item.em, now)} dias`,
+    reason: (item, now) => `${STATUS_LABEL[item.status]} há ${daysAgo(item.at, now)} dias`,
     icon: Clock,
     tone: 'bg-amber-50 text-amber-700',
   },
   {
-    key: 'propostasFrias',
+    key: 'quietProposals',
     title: 'Propostas sem contato há 7 dias',
-    reason: (item, now) => `Último contato há ${daysAgo(item.em, now)} dias`,
+    reason: (item, now) => `Último contato há ${daysAgo(item.at, now)} dias`,
     icon: FileText,
     tone: 'bg-violet-50 text-violet-700',
   },
   {
-    key: 'semTarefa',
+    key: 'withoutTask',
     title: 'Em andamento sem próxima tarefa',
     reason: (item) => STATUS_LABEL[item.status],
     icon: ListPlus,
@@ -60,7 +60,7 @@ export function AttentionPanel({
   atencao,
   now,
 }: {
-  readonly atencao: Atencao;
+  readonly atencao: AttentionView;
   /** Instante de referência para "há N dias". */
   readonly now: number;
 }): React.JSX.Element {
@@ -126,7 +126,7 @@ const CARD_GRID: Readonly<Record<number, string>> = {
   4: 'sm:grid-cols-2 xl:grid-cols-4',
 };
 
-/** Com poucas seções o cartão é largo: os itens se espalham em colunas em vez de virar uma lista estreita. */
+/** Com poucas seções o cartão é largo: os items se espalham em colunas em vez de virar uma lista estreita. */
 const ITEM_GRID: Readonly<Record<number, string>> = {
   1: 'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5',
   2: 'lg:grid-cols-2',
@@ -139,7 +139,7 @@ function AttentionCard({
   listGrid,
 }: {
   readonly spec: SectionSpec;
-  readonly secao: SecaoAtencao;
+  readonly secao: AttentionSectionView;
   readonly now: number;
   readonly listGrid: string;
 }): React.JSX.Element {
@@ -159,24 +159,24 @@ function AttentionCard({
       </div>
 
       <ul className={`mt-3 grid gap-x-6 gap-y-2 ${listGrid}`}>
-        {secao.itens.map((item) => (
-          <li key={`${spec.key}-${item.leadId}-${item.em}`} className="min-w-0">
+        {secao.items.map((item) => (
+          <li key={`${spec.key}-${item.leadId}-${item.at}`} className="min-w-0">
             <Link
               to={`/leads/${item.leadId}`}
               className="block truncate text-sm font-medium text-stone-900 hover:text-brand-700 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
             >
-              {item.empresa}
+              {item.company}
             </Link>
-            <p className={`truncate text-xs ${item.atrasada ? 'font-medium text-red-700' : 'text-stone-500'}`}>
+            <p className={`truncate text-xs ${item.overdue ? 'font-medium text-red-700' : 'text-stone-500'}`}>
               {spec.reason(item, now)}
             </p>
           </li>
         ))}
       </ul>
 
-      {secao.total > secao.itens.length && (
+      {secao.total > secao.items.length && (
         <p className="mt-3 border-t border-stone-100 pt-2 text-xs text-stone-500">
-          {`Mais ${secao.total - secao.itens.length} no `}
+          {`Mais ${secao.total - secao.items.length} no `}
           <Link to="/pipeline" className="font-medium text-brand-700 hover:underline">
             pipeline
           </Link>

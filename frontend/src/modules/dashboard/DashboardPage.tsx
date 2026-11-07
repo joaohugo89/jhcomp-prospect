@@ -29,13 +29,13 @@ import { PerformanceHero, type GranularityChoice } from './components/Performanc
 import { RecentActivityList } from './components/RecentActivityList';
 import { StatusProgressList } from './components/StatusProgressList';
 import {
-  periodoAnterior,
-  toAtencao,
-  toAtividade,
-  toConversao,
+  previousPeriod,
+  toAttention,
+  toActivity,
+  toConversion,
   toDashboardData,
-  toFunil,
-  toSerie,
+  toFunnel,
+  toTimeSeries,
 } from './model/dashboardData';
 
 /** Feed curto, da altura do funil ao lado; o resto fica nas páginas seguintes. */
@@ -69,8 +69,8 @@ export function DashboardPage({ session }: { readonly session: Session }): React
   ].join('|');
 
   // Mesmo tamanho, imediatamente antes: base da variação mostrada no destaque.
-  const anterior = periodoAnterior({ de: filters.from, ate: filters.to });
-  const previousFilters = { ...filters, from: anterior.de, to: anterior.ate };
+  const anterior = previousPeriod({ from: filters.from, to: filters.to });
+  const previousFilters = { ...filters, from: anterior.from, to: anterior.to };
 
   const [summary, reloadSummary] = useLoad(key, async (signal) => ({
     response: await getDashboardSummary(filters, signal),
@@ -89,7 +89,7 @@ export function DashboardPage({ session }: { readonly session: Session }): React
   );
   // Ao recarregar, o gráfico anterior fica, atenuado: sem salto de layout.
   const lastTimeline = useLastReady(timeline);
-  const serie = lastTimeline === null ? null : toSerie(lastTimeline);
+  const serie = lastTimeline === null ? null : toTimeSeries(lastTimeline);
 
   // Quando o resumo chegou: "Atualizado às" e referência para "há N dias". Vem do
   // próprio carregamento (fora da renderização, que precisa ser pura).
@@ -145,31 +145,31 @@ export function DashboardPage({ session }: { readonly session: Session }): React
   }
 
   const data = toDashboardData(summary.data.response);
-  const previousData = previous.kind === 'ready' ? toDashboardData(previous.data).metricasPeriodo : undefined;
-  const conversao = conversion.kind === 'ready' ? toConversao(conversion.data) : undefined;
+  const previousData = previous.kind === 'ready' ? toDashboardData(previous.data).periodMetrics : undefined;
+  const conversionView = conversion.kind === 'ready' ? toConversion(conversion.data) : undefined;
   const now = loadedAt ?? 0;
   const leadsHref = (status: string): string => leadsUrl(filters, { status });
   const sourceHref = (source: string): string => leadsUrl(filters, { source });
 
   return (
     <DashboardLayout
-      subtitle={`Visão geral da prospecção · ${dataCurta(data.periodo.de)} a ${dataCurta(data.periodo.ate)}`}
+      subtitle={`Visão geral da prospecção · ${shortDate(data.period.from)} a ${shortDate(data.period.to)}`}
       filters={filtersControl}
       attention={
         attention.kind === 'ready' ? (
-          <AttentionPanel atencao={toAtencao(attention.data)} now={now} />
+          <AttentionPanel atencao={toAttention(attention.data)} now={now} />
         ) : (
           <LoadStateView state={attention} onRetry={reloadAttention} />
         )
       }
       hero={
         <PerformanceHero
-          atual={data.metricasPeriodo}
+          atual={data.periodMetrics}
           anterior={previousData}
           serie={serie}
           recarregando={timeline.kind === 'loading' && serie !== null}
-          leadsNoPeriodo={conversao?.total.leads}
-          granularidade={granularity}
+          leadsNoPeriodo={conversionView?.total.leads}
+          granularity={granularity}
           diarioPermitido={dailyAllowed}
           onGranularidade={setGranularity}
           fallback={<LoadStateView state={timeline} onRetry={reloadTimeline} />}
@@ -177,17 +177,17 @@ export function DashboardPage({ session }: { readonly session: Session }): React
       }
       highlights={
         <>
-          <ConversionGauge conversao={conversao} />
-          <LeadSourceSplit conversao={conversao} sourceHref={sourceHref} />
-          <DataQualityNotice semSegmento={data.empresasSemSegmento} />
+          <ConversionGauge conversion={conversionView} />
+          <LeadSourceSplit conversion={conversionView} sourceHref={sourceHref} />
+          <DataQualityNotice semSegmento={data.companiesWithoutSegment} />
         </>
       }
-      metrics={<KeyMetrics periodo={data.metricasPeriodo} atuais={data.metricasAtuais} leadsHref={leadsHref} />}
+      metrics={<KeyMetrics period={data.periodMetrics} current={data.currentMetrics} leadsHref={leadsHref} />}
       funnel={
         <>
-          <StatusProgressList itens={data.leadsPorStatus} filtrado={isFiltered(filters)} leadsHref={leadsHref} />
+          <StatusProgressList items={data.leadsByStatus} filtered={isFiltered(filters)} leadsHref={leadsHref} />
           {funnel.kind === 'ready' ? (
-            <ConversionFunnel funil={toFunil(funnel.data)} leadsHref={leadsHref} />
+            <ConversionFunnel funil={toFunnel(funnel.data)} leadsHref={leadsHref} />
           ) : (
             <LoadStateView state={funnel} onRetry={reloadFunnel} />
           )}
@@ -197,7 +197,7 @@ export function DashboardPage({ session }: { readonly session: Session }): React
         <div className="space-y-3">
           {/* Trocar os filtros recria a lista (key), voltando à primeira página. */}
           <RecentActivityPanel key={key} filters={filters} token={activityToken} />
-          {conversao !== undefined && <ConversionReport conversao={conversao} />}
+          {conversionView !== undefined && <ConversionReport conversion={conversionView} />}
         </div>
       }
     />
@@ -264,7 +264,7 @@ function RecentActivityPanel({
       ) : (
         <>
           <div className={`transition-opacity ${loadingNext ? 'opacity-60' : ''}`}>
-            <RecentActivityList atividades={shown.content.map(toAtividade)} />
+            <RecentActivityList atividades={shown.content.map(toActivity)} />
           </div>
           {shown.content.length > 0 && <Pagination page={shown} onChange={setPage} />}
         </>
@@ -330,7 +330,7 @@ function days(filters: DashboardFilters): number {
 }
 
 /** AAAA-MM-DD como DD/MM, sem passar por fuso: é data de calendário. */
-function dataCurta(valor: string): string {
-  const [, mes, dia] = valor.split('-');
-  return mes === undefined || dia === undefined ? valor : `${dia}/${mes}`;
+function shortDate(value: string): string {
+  const [, month, day] = value.split('-');
+  return month === undefined || day === undefined ? value : `${day}/${month}`;
 }

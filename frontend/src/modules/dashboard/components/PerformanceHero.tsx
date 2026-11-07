@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { formatCurrency } from '../../../app/format';
 import { input } from '../../../components/styles';
 import type { Granularity } from '../../../types/crm';
-import type { MetricasPeriodo, SerieTemporal } from '../model/dashboardData';
-import { variacao } from '../model/dashboardData';
+import type { PeriodMetrics, TimeSeries } from '../model/dashboardData';
+import { variation } from '../model/dashboardData';
 import { AreaChart, type ChartPoint } from './AreaChart';
 import { DashboardSection } from './DashboardSection';
 import { VariationBadge } from './VariationBadge';
 
-type MetricKey = keyof MetricasPeriodo;
+type MetricKey = keyof PeriodMetrics;
 
 interface MetricOption {
   readonly key: MetricKey;
@@ -19,10 +19,10 @@ interface MetricOption {
 
 /** As métricas do período, com as mesmas definições dos cartões. */
 const HERO_METRICS: readonly [MetricOption, ...MetricOption[]] = [
-  { key: 'valorGanho', label: 'Valor ganho', currency: true },
-  { key: 'empresasAdicionadas', label: 'Empresas adicionadas', currency: false },
-  { key: 'contatosRegistrados', label: 'Contatos registrados', currency: false },
-  { key: 'negociosGanhos', label: 'Negócios ganhos', currency: false },
+  { key: 'wonValue', label: 'Valor ganho', currency: true },
+  { key: 'companiesAdded', label: 'Empresas adicionadas', currency: false },
+  { key: 'contactsRegistered', label: 'Contatos registrados', currency: false },
+  { key: 'dealsWon', label: 'Negócios ganhos', currency: false },
 ];
 
 export type GranularityChoice = Granularity | 'AUTO';
@@ -30,7 +30,7 @@ export type GranularityChoice = Granularity | 'AUTO';
 const GRANULARITY_LABEL: Readonly<Record<Granularity, string>> = { DAY: 'dia', WEEK: 'semana', MONTH: 'mês' };
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
-/** Resumo sob o gráfico, em formato curto para caber no celular; o valor exato está no título. */
+/** Resumo sob o gráfico, em formato curto para caber no celular; o value exato está no título. */
 const compactCurrency = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
@@ -39,15 +39,15 @@ const compactCurrency = new Intl.NumberFormat('pt-BR', {
 });
 
 interface PerformanceHeroProps {
-  readonly atual: MetricasPeriodo;
+  readonly atual: PeriodMetrics;
   /** Período anterior de mesmo tamanho; ausente enquanto carrega ou se falhar. */
-  readonly anterior: MetricasPeriodo | undefined;
+  readonly anterior: PeriodMetrics | undefined;
   /** Série do período; `null` enquanto a primeira carga não chega. */
-  readonly serie: SerieTemporal | null;
+  readonly serie: TimeSeries | null;
   /** A série está sendo recarregada: o gráfico anterior fica, atenuado. */
   readonly recarregando: boolean;
   readonly leadsNoPeriodo: number | undefined;
-  readonly granularidade: GranularityChoice;
+  readonly granularity: GranularityChoice;
   readonly diarioPermitido: boolean;
   readonly onGranularidade: (choice: GranularityChoice) => void;
   /** Estado de carga ou erro da série, quando não há gráfico para mostrar. */
@@ -57,10 +57,10 @@ interface PerformanceHeroProps {
 /** Bloco de destaque: a métrica escolhida no tempo, com total e variação. */
 export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element {
   const { atual, anterior, serie, recarregando, leadsNoPeriodo, fallback } = props;
-  const [metricKey, setMetricKey] = useState<MetricKey>('valorGanho');
+  const [metricKey, setMetricKey] = useState<MetricKey>('wonValue');
   const metric = HERO_METRICS.find((option) => option.key === metricKey) ?? HERO_METRICS[0];
   const format = metric.currency ? formatCurrency : (value: number) => String(value);
-  const ticket = atual.negociosGanhos === 0 ? undefined : atual.valorGanho / atual.negociosGanhos;
+  const ticket = atual.dealsWon === 0 ? undefined : atual.wonValue / atual.dealsWon;
 
   return (
     <DashboardSection
@@ -77,7 +77,7 @@ export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element 
     >
       <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="font-display text-3xl font-semibold tracking-tight text-stone-900">{format(atual[metric.key])}</p>
-        <VariationBadge variacao={variacao(atual[metric.key], anterior?.[metric.key])} />
+        <VariationBadge variation={variation(atual[metric.key], anterior?.[metric.key])} />
       </div>
 
       <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
@@ -104,7 +104,7 @@ export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element 
           Agrupar por
           <select
             className={`${input} mt-0 h-8 w-auto py-0 text-xs`}
-            value={props.granularidade}
+            value={props.granularity}
             onChange={(event) => {
               props.onGranularidade(toChoice(event.target.value));
             }}
@@ -124,8 +124,8 @@ export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element 
       </div>
 
       <dl className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
-        <QuickStat label="Valor ganho" value={compactCurrency.format(atual.valorGanho)} />
-        <QuickStat label="Negócios ganhos" value={String(atual.negociosGanhos)} />
+        <QuickStat label="Valor ganho" value={compactCurrency.format(atual.wonValue)} />
+        <QuickStat label="Negócios ganhos" value={String(atual.dealsWon)} />
         <QuickStat label="Ticket médio" value={ticket === undefined ? '—' : compactCurrency.format(ticket)} />
       </dl>
     </DashboardSection>
@@ -137,15 +137,15 @@ function SeriesChart({
   metric,
   format,
 }: {
-  readonly serie: SerieTemporal;
+  readonly serie: TimeSeries;
   readonly metric: MetricOption;
   readonly format: (value: number) => string;
 }): React.JSX.Element {
-  const unit = GRANULARITY_LABEL[serie.granularidade];
-  const points: readonly ChartPoint[] = serie.pontos.map((ponto) => ({
-    key: ponto.inicio,
-    label: shortLabel(ponto.inicio, serie.granularidade),
-    title: longLabel(ponto.inicio, serie.granularidade),
+  const unit = GRANULARITY_LABEL[serie.granularity];
+  const points: readonly ChartPoint[] = serie.points.map((ponto) => ({
+    key: ponto.start,
+    label: shortLabel(ponto.start, serie.granularity),
+    title: longLabel(ponto.start, serie.granularity),
     value: ponto[metric.key],
   }));
 

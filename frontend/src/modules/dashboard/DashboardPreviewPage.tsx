@@ -11,13 +11,13 @@ import { RecentActivityList } from './components/RecentActivityList';
 import { StatusProgressList } from './components/StatusProgressList';
 import {
   MOCK_NOW,
-  mockAtencao,
-  mockAtividadesRecentes,
-  mockConversao,
+  mockAttention,
+  mockRecentActivities,
+  mockConversion,
   mockDashboardData,
-  mockFunil,
-  mockMetricasAnteriores,
-  mockSerie,
+  mockFunnel,
+  mockPreviousMetrics,
+  mockTimeSeries,
 } from './model/mockDashboardData';
 
 /**
@@ -33,31 +33,31 @@ export function DashboardPreviewPage(): React.JSX.Element {
       filters={
         <p className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900">Pré-visualização</p>
       }
-      attention={<AttentionPanel atencao={mockAtencao} now={MOCK_NOW} />}
+      attention={<AttentionPanel atencao={mockAttention} now={MOCK_NOW} />}
       hero={
         <PerformanceHero
-          atual={data.metricasPeriodo}
-          anterior={mockMetricasAnteriores}
-          serie={mockSerie}
+          atual={data.periodMetrics}
+          anterior={mockPreviousMetrics}
+          serie={mockTimeSeries}
           recarregando={false}
-          leadsNoPeriodo={mockConversao.total.leads}
-          granularidade="WEEK"
+          leadsNoPeriodo={mockConversion.total.leads}
+          granularity="WEEK"
           diarioPermitido
           onGranularidade={() => undefined}
         />
       }
       highlights={
         <>
-          <ConversionGauge conversao={mockConversao} />
-          <LeadSourceSplit conversao={mockConversao} />
-          <DataQualityNotice semSegmento={data.empresasSemSegmento} />
+          <ConversionGauge conversion={mockConversion} />
+          <LeadSourceSplit conversion={mockConversion} />
+          <DataQualityNotice semSegmento={data.companiesWithoutSegment} />
         </>
       }
-      metrics={<KeyMetrics periodo={data.metricasPeriodo} atuais={data.metricasAtuais} />}
+      metrics={<KeyMetrics period={data.periodMetrics} current={data.currentMetrics} />}
       funnel={
         <>
-          <StatusProgressList itens={data.leadsPorStatus} filtrado={false} />
-          <ConversionFunnel funil={mockFunil} leadsHref={() => '/leads'} />
+          <StatusProgressList items={data.leadsByStatus} filtered={false} />
+          <ConversionFunnel funil={mockFunnel} leadsHref={() => '/leads'} />
         </>
       }
       activity={
@@ -66,9 +66,9 @@ export function DashboardPreviewPage(): React.JSX.Element {
             <h2 id="atividade" className="text-[11px] font-semibold tracking-wider text-stone-500 font-mono uppercase">
               Interações e atividades
             </h2>
-            <RecentActivityList atividades={mockAtividadesRecentes} />
+            <RecentActivityList atividades={mockRecentActivities} />
           </section>
-          <ConversionReport conversao={mockConversao} />
+          <ConversionReport conversion={mockConversion} />
         </div>
       }
     />

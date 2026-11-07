@@ -1,7 +1,7 @@
 import { Link } from '../../../app/router';
 import { link } from '../../../components/styles';
 import type { LeadStatus } from '../../../types/lead';
-import type { StatusLead } from '../model/dashboardData';
+import type { LeadStatusCount } from '../model/dashboardData';
 import { DashboardSection } from './DashboardSection';
 
 /**
@@ -22,23 +22,23 @@ const STAGE_COLOR: Readonly<Record<LeadStatus, string>> = {
 };
 
 /**
- * Funil: leads por etapa, situação de agora. Barra segmentada com o todo,
- * cartões das etapas com lead (contagem e participação) e as vazias em pílulas.
+ * FunnelView: leads por etapa, situação de agora. Barra segmentada com o todo,
+ * cartões das etapas com lead (countCard e participação) e as vazias em pílulas.
  */
 export function StatusProgressList({
-  itens,
-  filtrado,
+  items,
+  filtered,
   leadsHref,
 }: {
-  readonly itens: readonly StatusLead[];
+  readonly items: readonly LeadStatusCount[];
   /** Com segmento, cidade ou origem escolhidos, "vazio" não quer dizer "sem leads". */
-  readonly filtrado: boolean;
+  readonly filtered: boolean;
   /** Drill-down: a etapa abre a lista de leads nela; ausente na pré-visualização. */
   readonly leadsHref?: (status: string) => string;
 }): React.JSX.Element {
-  const total = itens.reduce((soma, item) => soma + item.quantidade, 0);
-  const comLead = itens.filter((item) => item.quantidade > 0);
-  const vazias = itens.filter((item) => item.quantidade === 0);
+  const total = items.reduce((soma, item) => soma + item.count, 0);
+  const comLead = items.filter((item) => item.count > 0);
+  const vazias = items.filter((item) => item.count === 0);
 
   return (
     <DashboardSection
@@ -53,8 +53,8 @@ export function StatusProgressList({
     >
       {total === 0 ? (
         <p className="mt-4 text-sm text-stone-600">
-          {filtrado ? 'Nenhum lead com o segmento, a cidade ou a origem escolhidos.' : 'Nenhum lead ainda. '}
-          {!filtrado && (
+          {filtered ? 'Nenhum lead com o segmento, a cidade ou a origem escolhidos.' : 'Nenhum lead ainda. '}
+          {!filtered && (
             <Link to="/companies" className={link}>
               Cadastre ou importe empresas
             </Link>
@@ -62,13 +62,13 @@ export function StatusProgressList({
         </p>
       ) : (
         <>
-          {/* Barra segmentada fina: partes com 2px de folga, sem texto; o detalhe está nos cartões. */}
+          {/* Barra segmentada fina: partes com 2px de folga, sem texto; o detail está nos cartões. */}
           <div aria-hidden="true" className="mt-5 flex h-2 gap-0.5 overflow-hidden rounded-full">
             {comLead.map((item) => (
               <div
                 key={item.status}
                 className={`h-full first:rounded-l-full last:rounded-r-full ${STAGE_COLOR[item.status]}`}
-                style={{ width: `${(item.quantidade / total) * 100}%` }}
+                style={{ width: `${(item.count / total) * 100}%` }}
               />
             ))}
           </div>
@@ -82,16 +82,16 @@ export function StatusProgressList({
                 <dt className="flex min-w-0 items-center gap-2 text-xs font-semibold text-stone-700">
                   <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${STAGE_COLOR[item.status]}`} />
                   {leadsHref === undefined ? (
-                    <span className="truncate">{item.nome}</span>
+                    <span className="truncate">{item.label}</span>
                   ) : (
                     <Link to={leadsHref(item.status)} className="truncate hover:text-brand-700 hover:underline">
-                      {item.nome}
+                      {item.label}
                     </Link>
                   )}
                 </dt>
                 <dd className="shrink-0 text-xs font-bold text-stone-900 tabular-nums">
-                  {item.quantidade}
-                  <span className="ml-1 font-normal text-stone-400">{`(${Math.round((item.quantidade / total) * 100)}%)`}</span>
+                  {item.count}
+                  <span className="ml-1 font-normal text-stone-400">{`(${Math.round((item.count / total) * 100)}%)`}</span>
                 </dd>
               </div>
             ))}
@@ -106,7 +106,7 @@ export function StatusProgressList({
                     key={item.status}
                     className="rounded-md bg-stone-50 px-2 py-0.5 text-[11px] text-stone-500 ring-1 ring-stone-200/70"
                   >
-                    {`${item.nome}: 0`}
+                    {`${item.label}: 0`}
                   </li>
                 ))}
               </ul>

@@ -20,7 +20,7 @@ interface AreaChartProps {
 
 const TICKS = 4;
 const MAX_X_LABELS = 6;
-/** Folga acima do maior valor, em % da altura: o marcador de pico cabe sem sair do gráfico. */
+/** Folga acima do maior value, em % da altura: o marcador de pico cabe sem sair do gráfico. */
 const HEADROOM = 0.18;
 
 /**
@@ -28,7 +28,7 @@ const HEADROOM = 0.18;
  * Linha e área em SVG que estica com a largura; pontos, rótulos e dica em HTML
  * por cima, para não distorcerem. A linha vertical acompanha o ponteiro. Pelo
  * teclado é um `slider`: as setas percorrem os intervalos e o leitor de tela
- * anuncia intervalo e valor.
+ * anuncia intervalo e value.
  */
 export function AreaChart({ name, points, format, formatTick, integer }: AreaChartProps): React.JSX.Element {
   const [active, setActive] = useState<number | null>(null);
@@ -89,7 +89,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
           }
         }}
       >
-        {/* Grade: linhas finas e contínuas, recessivas; a base um tom acima. */}
+        {/* Grade: linhas finas e contínuas, recessivas; a base um tone acima. */}
         {ticks(top).map((tick) => (
           <span
             key={tick}

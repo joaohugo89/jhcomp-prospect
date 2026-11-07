@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LEAD_ID, fakeApi, json, page, session, type RecordedCall } from '../../test/fakeApi';
 import { DashboardPage } from './DashboardPage';
 import { DashboardPreviewPage } from './DashboardPreviewPage';
-import { periodoAnterior, toAtividade, toConversao, toDashboardData, variacao } from './model/dashboardData';
+import { previousPeriod, toActivity, toConversion, toDashboardData, variation } from './model/dashboardData';
 import { mockDashboardData } from './model/mockDashboardData';
 
 /** Dashboard: modelo de tela, pré-visualização e página com a API simulada. Dados fictícios. */
@@ -151,45 +151,45 @@ function deferred(): { readonly promise: Promise<void>; readonly resolve: () => 
 describe('modelo do dashboard', () => {
   it('converte o resumo da API com todas as etapas, inclusive as vazias', () => {
     const data = toDashboardData(summary);
-    expect(data.periodo).toEqual({ de: '2026-10-07', ate: '2026-11-05' });
-    expect(data.metricasAtuais.tarefasAtrasadas).toBe(1);
-    expect(data.leadsPorStatus).toHaveLength(9);
-    expect(data.leadsPorStatus[0]).toEqual({ status: 'NEW', nome: 'Novo', quantidade: 3 });
-    expect(data.leadsPorStatus.find((item) => item.status === 'LOST')?.quantidade).toBe(0);
-    expect(data.empresasSemSegmento).toBe(3);
+    expect(data.period).toEqual({ from: '2026-10-07', to: '2026-11-05' });
+    expect(data.currentMetrics.overdueTasks).toBe(1);
+    expect(data.leadsByStatus).toHaveLength(9);
+    expect(data.leadsByStatus[0]).toEqual({ status: 'NEW', label: 'Novo', count: 3 });
+    expect(data.leadsByStatus.find((item) => item.status === 'LOST')?.count).toBe(0);
+    expect(data.companiesWithoutSegment).toBe(3);
   });
 
   it('converte atividade de status e de interacao, sem campo vazio', () => {
     const base = { leadId: LEAD_ID, companyName: 'Loja Ficticia', occurredAt: '2026-11-06T12:00:00Z' };
-    expect(toAtividade({ ...base, type: 'STATUS_CHANGE', fromStatus: 'NEW', toStatus: 'QUALIFIED' }).transicao).toEqual(
+    expect(toActivity({ ...base, type: 'STATUS_CHANGE', fromStatus: 'NEW', toStatus: 'QUALIFIED' }).transition).toEqual(
       {
-        tipo: 'status',
-        de: 'NEW',
-        para: 'QUALIFIED',
+        kind: 'status',
+        from: 'NEW',
+        to: 'QUALIFIED',
       },
     );
-    const interacao = toAtividade({ ...base, type: 'INTERACTION', interactionType: 'CONTACT', channel: 'PHONE' });
-    expect(interacao.transicao).toEqual({ tipo: 'interacao', interacao: 'CONTACT', canal: 'PHONE' });
-    expect('usuario' in interacao).toBe(false);
+    const interacao = toActivity({ ...base, type: 'INTERACTION', interactionType: 'CONTACT', channel: 'PHONE' });
+    expect(interacao.transition).toEqual({ kind: 'interaction', interaction: 'CONTACT', channel: 'PHONE' });
+    expect('user' in interacao).toBe(false);
   });
 
-  it('soma a conversao das origens e so marca amostra suficiente a partir do minimo', () => {
-    const conversao = toConversao(conversion);
-    expect(conversao.total).toEqual({ leads: 24, contatados: 6, ganhos: 3, amostraSuficiente: true });
-    expect(conversao.porOrigem.map((grupo) => grupo.nome)).toEqual(['Importação CSV', 'Manual']);
-    expect(conversao.porSegmento[0]?.nome).toBe('Sem segmento');
+  it('sums conversion across origins and only marks a sufficient sample from the minimum up', () => {
+    const view = toConversion(conversion);
+    expect(view.total).toEqual({ leads: 24, contacted: 6, won: 3, sufficientSample: true });
+    expect(view.bySource.map((group) => group.label)).toEqual(['Importação CSV', 'Manual']);
+    expect(view.bySegment[0]?.label).toBe('Sem segmento');
   });
 
-  it('variacao: percentual com base, sem percentual quando antes era zero', () => {
-    expect(variacao(2500, 2000)).toEqual({ tipo: 'percentual', valor: 25 });
-    expect(variacao(5, 0)).toEqual({ tipo: 'semBase' });
-    expect(variacao(0, 0)).toEqual({ tipo: 'semDados' });
-    expect(variacao(5, undefined)).toEqual({ tipo: 'semDados' });
+  it('variation: percentual com base, sem percentual quando antes era zero', () => {
+    expect(variation(2500, 2000)).toEqual({ kind: 'percent', value: 25 });
+    expect(variation(5, 0)).toEqual({ kind: 'noBase' });
+    expect(variation(0, 0)).toEqual({ kind: 'noData' });
+    expect(variation(5, undefined)).toEqual({ kind: 'noData' });
   });
 
-  it('periodo anterior tem o mesmo tamanho e termina na vespera', () => {
-    expect(periodoAnterior({ de: '2026-10-08', ate: '2026-11-06' })).toEqual({ de: '2026-09-08', ate: '2026-10-07' });
-    expect(periodoAnterior({ de: '2026-03-01', ate: '2026-03-01' })).toEqual({ de: '2026-02-28', ate: '2026-02-28' });
+  it('period anterior tem o mesmo tamanho e termina na vespera', () => {
+    expect(previousPeriod({ from: '2026-10-08', to: '2026-11-06' })).toEqual({ from: '2026-09-08', to: '2026-10-07' });
+    expect(previousPeriod({ from: '2026-03-01', to: '2026-03-01' })).toEqual({ from: '2026-02-28', to: '2026-02-28' });
   });
 });
 
@@ -202,7 +202,7 @@ describe('pre-visualizacao com mockDashboardData', () => {
     expect(screen.getByText('Pré-visualização')).toBeInTheDocument();
     const metricas = screen.getByRole('region', { name: 'Métricas-chave' });
     expect(within(metricas).getByText('Empresas').nextElementSibling).toHaveTextContent(
-      String(mockDashboardData.metricasPeriodo.empresasAdicionadas),
+      String(mockDashboardData.periodMetrics.companiesAdded),
     );
     expect(screen.getByText('Atenção')).toBeInTheDocument();
     const atividades = screen.getByRole('region', { name: 'Interações e atividades' });
@@ -219,7 +219,7 @@ describe('Dashboard', () => {
     vi.unstubAllGlobals();
   });
 
-  it('mostra destaque com variacao, conversao, origem, funil e atividade', async () => {
+  it('mostra destaque com variation, conversion, origem, funil e atividade', async () => {
     const calls = routes();
     render(<DashboardPage session={session} />);
 
@@ -227,7 +227,7 @@ describe('Dashboard', () => {
     expect(within(hero).getAllByText(/2\.500,00/).length).toBeGreaterThan(0);
     expect(await within(hero).findByText('+25%')).toBeInTheDocument();
     expect(within(hero).getByText('24 leads abertos no período')).toBeInTheDocument();
-    // Ticket médio = valor ganho / negócios ganhos.
+    // Ticket médio = value ganho / negócios ganhos.
     expect(within(hero).getByText('Ticket médio').nextElementSibling).toHaveTextContent(/R\$\s?2,5\s?mil/);
 
     // 3 ganhos em 24 leads, amostra suficiente: há percentual.
@@ -335,7 +335,7 @@ describe('Dashboard', () => {
     expect(screen.getByLabelText('Período')).toHaveValue('custom');
   });
 
-  it('atalho de periodo aplica na hora e Esc fecha o painel', async () => {
+  it('atalho de period aplica na hora e Esc fecha o painel', async () => {
     const calls = routes();
     render(<DashboardPage session={session} />);
     await screen.findByRole('region', { name: 'Valor ganho' });
@@ -357,7 +357,7 @@ describe('Dashboard', () => {
     expect(toggle).toHaveFocus();
   });
 
-  it('relatorio de conversao expande com as tabelas por origem e segmento', async () => {
+  it('relatorio de conversion expande com as tabelas por origem e segmento', async () => {
     routes();
     render(<DashboardPage session={session} />);
 
@@ -366,9 +366,9 @@ describe('Dashboard', () => {
     await userEvent.click(botao);
     expect(botao).toHaveAttribute('aria-expanded', 'true');
 
-    const porOrigem = screen.getByRole('table', { name: 'Por origem' });
-    expect(within(porOrigem).getByRole('row', { name: /Importação CSV/ })).toHaveTextContent('2 (10%)');
-    expect(within(porOrigem).getByRole('row', { name: /Manual/ })).toHaveTextContent('amostra pequena');
+    const bySource = screen.getByRole('table', { name: 'Por origem' });
+    expect(within(bySource).getByRole('row', { name: /Importação CSV/ })).toHaveTextContent('2 (10%)');
+    expect(within(bySource).getByRole('row', { name: /Manual/ })).toHaveTextContent('amostra pequena');
     expect(screen.getByRole('table', { name: 'Por segmento' })).toBeInTheDocument();
   });
 
@@ -432,7 +432,7 @@ describe('Dashboard', () => {
     expect(within(painel).getByRole('list', { name: 'Em dia' })).toHaveTextContent('Parados há 7 dias ou mais: nenhum');
   });
 
-  it('funil de conversao mostra passagem e tempo medio so com amostra', async () => {
+  it('funil de conversion mostra passthrough e tempo medio so com amostra', async () => {
     routes();
     render(<DashboardPage session={session} />);
 

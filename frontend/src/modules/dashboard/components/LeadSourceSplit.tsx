@@ -1,5 +1,5 @@
 import { Link } from '../../../app/router';
-import type { Conversao } from '../model/dashboardData';
+import type { ConversionView } from '../model/dashboardData';
 import { DashboardSection } from './DashboardSection';
 
 /**
@@ -16,14 +16,14 @@ const OTHER_COLOR = 'bg-stone-400';
 
 /** Origem dos leads abertos no período: participação de cada uma no total. */
 export function LeadSourceSplit({
-  conversao,
+  conversion,
   sourceHref,
 }: {
-  readonly conversao: Conversao | undefined;
+  readonly conversion: ConversionView | undefined;
   /** Drill-down: a origem abre a lista de leads dela; ausente na pré-visualização. */
   readonly sourceHref?: (source: string) => string;
 }): React.JSX.Element {
-  const total = conversao?.total.leads ?? 0;
+  const total = conversion?.total.leads ?? 0;
 
   return (
     <DashboardSection
@@ -31,32 +31,32 @@ export function LeadSourceSplit({
       title="Origem dos leads"
       description="Leads abertos no período"
       actions={
-        conversao === undefined ? undefined : (
+        conversion === undefined ? undefined : (
           <span className="text-xs font-semibold text-stone-500 tabular-nums">{`${total} no total`}</span>
         )
       }
     >
-      {conversao === undefined ? (
+      {conversion === undefined ? (
         <p className="mt-4 text-xs text-stone-500">Carregando…</p>
       ) : total === 0 ? (
         <p className="mt-4 text-xs text-stone-500">Nenhum lead aberto no período.</p>
       ) : (
         <ul className="mt-4 space-y-3.5">
-          {conversao.porOrigem.map((grupo) => {
+          {conversion.bySource.map((grupo) => {
             const share = grupo.leads / total;
             return (
-              <li key={grupo.chave ?? 'sem-origem'}>
+              <li key={grupo.key ?? 'sem-origem'}>
                 <div className="flex items-center justify-between gap-2 text-xs">
                   <span className="flex min-w-0 items-center gap-2 font-medium text-stone-700">
                     <span
                       aria-hidden="true"
-                      className={`size-2 shrink-0 rounded-full ${SOURCE_COLOR[grupo.chave ?? ''] ?? OTHER_COLOR}`}
+                      className={`size-2 shrink-0 rounded-full ${SOURCE_COLOR[grupo.key ?? ''] ?? OTHER_COLOR}`}
                     />
-                    {sourceHref === undefined || grupo.chave === undefined ? (
-                      <span className="truncate">{grupo.nome}</span>
+                    {sourceHref === undefined || grupo.key === undefined ? (
+                      <span className="truncate">{grupo.label}</span>
                     ) : (
-                      <Link to={sourceHref(grupo.chave)} className="truncate hover:text-brand-700 hover:underline">
-                        {grupo.nome}
+                      <Link to={sourceHref(grupo.key)} className="truncate hover:text-brand-700 hover:underline">
+                        {grupo.label}
                       </Link>
                     )}
                   </span>
@@ -67,7 +67,7 @@ export function LeadSourceSplit({
                 </div>
                 <div aria-hidden="true" className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
                   <div
-                    className={`h-full rounded-full ${SOURCE_COLOR[grupo.chave ?? ''] ?? OTHER_COLOR}`}
+                    className={`h-full rounded-full ${SOURCE_COLOR[grupo.key ?? ''] ?? OTHER_COLOR}`}
                     style={{ width: `${share * 100}%` }}
                   />
                 </div>
@@ -76,9 +76,9 @@ export function LeadSourceSplit({
           })}
         </ul>
       )}
-      {conversao !== undefined && total > 0 && (
+      {conversion !== undefined && total > 0 && (
         <p className="mt-4 border-t border-stone-100 pt-3 text-xs text-stone-500">
-          {`${conversao.total.contatados} ${conversao.total.contatados === 1 ? 'contatado' : 'contatados'} · ${conversao.total.ganhos} ${conversao.total.ganhos === 1 ? 'ganho' : 'ganhos'}`}
+          {`${conversion.total.contacted} ${conversion.total.contacted === 1 ? 'contatado' : 'contacted'} · ${conversion.total.won} ${conversion.total.won === 1 ? 'ganho' : 'won'}`}
         </p>
       )}
     </DashboardSection>
