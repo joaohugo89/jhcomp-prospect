@@ -20,7 +20,7 @@ COPY src ./src
 RUN mvn --batch-mode --no-transfer-progress -DskipTests package
 
 # ---------- Estagio 2: runtime ----------
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:24-jre-alpine AS runtime
 
 # Usuario sem privilegios: um processo comprometido nao deve ser root.
 RUN addgroup -S jhcomp && adduser -S -G jhcomp jhcomp
