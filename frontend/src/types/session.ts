@@ -1,18 +1,18 @@
 export type OrganizationRole = 'ADMIN' | 'OPERATOR';
 
-/** Membro ativo como os colegas o veem (`/team`): sem e-mail nem papel. */
+/** An active member as colleagues see them (`/team`): no e-mail, no role. */
 export interface Teammate {
   readonly userId: string;
   readonly displayName: string;
 }
 
-/** Resposta de /auth/login e /auth/me. */
+/** The response of /auth/login and /auth/me. */
 export interface Session {
   readonly userId: string;
   readonly email: string;
   readonly displayName: string;
   readonly organizationId: string;
   readonly role: OrganizationRole;
-  /** Senha temporária: só a troca de senha é permitida até ela acontecer (D28). */
+  /** Temporary password: only the password change is allowed until it happens (D28). */
   readonly passwordChangeRequired: boolean;
 }

@@ -4,10 +4,11 @@ import type { OrganizationRole } from '../types/session';
 import { request, toQuery } from './httpClient';
 
 /**
- * Membros da organizacao ativa. Apenas administradores; operador recebe 403.
+ * Members of the active organisation. Administrators only; an operator gets
+ * a 403.
  *
- * A organizacao nao e informada aqui de proposito: vem sempre da sessao no
- * backend (RF-002).
+ * The organisation is deliberately not passed here: it always comes from the
+ * session on the backend (RF-002).
  */
 export function fetchMembers(
   filters: { readonly status: MemberStatus | ''; readonly search: string },
@@ -38,7 +39,7 @@ export function updateMember(
   return request<Member>(`/organizations/members/${encodeURIComponent(memberId)}`, { method: 'PATCH', body: change });
 }
 
-/** Nova senha temporaria; as sessoes abertas do membro sao encerradas. */
+/** A new temporary password; the member's open sessions are ended. */
 export function resetMemberPassword(memberId: string): Promise<MemberWithPassword> {
   return request<MemberWithPassword>(`/organizations/members/${encodeURIComponent(memberId)}/reset-password`, {
     method: 'POST',

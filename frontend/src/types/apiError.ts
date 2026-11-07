@@ -1,5 +1,5 @@
 /**
- * Formato de erro da API (doc 05 §1), compativel com RFC 7807 ProblemDetail.
+ * The API's error shape (doc 05 §1), compatible with RFC 7807 ProblemDetail.
  */
 export interface FieldError {
   readonly field: string;
@@ -15,7 +15,7 @@ export interface ProblemDetail {
   readonly errors?: readonly FieldError[];
 }
 
-/** Erro de API normalizado consumido pela interface. */
+/** The normalised API error the interface consumes. */
 export interface ApiError {
   readonly status: number;
   readonly type: string;

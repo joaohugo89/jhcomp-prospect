@@ -2,7 +2,7 @@ import type { Lead, LeadPriority, LeadStatus, TimelineEntry } from '../types/lea
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
-/** Leads (doc 05 §5). Mover card é sempre mudança de status (D2). */
+/** Leads (doc 05 §5). Moving a card is always a status change (D2). */
 
 export function getLead(id: string, signal?: AbortSignal): Promise<Lead> {
   return request<Lead>(`/leads/${encodeURIComponent(id)}`, signal ? { signal } : {});
@@ -13,8 +13,8 @@ export function createLead(companyId: string, priority: LeadPriority): Promise<L
 }
 
 /**
- * Muda o status. `contactConfirmed` só é verdadeiro quando o operador
- * confirmou, na tela, que o contato aconteceu (doc 06 §2).
+ * Changes the status. `contactConfirmed` is only true when the operator has
+ * confirmed, on screen, that the contact actually happened (doc 06 §2).
  */
 export function changeLeadStatus(
   id: string,
@@ -28,7 +28,7 @@ export function changeLeadStatus(
   });
 }
 
-/** Define o responsável; `null` remove. O servidor exige membro ativo da organização. */
+/** Sets the owner; `null` clears it. The server requires an active member of the organisation. */
 export function assignLead(id: string, assignedUserId: string | null): Promise<Lead> {
   return request<Lead>(`/leads/${encodeURIComponent(id)}`, { method: 'PATCH', body: { assignedUserId } });
 }

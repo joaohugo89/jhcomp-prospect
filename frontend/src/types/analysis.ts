@@ -1,4 +1,4 @@
-/** Análise de presença digital (doc 05 §8, D24). Espelha AnalysisController do backend. */
+/** Digital presence analysis (doc 05 §8, D24). Mirrors the backend's AnalysisController. */
 
 export const FINDING_STATUSES = ['CONFIRMED', 'NOT_FOUND', 'NOT_VERIFIED', 'NOT_APPLICABLE', 'CONTRADICTED'] as const;
 
@@ -23,7 +23,7 @@ export type ReviewStatus = 'PENDING' | 'CONFIRMED' | 'CORRECTED';
 export type EvidenceType =
   'HTTP_RESPONSE' | 'HTML_SIGNAL' | 'ROBOTS_TXT' | 'COMPANY_RECORD' | 'CONFIGURATION' | 'OPERATOR_NOTE';
 
-/** `score` só existe com a análise concluída: pendente ou com falha não é zero (D7). */
+/** `score` exists only once the analysis completes: pending or failed is not zero (D7). */
 export interface AnalysisSummary {
   readonly id: string;
   readonly leadId: string;

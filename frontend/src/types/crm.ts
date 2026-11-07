@@ -1,6 +1,6 @@
 import type { LeadPriority, LeadStatus } from './lead';
 
-/** CRM e dashboard (doc 05 §3 e §9, D2, D25). */
+/** CRM and dashboard (doc 05 §3 and §9, D2, D25). */
 
 export interface Stage {
   readonly key: LeadStatus;
@@ -28,13 +28,13 @@ export interface BoardCard {
   readonly priority: LeadPriority;
   readonly score?: number;
   readonly service?: string;
-  /** Valor estimado do negócio, em reais. */
+  /** The deal's estimated value, in Brazilian reais. */
   readonly estimatedValue?: number;
   readonly lastInteractionType?: InteractionType;
   readonly lastInteractionAt?: string;
   readonly nextTaskTitle?: string;
   readonly nextTaskDueAt?: string;
-  /** Quando o lead chegou na etapa atual. */
+  /** When the lead reached its current stage. */
   readonly stageEnteredAt: string;
   readonly allowedTransitions: readonly LeadStatus[];
 }
@@ -42,14 +42,14 @@ export interface BoardCard {
 export interface BoardColumn {
   readonly stage: Stage;
   readonly total: number;
-  /** Soma dos negócios da etapa inteira (não só dos cards mostrados), em reais. */
+  /** The sum over the whole stage, not only the cards shown, in reais. */
   readonly totalValue: number;
-  /** Nas colunas finais: só os encerrados nesses últimos dias. */
+  /** In the final columns: only those closed within this many recent days. */
   readonly recentDays?: number;
   readonly cards: readonly BoardCard[];
 }
 
-/** `outcome` vem do status do lead (D2). */
+/** `outcome` is derived from the lead's status (D2). */
 export interface Deal {
   readonly leadId: string;
   readonly service?: string;
@@ -103,7 +103,7 @@ export interface DashboardSummary {
     readonly wonValue: number;
     readonly openTasks: number;
     readonly overdueTasks: number;
-    /** Empresas ativas sem segmento: qualidade dos dados. */
+    /** Active companies with no segment: a data quality signal. */
     readonly companiesWithoutSegment: number;
   };
 }
@@ -112,7 +112,7 @@ export interface AttentionItem {
   readonly leadId: string;
   readonly companyName: string;
   readonly status: LeadStatus;
-  /** Prazo da tarefa, entrada na etapa, último toque ou última atualização, conforme a seção. */
+  /** Task due date, stage entry, last touch or last update, depending on the section. */
   readonly at: string;
   readonly detail?: string;
   readonly overdue: boolean;
@@ -132,9 +132,9 @@ export interface DashboardAttention {
 
 export interface FunnelStage {
   readonly status: LeadStatus;
-  /** Leads da coorte que chegaram a esta etapa ou além. */
+  /** Leads in the cohort that reached this stage or went beyond it. */
   readonly reached: number;
-  /** Quantos já saíram da etapa: base da média de dias. */
+  /** How many have left the stage: the base for the average in days. */
   readonly exits: number;
   readonly avgDays?: number;
   readonly sufficientSample: boolean;
@@ -150,7 +150,7 @@ export interface DashboardFunnel {
   };
 }
 
-/** Conversão de um grupo (RF-071); `key` ausente é segmento não informado. */
+/** One group's conversion (RF-071); an absent `key` means the segment was not set. */
 export interface ConversionRow {
   readonly key?: string;
   readonly leads: number;
@@ -171,7 +171,7 @@ export interface DashboardConversion {
 
 export type Granularity = 'DAY' | 'WEEK' | 'MONTH';
 
-/** Um intervalo da série; `start` é o primeiro dia dele dentro do período. */
+/** One interval of the series; `start` is its first day inside the period. */
 export interface TimelinePoint {
   readonly start: string;
   readonly companiesAdded: number;

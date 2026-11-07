@@ -12,11 +12,11 @@ import type {
 import { request, toQuery } from './httpClient';
 
 /**
- * Outreach (doc 05 §10). Nada aqui envia mensagem: `recordSend` registra um
- * envio que o operador já fez fora do sistema (regra 5).
+ * Outreach (doc 05 §10). Nothing here sends a message: `recordSend` records a
+ * send the operator has already made outside the system (rule 5).
  */
 
-/** A geração chama o provedor de IA na mesma requisição; o prazo é maior que o padrão. */
+/** Generation calls the AI provider in the same request, so the deadline is longer than the default. */
 const GENERATION_TIMEOUT_MS = 30_000;
 
 function leadPath(leadId: string): string {
@@ -72,8 +72,8 @@ export function registerSuppression(input: NewSuppression): Promise<SuppressionE
   });
 }
 
-/** Só administradores; operador recebe 403. */
-/** Lista do administrador; `search` é um contato em qualquer formato, normalizado no servidor. */
+/** Administrators only; an operator gets a 403. */
+/** The administrator's list; `search` takes a contact in any format, normalised on the server. */
 export function listSuppressions(
   filters: { readonly identifierType: IdentifierType | ''; readonly search: string },
   page: number,
@@ -89,7 +89,7 @@ export function getSuppressionSummary(signal?: AbortSignal): Promise<Readonly<Re
   return request<Readonly<Record<IdentifierType, number>>>('/suppression-entries/summary', signal ? { signal } : {});
 }
 
-/** Qualquer membro confere um contato. Por POST: o contato não vai para a URL. */
+/** Any member can check a contact. A POST, so the contact never reaches the URL. */
 export function checkSuppression(identifierType: IdentifierType, identifier: string): Promise<SuppressionCheck> {
   return request<SuppressionCheck>('/suppression-entries/check', {
     method: 'POST',

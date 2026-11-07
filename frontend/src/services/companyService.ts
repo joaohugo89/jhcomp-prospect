@@ -15,13 +15,13 @@ import type {
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
-/** Empresas (doc 05 §4). A organização vem da sessão no backend, nunca daqui. */
+/** Companies (doc 05 §4). The organisation comes from the session on the backend, never from here. */
 
 export function getCompany(id: string, signal?: AbortSignal): Promise<Company> {
   return request<Company>(`/companies/${encodeURIComponent(id)}`, signal ? { signal } : {});
 }
 
-/** Origem é opcional: sem nome, o backend registra "Cadastro manual". */
+/** The origin is optional: with no name, the backend records a manual entry. */
 export function createCompany(input: CompanyInput, source: SourceInput): Promise<Company> {
   const hasSource = source.name.trim() !== '';
   return request<Company>('/companies', {
@@ -30,7 +30,7 @@ export function createCompany(input: CompanyInput, source: SourceInput): Promise
   });
 }
 
-/** Envia todos os campos: vazio limpa o opcional, conforme o contrato do PATCH. */
+/** Sends every field: an empty one clears an optional value, per the PATCH contract. */
 export function updateCompany(id: string, input: CompanyInput): Promise<Company> {
   return request<Company>(`/companies/${encodeURIComponent(id)}`, { method: 'PATCH', body: input });
 }
@@ -53,7 +53,7 @@ export function listDuplicates(id: string, signal?: AbortSignal): Promise<readon
   );
 }
 
-/** Lista de empresas como ferramenta: lead atual, contato, origem, atividade e duplicata (D32). */
+/** The company list as a tool: current lead, contact, origin, activity and duplicate (D32). */
 export function listCompanyWorklist(
   filters: CompanyWorklistFilters,
   page: number,
@@ -88,12 +88,12 @@ export function getRemovalEligibility(id: string, signal?: AbortSignal): Promise
   return request<RemovalEligibility>(`/companies/${encodeURIComponent(id)}/removal`, signal ? { signal } : {});
 }
 
-/** Exclusão definitiva; o nome digitado confirma a intenção, como no diálogo. */
+/** Permanent deletion; the typed name confirms the intent, as in the dialog. */
 export function deleteCompany(id: string, confirmationName: string): Promise<void> {
   return request<void>(`/companies/${encodeURIComponent(id)}`, { method: 'DELETE', body: { confirmationName } });
 }
 
-/** A empresa `targetId` absorve `sourceId`, que fica arquivada. */
+/** Company `targetId` absorbs `sourceId`, which ends up archived. */
 export function mergeCompanies(targetId: string, sourceId: string): Promise<MergeResult> {
   return request<MergeResult>(`/companies/${encodeURIComponent(targetId)}/merge`, {
     method: 'POST',
@@ -101,7 +101,7 @@ export function mergeCompanies(targetId: string, sourceId: string): Promise<Merg
   });
 }
 
-/** Por POST: telefone e site não vão para a URL nem para log de acesso. */
+/** A POST, so the phone and the site never reach the URL or an access log. */
 export function checkDuplicates(probe: DuplicateProbe, signal?: AbortSignal): Promise<readonly DuplicateCandidate[]> {
   return request<readonly DuplicateCandidate[]>('/companies/duplicate-check', {
     method: 'POST',

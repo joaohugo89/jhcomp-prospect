@@ -3,7 +3,7 @@ import type { Page } from '../types/page';
 import type { SavedView, Segments, WorklistFilters, WorklistItem } from '../types/worklist';
 import { request, toQuery } from './httpClient';
 
-/** Fila de trabalho de leads (D31): filtros, recortes e ordenação no servidor. */
+/** The lead work queue (D31): filters, one-click slices and sorting on the server. */
 export function listWorklist(
   filters: WorklistFilters,
   page: number,
@@ -33,12 +33,12 @@ export function getLeadSummary(id: string, signal?: AbortSignal): Promise<Workli
   return request<WorklistItem>(`/leads/${encodeURIComponent(id)}/summary`, signal ? { signal } : {});
 }
 
-/** Segmentos em uso, com quantas empresas; para o filtro e para sugerir no cadastro. */
+/** Segments in use, with company counts; for the filter and for suggestions in the form. */
 export function getSegments(signal?: AbortSignal): Promise<Segments> {
   return request<Segments>('/companies/segments', signal ? { signal } : {});
 }
 
-/** Mesma mudança em vários leads, tudo ou nada. Só responsável e prioridade. */
+/** The same change over several leads, all or nothing. Owner and priority only. */
 export function bulkUpdateLeads(
   leadIds: readonly string[],
   change:
@@ -52,7 +52,7 @@ export function listViews(signal?: AbortSignal): Promise<readonly SavedView[]> {
   return request<readonly SavedView[]>('/leads/views', signal ? { signal } : {});
 }
 
-/** `shared` publica para a equipe; o servidor só aceita de administrador. */
+/** `shared` publishes to the team; the server only accepts it from an administrator. */
 export function createView(name: string, query: string, shared: boolean): Promise<SavedView> {
   return request<SavedView>('/leads/views', { method: 'POST', body: { name, query, shared } });
 }

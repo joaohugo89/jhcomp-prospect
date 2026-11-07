@@ -10,7 +10,7 @@ function stubFetch(response: Response): FetchMock {
   return spy;
 }
 
-/** Cabeçalhos enviados na primeira chamada. */
+/** The headers sent on the first call. */
 function sentHeaders(spy: FetchMock): Record<string, string> {
   const init = spy.mock.calls[0]?.[1];
   if (init === undefined) {
@@ -26,11 +26,11 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-/** Cliente HTTP centralizado: sessao por cookie e token CSRF (decisao D1). */
+/** The centralised HTTP client: cookie session and CSRF token (decision D1). */
 describe('httpClient', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-    // Limpa o cookie entre testes para nao vazar estado.
+    // Clears the cookie between tests so no state leaks.
     document.cookie = 'JH_XSRF=; Max-Age=0; path=/';
   });
 

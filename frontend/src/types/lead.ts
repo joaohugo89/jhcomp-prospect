@@ -1,7 +1,7 @@
 import type { SourceType } from './company';
 import type { InteractionChannel, InteractionDirection, InteractionType } from './crm';
 
-/** Ciclo de vida do lead (doc 06 §2). */
+/** The lead lifecycle (doc 06 §2). */
 export const LEAD_STATUSES = [
   'NEW',
   'QUALIFIED',
@@ -29,7 +29,7 @@ export interface LeadCompany {
   readonly archived: boolean;
 }
 
-/** Espelha LeadResponses do backend (doc 05 §5). `score` ausente = sem análise (D7). */
+/** Mirrors the backend's LeadResponses (doc 05 §5). An absent `score` means no analysis (D7). */
 export interface Lead {
   readonly id: string;
   readonly company: LeadCompany;
@@ -62,4 +62,3 @@ export interface TimelineEntry {
   readonly outcome?: string;
   readonly notes?: string;
 }
-

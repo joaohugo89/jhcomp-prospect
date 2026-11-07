@@ -2,13 +2,13 @@ import type { AnalysisDetail, AnalysisSummary, FindingStatus } from '../types/an
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
-/** Análises (doc 05 §8). O pedido só enfileira; o resultado chega depois. */
+/** Analyses (doc 05 §8). The request only enqueues; the result arrives later. */
 
 export function requestAnalysis(leadId: string): Promise<AnalysisSummary> {
   return request<AnalysisSummary>(`/leads/${encodeURIComponent(leadId)}/analyses`, { method: 'POST' });
 }
 
-/** Mais recente primeiro. */
+/** Newest first. */
 export function listAnalyses(leadId: string, page: number, signal?: AbortSignal): Promise<Page<AnalysisSummary>> {
   return request<Page<AnalysisSummary>>(
     `/leads/${encodeURIComponent(leadId)}/analyses${toQuery({ page, size: 1 })}`,

@@ -1,6 +1,6 @@
 import type { LeadStatus } from './lead';
 
-/** Outreach e lista de não contato (doc 05 §10, D26). */
+/** Outreach and the do-not-contact list (doc 05 §10, D26). */
 
 export const OUTREACH_CHANNELS = ['WHATSAPP', 'EMAIL', 'INSTAGRAM', 'PHONE_CALL'] as const;
 export type OutreachChannel = (typeof OUTREACH_CHANNELS)[number];
@@ -10,7 +10,7 @@ export type MessageStatus = 'DRAFT' | 'NEEDS_REVIEW' | 'APPROVED' | 'SENT' | 'FA
 export const IDENTIFIER_TYPES = ['PHONE', 'EMAIL', 'INSTAGRAM'] as const;
 export type IdentifierType = (typeof IDENTIFIER_TYPES)[number];
 
-/** Limite de caracteres por canal; o servidor aplica o mesmo. */
+/** Character limit per channel; the server applies the same ones. */
 export const CHANNEL_MAX_LENGTH: Readonly<Record<OutreachChannel, number>> = {
   WHATSAPP: 1000,
   EMAIL: 4000,
@@ -34,7 +34,7 @@ export interface Message {
   readonly updatedAt: string;
 }
 
-/** `recipient` ausente: a empresa não tem contato válido nesse canal. */
+/** An absent `recipient` means the company has no valid contact on that channel. */
 export interface ChannelOption {
   readonly channel: OutreachChannel;
   readonly recipient?: string;
@@ -64,7 +64,7 @@ export interface SuppressionEntry {
   readonly id: string;
   readonly identifierType: IdentifierType;
   readonly identifier: string;
-  /** Ausente: vale para todos os canais. */
+  /** Absent: it applies to every channel. */
   readonly channel?: OutreachChannel;
   readonly reason: string;
   readonly requestedAt: string;
@@ -78,9 +78,9 @@ export interface NewSuppression {
   readonly reason: string;
 }
 
-/** Conferência de contato: só se está bloqueado e em quais canais, sem motivo nem data. */
+/** A contact check: only whether it is blocked and on which channels, with no reason or date. */
 export interface SuppressionCheck {
-  /** O servidor conseguiu normalizar o contato informado. */
+  /** The server managed to normalise the contact that was given. */
   readonly recognized: boolean;
   readonly blocked: boolean;
   readonly allChannels: boolean;

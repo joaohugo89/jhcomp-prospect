@@ -1,6 +1,6 @@
 import type { DuplicateSignal } from './company';
 
-/** Campos que uma coluna do CSV pode preencher. Mesmas chaves do cadastro de empresa. */
+/** The fields a CSV column can fill. The same keys as the company form. */
 export const IMPORT_FIELDS = [
   'name',
   'tradeName',
@@ -28,13 +28,13 @@ export type ImportRowStatus =
   | 'IMPORTED'
   | 'MERGED'
   | 'SKIPPED'
-  /** A empresa foi excluída depois: por engano ou ao desfazer a importação (D32). */
+  /** The company was deleted later: by mistake, or by undoing the import (D32). */
   | 'REMOVED';
 
-/** Escolha do operador para uma possível duplicata. Sem escolha, a linha não é importada. */
+/** The operator's choice for a possible duplicate. With no choice the row is not imported. */
 export type DuplicateChoice = 'new' | 'merge';
 
-/** Espelha ImportResponse do backend (doc 05 §6, D23). */
+/** Mirrors the backend's ImportResponse (doc 05 §6, D23). */
 export interface ImportBatch {
   readonly id: string;
   readonly fileName: string;
@@ -51,7 +51,7 @@ export interface ImportBatch {
   readonly leadsCreated: number;
   readonly createdAt: string;
   readonly completedAt?: string;
-  /** Importação desfeita: as empresas criadas sem atividade foram excluídas (D32). */
+  /** The import was undone: the companies it created with no activity were deleted (D32). */
   readonly undoneAt?: string;
   readonly ignoredColumns?: readonly string[];
   readonly previousImportId?: string;
@@ -72,7 +72,7 @@ export interface ImportRow {
   readonly duplicateSignals: readonly DuplicateSignal[];
   readonly companyId?: string;
   readonly leadId?: string;
-  /** Campos que a linha preencheu na empresa existente. */
+  /** The fields this row filled in on the existing company. */
   readonly mergedFields?: readonly ImportField[];
 }
 
@@ -80,11 +80,11 @@ export interface UploadInput {
   readonly file: File;
   readonly sourceName: string;
   readonly datasetNote: string;
-  /** Vazio: o backend reconhece os cabeçalhos sozinho. */
+  /** Empty: the backend recognises the headers on its own. */
   readonly mapping: Readonly<Partial<Record<ImportField, string>>>;
 }
 
-/** O que desfazer a importação faz (prévia) ou fez (D32). */
+/** What undoing the import would do (preview) or did (D32). */
 export interface UndoResult {
   readonly removed: number;
   readonly keptWithActivity: number;
@@ -92,12 +92,12 @@ export interface UndoResult {
   readonly undoneAt?: string;
 }
 
-/** Visão geral do histórico de importações. */
+/** An overview of the import history. */
 export interface ImportSummary {
   readonly pendingReview: number;
   readonly completed: number;
   readonly undone: number;
   readonly discarded: number;
-  /** Empresas trazidas por importações que valem (não desfeitas). */
+  /** Companies brought in by imports that still stand (not undone). */
   readonly companiesImported: number;
 }

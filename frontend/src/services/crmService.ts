@@ -16,7 +16,7 @@ import type {
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
-/** CRM e dashboard (doc 05 §3 e §9). Mover card é `changeLeadStatus` (D2). */
+/** CRM and dashboard (doc 05 §3 and §9). Moving a card is `changeLeadStatus` (D2). */
 
 export interface BoardFilters {
   readonly search: string;
@@ -69,7 +69,7 @@ export function createTask(leadId: string, title: string, dueAt: string | undefi
   });
 }
 
-/** O PATCH recebe o estado completo da tarefa. */
+/** The PATCH takes the task's complete state. */
 export function updateTask(task: Task, status: Task['status']): Promise<Task> {
   return request<Task>(`/tasks/${encodeURIComponent(task.id)}`, {
     method: 'PATCH',
@@ -82,14 +82,14 @@ export function updateTask(task: Task, status: Task['status']): Promise<Task> {
   });
 }
 
-/** Período em datas de calendário; texto vazio é "sem filtro". */
+/** The period as calendar dates; an empty string means no filter. */
 export interface DashboardFilters {
   readonly from: string;
   readonly to: string;
   readonly segment: string;
   readonly city: string;
   readonly source: SourceType | '';
-  /** Id do responsável; vazio é todos. */
+  /** The owner's id; empty means everyone. */
   readonly assignee: string;
 }
 
@@ -105,7 +105,7 @@ export function getDashboardSummary(filters: DashboardFilters, signal?: AbortSig
   return request<DashboardSummary>(`/dashboard/summary${dashboardQuery(filters)}`, signal ? { signal } : {});
 }
 
-/** Sem `granularity`, o servidor escolhe pelo tamanho do período. */
+/** Without `granularity`, the server picks one from the length of the period. */
 export function getDashboardTimeline(
   filters: DashboardFilters,
   granularity: Granularity | undefined,
@@ -117,7 +117,7 @@ export function getDashboardTimeline(
   );
 }
 
-/** O que pede ação agora; os 5 mais urgentes de cada seção. */
+/** What needs action now; the 5 most urgent of each section. */
 export function getDashboardAttention(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardAttention> {
   return request<DashboardAttention>(
     `/dashboard/attention${dashboardQuery(filters, { limit: 5 })}`,

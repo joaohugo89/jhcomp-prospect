@@ -1,4 +1,4 @@
-/** Envelope de listagem paginada devolvido pela API (RNF-002). */
+/** The paginated listing envelope the API returns (RNF-002). */
 export interface Page<T> {
   readonly content: readonly T[];
   readonly page: number;

@@ -9,14 +9,14 @@ export interface Member {
   readonly displayName: string;
   readonly role: OrganizationRole;
   readonly status: MemberStatus;
-  /** Senha temporária ainda não trocada: a pessoa não fez o primeiro acesso. */
+  /** A temporary password not yet changed: the person has not signed in for the first time. */
   readonly passwordChangeRequired: boolean;
-  /** Último login nesta organização; ausente quando nunca entrou. */
+  /** Last login in this organisation; absent when they never signed in. */
   readonly lastLoginAt?: string;
   readonly createdAt: string;
 }
 
-/** Visão geral da equipe. */
+/** An overview of the team. */
 export interface TeamSummary {
   readonly active: number;
   readonly admins: number;
@@ -24,7 +24,7 @@ export interface TeamSummary {
   readonly awaitingFirstAccess: number;
 }
 
-/** Resposta de cadastro e de redefinição: a senha temporária só aparece aqui (D28). */
+/** The create and reset response: the temporary password appears only here (D28). */
 export interface MemberWithPassword {
   readonly member: Member;
   readonly temporaryPassword: string;

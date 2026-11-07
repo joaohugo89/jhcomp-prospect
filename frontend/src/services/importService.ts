@@ -10,9 +10,9 @@ import type {
 import type { Page } from '../types/page';
 import { request, toQuery } from './httpClient';
 
-/** Importação CSV em duas fases (doc 05 §6, D23). Nada vira empresa sem `confirmImport`. */
+/** Two-phase CSV import (doc 05 §6, D23). Nothing becomes a company without `confirmImport`. */
 
-/** Análise pode levar alguns segundos num arquivo no limite da D14. */
+/** Analysis can take a few seconds on a file at the D14 limit. */
 const ANALYSIS_TIMEOUT_MS = 60_000;
 
 export function analyzeCsv(input: UploadInput): Promise<ImportBatch> {
@@ -55,8 +55,8 @@ export function getImportReport(
 }
 
 /**
- * @param includeDuplicateRows duplicatas a importar como empresa nova
- * @param mergeDuplicateRows duplicatas que completam os campos vazios da empresa existente
+ * @param includeDuplicateRows duplicates to import as new companies
+ * @param mergeDuplicateRows duplicates that fill the empty fields of the existing company
  */
 export function confirmImport(
   id: string,
@@ -67,17 +67,17 @@ export function confirmImport(
   return request<ImportBatch>(`/imports/${encodeURIComponent(id)}/confirm`, {
     method: 'POST',
     body: { includeDuplicateRows, mergeDuplicateRows, createLeads },
-    // Confirmar cria uma empresa por linha numa única transação.
+    // Confirming creates one company per row inside a single transaction.
     timeoutMs: ANALYSIS_TIMEOUT_MS,
   });
 }
 
-/** Prévia: quantas empresas sairiam, quantas ficam por já terem atividade. Nada muda. */
+/** Preview: how many companies would go, how many stay because they already have activity. Nothing changes. */
 export function previewUndoImport(id: string, signal?: AbortSignal): Promise<UndoResult> {
   return request<UndoResult>(`/imports/${encodeURIComponent(id)}/undo`, signal ? { signal } : {});
 }
 
-/** Exclui as empresas que a importação criou e que continuam sem atividade (D32). */
+/** Deletes the companies the import created that still have no activity (D32). */
 export function undoImport(id: string): Promise<UndoResult> {
   return request<UndoResult>(`/imports/${encodeURIComponent(id)}/undo`, { method: 'POST' });
 }

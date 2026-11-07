@@ -1,7 +1,7 @@
 import type { SourceType } from './company';
 import type { LeadPriority, LeadStatus } from './lead';
 
-/** Linha da fila de trabalho (`/leads/worklist`) e resumo de um lead (`/leads/{id}/summary`). */
+/** A work queue row (`/leads/worklist`) and one lead's summary (`/leads/{id}/summary`). */
 export interface WorklistItem {
   readonly leadId: string;
   readonly companyId: string;
@@ -14,11 +14,11 @@ export interface WorklistItem {
   readonly score?: number;
   readonly assignedUserId?: string;
   readonly assigneeName?: string;
-  /** Valor do negócio, em reais. */
+  /** The deal's value, in Brazilian reais. */
   readonly estimatedValue?: number;
   readonly nextTaskTitle?: string;
   readonly nextTaskDueAt?: string;
-  /** Quando chegou à etapa atual. */
+  /** When it reached the current stage. */
   readonly stageEnteredAt?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -30,14 +30,14 @@ export type WorklistFocus = (typeof WORKLIST_FOCUS)[number];
 export const WORKLIST_SORT = ['COMPANY', 'SCORE', 'CREATED', 'UPDATED', 'STAGE', 'VALUE', 'NEXT_TASK'] as const;
 export type WorklistSort = (typeof WORKLIST_SORT)[number];
 
-/** Filtros da fila; texto vazio não filtra. Todos vão para a URL. */
+/** The queue's filters; an empty string filters nothing. All of them go into the URL. */
 export interface WorklistFilters {
   readonly search: string;
   readonly status: LeadStatus | '';
   readonly priority: LeadPriority | '';
   readonly city: string;
   readonly segment: string;
-  /** Só empresas sem segmento. */
+  /** Only companies with no segment. */
   readonly noSegment: boolean;
   readonly source: SourceType | '';
   readonly assignee: string;
@@ -62,11 +62,11 @@ export interface Segments {
 export interface SavedView {
   readonly id: string;
   readonly name: string;
-  /** Query string da lista, já codificada. */
+  /** The list's query string, already encoded. */
   readonly query: string;
-  /** Publicada para a equipe pelo administrador. */
+  /** Published to the team by an administrator. */
   readonly shared: boolean;
-  /** O servidor aceitaria apagar: dono da privada, ou administrador na compartilhada. */
+  /** The server would accept a delete: the owner of a private view, or an admin for a shared one. */
   readonly canDelete: boolean;
   readonly createdAt: string;
 }

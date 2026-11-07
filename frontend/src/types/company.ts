@@ -1,6 +1,6 @@
 import type { LeadPriority, LeadStatus } from './lead';
 
-/** Espelha CompanyResponses do backend (doc 05 §4). Campos opcionais vêm ausentes quando nulos. */
+/** Mirrors the backend's CompanyResponses (doc 05 §4). Optional fields are absent when null. */
 export interface Company {
   readonly id: string;
   readonly name: string;
@@ -20,7 +20,7 @@ export interface Company {
   readonly updatedAt: string;
 }
 
-/** Campos editáveis. Texto vazio significa "sem valor". */
+/** Editable fields. An empty string means "no value". */
 export interface CompanyInput {
   readonly name: string;
   readonly tradeName: string;
@@ -67,14 +67,14 @@ export interface DuplicateCandidate {
   readonly signals: readonly DuplicateSignal[];
 }
 
-/** Recortes de um clique da lista de empresas. Sem ARCHIVED, só as ativas. */
+/** One-click slices of the company list. Without ARCHIVED, only active ones. */
 export const COMPANY_FOCUS = ['WITHOUT_LEAD', 'WITHOUT_CONTACT', 'DUPLICATE', 'ARCHIVED'] as const;
 export type CompanyFocus = (typeof COMPANY_FOCUS)[number];
 
 export const COMPANY_SORT = ['NAME', 'CITY', 'CREATED', 'LAST_ACTIVITY'] as const;
 export type CompanySort = (typeof COMPANY_SORT)[number];
 
-/** Filtros da lista de empresas, na forma da URL. */
+/** The company list's filters, in their URL form. */
 export interface CompanyWorklistFilters {
   readonly search: string;
   readonly segment: string;
@@ -86,7 +86,7 @@ export interface CompanyWorklistFilters {
   readonly direction: 'asc' | 'desc';
 }
 
-/** Lead mais relevante da empresa: o aberto, ou o último encerrado. */
+/** The company's most relevant lead: the open one, or the last closed one. */
 export interface CurrentLead {
   readonly leadId: string;
   readonly status: LeadStatus;
@@ -94,7 +94,7 @@ export interface CurrentLead {
   readonly assigneeName?: string;
 }
 
-/** Linha da lista de empresas (D32): diz se tem lead, como contatar e se parece duplicata. */
+/** A row of the company list (D32): whether it has a lead, how to reach it, whether it looks duplicate. */
 export interface CompanyWorklistItem {
   readonly companyId: string;
   readonly name: string;
@@ -115,7 +115,7 @@ export interface CompanyWorklistItem {
   readonly createdAt: string;
 }
 
-/** Um ciclo comercial da empresa. */
+/** One commercial cycle of the company. */
 export interface LeadCycle {
   readonly leadId: string;
   readonly status: LeadStatus;
@@ -127,11 +127,11 @@ export interface LeadCycle {
   readonly closedAt?: string;
 }
 
-/** Se a exclusão seria aceita agora (D32). */
+/** Whether deletion would be accepted right now (D32). */
 export interface RemovalEligibility {
   readonly allowed: boolean;
   readonly blocker?: 'HAS_ACTIVITY' | 'NOT_ALLOWED';
-  /** Prazo de quem cadastrou; ausente para o administrador. */
+  /** The registrant's deadline; absent for an administrator. */
   readonly allowedUntil?: string;
 }
 
@@ -146,7 +146,7 @@ export interface CompanyBulkResult {
   readonly skippedArchived: number;
 }
 
-/** O que o formulário já tem para procurar duplicata enquanto se digita. */
+/** What the form already has for looking up duplicates while typing. */
 export interface DuplicateProbe {
   readonly name: string;
   readonly city: string;
