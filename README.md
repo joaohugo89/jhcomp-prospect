@@ -168,3 +168,10 @@ hidden: there is no business-data source adapter yet, so leads enter by CSV or
 by hand; the only AI provider is a deterministic fake (D26), which is what the
 `AIProvider` port was designed to make replaceable; and the Website Studio was
 removed from scope by decision D13.
+
+## Licence
+
+Proprietary — published for reading, not for use. The source is public so that
+it can be read and evaluated; it is not open source. Studying it and quoting
+excerpts with attribution is fine, using it in a product or service is not. See
+[LICENSE](LICENSE).
