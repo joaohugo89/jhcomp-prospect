@@ -1,14 +1,14 @@
 import { useState } from 'react';
 
 /**
- * Filtros de listagem: rascunho do formulário, filtros aplicados e página.
+ * Listing filters: the form draft, the applied filters and the page.
  *
- * O rascunho e os filtros aplicados ficam separados para que a busca só
- * dispare ao enviar o formulário, e não a cada tecla. Aplicar volta à
- * primeira página, porque a página atual pode nem existir no novo resultado.
+ * Draft and applied filters are kept apart so the search only fires when the
+ * form is submitted, not on every keystroke. Applying returns to the first
+ * page, because the current page may not exist in the new result.
  *
- * @param empty filtros sem efeito; precisa ser uma constante de módulo
- * @param initial filtros já aplicados ao abrir (por exemplo, lidos da URL)
+ * @param empty filters with no effect; must be a module-level constant
+ * @param initial filters already applied on open (read from the URL, say)
  */
 export function useFilters<F>(empty: F, initial: F = empty) {
   const [draft, setDraft] = useState<F>(initial);
@@ -25,9 +25,9 @@ export function useFilters<F>(empty: F, initial: F = empty) {
       setPage(0);
       setApplied(draft);
     },
-    /** Distingue "nada cadastrado" de "nada corresponde aos filtros". */
+    /** Distinguishes "nothing registered" from "nothing matches the filters". */
     isFiltered: JSON.stringify(applied) !== JSON.stringify(empty),
-    /** Chave da consulta para o `useLoad`. */
+    /** The query key for `useLoad`. */
     queryKey: JSON.stringify({ applied, page }),
   };
 }

@@ -1,7 +1,7 @@
 import type { Load } from '../app/useLoad';
 import { buttonSecondary } from './styles';
 
-/** Estados de interface do doc 08 §11. Mensagens úteis, sem detalhe interno. */
+/** The interface states from doc 08 §11. Useful messages, free of internal detail. */
 
 export function LoadingState({ label = 'Carregando…' }: { readonly label?: string }): React.JSX.Element {
   return (
@@ -49,10 +49,10 @@ function ErrorState({
 }
 
 /**
- * Renderiza os estados que não são "pronto", ou nada.
+ * Renders every state that is not "ready", or nothing at all.
  *
- * Centraliza a decisão para que nenhuma tela esqueça um caso: quem usa só
- * precisa cuidar do dado carregado.
+ * It centralises the decision so no screen forgets a case: the caller only has
+ * to handle the loaded data.
  */
 export function LoadStateView({
   state,
@@ -67,8 +67,8 @@ export function LoadStateView({
     case 'loading':
       return <LoadingState />;
     case 'notFound':
-      // Recurso de outra organização também chega aqui: a API responde 404
-      // de propósito, e a tela não sugere que ele exista.
+      // A resource from another organisation also lands here: the API answers
+      // 404 on purpose, and the screen never suggests that it exists.
       return <EmptyState title={notFoundMessage} />;
     case 'forbidden':
       return (

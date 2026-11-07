@@ -13,15 +13,16 @@ interface FormFieldProps {
   readonly multiline?: boolean;
   readonly maxLength?: number;
   readonly autoComplete?: string;
-  /** Valores já usados, sugeridos ao digitar (ex.: segmentos existentes); não restringe. */
+  /** Values already in use, suggested while typing (existing segments, say); not a restriction. */
   readonly suggestions?: readonly string[];
 }
 
 /**
- * Campo com rótulo, dica e erro associados (doc 08 §12).
+ * A field with its label, hint and error associated (doc 08 §12).
  *
- * O erro fica ligado ao campo por `aria-describedby`, de modo que o leitor de
- * tela o anuncia ao focar o campo, e não apenas como texto solto na página.
+ * The error is tied to the field through `aria-describedby`, so a screen
+ * reader announces it when the field takes focus, rather than leaving it as
+ * loose text on the page.
  */
 export function FormField({
   label,

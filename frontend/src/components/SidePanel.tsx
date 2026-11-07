@@ -2,11 +2,11 @@ import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 /**
- * Painel lateral não modal (prévia de lead ou de empresa ao lado da lista).
+ * A non-modal side panel (the lead or company preview beside the list).
  *
- * No desktop a lista continua usável e clicar em outra linha troca o
- * conteúdo. No celular o painel cobre a lista e tocar fora fecha, sem acionar
- * o que está embaixo. Esc fecha e devolve o foco a quem abriu.
+ * On desktop the list stays usable and clicking another row swaps the
+ * content. On mobile the panel covers the list and tapping outside closes it
+ * without triggering whatever is underneath. Esc closes and returns focus.
  */
 export function SidePanel({
   id,
@@ -17,7 +17,7 @@ export function SidePanel({
   children,
 }: {
   readonly id: string;
-  /** Nome do painel: rótulo da região e título visível no topo. */
+  /** The panel's name: the region label and the visible title at the top. */
   readonly label: string;
   readonly backdropTestId: string;
   readonly footer?: React.ReactNode;
@@ -58,7 +58,7 @@ export function SidePanel({
       <aside
         id={id}
         aria-label={label}
-        // No celular sobra uma faixa à esquerda: é onde se toca para fechar.
+        // On mobile a strip is left on the left: that is where you tap to close.
         className="fixed inset-y-0 right-0 z-40 flex w-[calc(100%-3rem)] max-w-md flex-col border-l border-stone-200 glass-panel shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3">
@@ -79,7 +79,7 @@ export function SidePanel({
   );
 }
 
-/** Um fato do painel: rótulo pequeno e valor; apagado quando o valor é "não há". */
+/** One fact in the panel: a small label and a value; dimmed when the value is "none". */
 export function PanelFact({
   label,
   children,

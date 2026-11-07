@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
 /**
- * Preferência de tela guardada no navegador (modo compacto, colunas
- * recolhidas). É conveniência de quem usa: sem armazenamento (janela anônima,
- * dados bloqueados), a tela funciona com o padrão. Nunca guardar aqui dado de
- * negócio nem nada que precise valer em outro aparelho.
+ * A screen preference kept in the browser (compact mode, collapsed columns).
+ * It is a convenience for whoever is using it: with no storage — a private
+ * window, blocked data — the screen works on the default. Never keep business
+ * data here, nor anything that has to hold on another device.
  */
 export function usePreference<T>(
   key: string,
@@ -18,7 +18,7 @@ export function usePreference<T>(
     try {
       window.localStorage.setItem(storageKey(key), JSON.stringify(next));
     } catch {
-      // Sem armazenamento a preferência vale só nesta visita.
+      // Without storage the preference only lasts for this visit.
     }
   }
 
@@ -34,7 +34,7 @@ function read<T>(key: string, parse: (raw: unknown) => T | undefined): T | undef
   }
 }
 
-/** Prefixo próprio: o `localStorage` de `localhost` é compartilhado com outros projetos da máquina. */
+/** Own prefix: `localStorage` on `localhost` is shared with the other projects on this machine. */
 function storageKey(key: string): string {
   return `jh-prospect:${key}`;
 }

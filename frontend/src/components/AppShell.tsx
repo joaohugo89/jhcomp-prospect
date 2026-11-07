@@ -35,8 +35,8 @@ interface NavItem {
 }
 
 /**
- * Itens de navegação (doc 08 §3), em grupos: o trabalho do dia, a base de
- * contatos e a administração. Só entram os itens já implementados.
+ * Navigation items (doc 08 §3), in groups: the day's work, the contact base
+ * and administration. Only items that are actually implemented appear.
  */
 const NAV_GROUPS: readonly (readonly [string, readonly NavItem[]])[] = [
   [
@@ -87,18 +87,19 @@ const NAV_GROUPS: readonly (readonly [string, readonly NavItem[]])[] = [
 const ROLE_LABEL = { ADMIN: 'Administrador', OPERATOR: 'Operador' } as const;
 
 /**
- * Telas que ocupam a tela inteira a partir do tablet: sem limite de largura e
- * com a altura da janela, para o conteúdo rolar por dentro (colunas do Kanban).
+ * Screens that fill the viewport from tablet up: no width cap and the height
+ * of the window, so the content scrolls inside it (the Kanban columns).
  */
 const FULL_SCREEN: ReadonlySet<Route['name']> = new Set(['pipeline']);
 
-/** Formulários de uma coluna: largura de leitura, para a linha não esticar. */
+/** Single-column forms: reading width, so a line does not stretch. */
 const READING: ReadonlySet<Route['name']> = new Set(['password']);
 
 /**
- * Estrutura das telas autenticadas. No desktop, barra lateral fixa com a
- * navegação e a pessoa no rodapé: sem barra superior, o conteúdo começa no
- * topo da janela. No celular, a mesma barra vira a faixa de cima.
+ * The shell of every authenticated screen. On desktop a fixed sidebar holds
+ * the navigation, with the signed-in person at the bottom: with no top bar the
+ * content starts at the top of the window. On mobile the same bar becomes the
+ * strip across the top.
  */
 export function AppShell({ session, route, onSignOut, children }: AppShellProps): React.JSX.Element {
   const [signingOut, setSigningOut] = useState(false);
@@ -231,7 +232,7 @@ export function AppShell({ session, route, onSignOut, children }: AppShellProps)
   );
 }
 
-/** Alterna claro e escuro. O estado vai no rotulo acessivel, e nao so no icone. */
+/** Toggles light and dark. The state is in the accessible label, not only in the icon. */
 function ThemeToggle(): React.ReactElement {
   const [theme, setTheme] = useTheme();
   const dark = theme === 'DARK';

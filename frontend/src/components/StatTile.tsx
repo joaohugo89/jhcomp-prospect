@@ -1,8 +1,8 @@
 import { card } from './styles';
 
 /**
- * Número de uma visão geral (dentro de um `<dl>`): rótulo pequeno e valor
- * grande. Sem valor ainda (carregando), mostra um travessão.
+ * One number in an overview (inside a `<dl>`): a small label and a large
+ * value. With no value yet, while loading, it shows a dash.
  */
 export function StatTile({
   label,
@@ -14,9 +14,9 @@ export function StatTile({
   readonly label: string;
   readonly value: number | string | undefined;
   readonly icon?: React.ReactNode;
-  /** Cor do número, quando ele pede atenção (ex.: pendências). */
+  /** Colour of the number when it needs attention (outstanding items, say). */
   readonly tone?: string;
-  /** Conteúdo extra sobre o cartão, como um botão que cobre a área para filtrar. */
+  /** Extra content over the tile, such as a button covering it to filter. */
   readonly children?: React.ReactNode;
 }): React.JSX.Element {
   return (

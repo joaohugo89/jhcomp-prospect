@@ -5,25 +5,25 @@ import { buttonDanger, buttonPrimary, buttonSecondary } from './styles';
 interface ConfirmDialogProps {
   readonly title: string;
   readonly description: string;
-  /** Sem rótulo, o diálogo só informa: fica apenas o botão de fechar. */
+  /** Without a label the dialog only informs: just the close button remains. */
   readonly confirmLabel?: string;
   readonly destructive?: boolean;
   readonly busy?: boolean;
-  /** Confirmar fica bloqueado: por exemplo, até digitar o nome do que será excluído. */
+  /** Confirm stays disabled: until the name of what will be deleted is typed, say. */
   readonly confirmDisabled?: boolean;
-  /** Conteúdo entre a descrição e os botões, como o campo de confirmação. */
+  /** Content between the description and the buttons, such as the confirmation field. */
   readonly children?: React.ReactNode;
   readonly onConfirm?: () => void;
   readonly onCancel: () => void;
-  /** Texto do botão seguro; "Cancelar" por padrão. */
+  /** Text of the safe button; "Cancelar" by default. */
   readonly cancelLabel?: string;
 }
 
 /**
- * Confirmação de ação destrutiva ou irreversível (doc 08 §12).
+ * Confirmation of a destructive or irreversible action (doc 08 §12).
  *
- * Modal com foco inicial no botão de cancelar, que é a escolha segura, Esc
- * para fechar e foco preso dentro do diálogo enquanto ele estiver aberto.
+ * A modal with initial focus on cancel, which is the safe choice, Esc to
+ * close, and focus trapped inside the dialog while it is open.
  */
 export function ConfirmDialog({
   title,
@@ -46,7 +46,7 @@ export function ConfirmDialog({
     const previouslyFocused = document.activeElement;
     cancelRef.current?.focus();
     return () => {
-      // Devolve o foco a quem abriu o diálogo.
+      // Returns focus to whatever opened the dialog.
       if (previouslyFocused instanceof HTMLElement) {
         previouslyFocused.focus();
       }

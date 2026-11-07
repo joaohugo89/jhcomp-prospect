@@ -1,8 +1,10 @@
 import { HttpError } from '../services/httpClient';
 
 /**
- * Mensagens de erro para o operador. Úteis e sem detalhe interno (doc 08 §11):
- * o texto técnico da API nunca é exibido como está.
+ * Error messages for the operator. Useful and free of internal detail
+ * (doc 08 §11): the API's technical text is never shown as it is.
+ *
+ * The messages themselves are in Portuguese, because the operator reads them.
  */
 
 const FIELD_MESSAGES: readonly [RegExp, string][] = [
@@ -23,7 +25,7 @@ export function fieldMessage(message: string): string {
   return FIELD_MESSAGES.find(([pattern]) => pattern.test(message))?.[1] ?? 'Valor inválido.';
 }
 
-/** Erros por campo, já traduzidos. Vazio quando o erro não é de validação. */
+/** Per-field errors, already translated. Empty when the error is not a validation one. */
 export function fieldErrorsOf(cause: unknown): ReadonlyMap<string, string> {
   if (!(cause instanceof HttpError)) {
     return new Map();
@@ -32,9 +34,9 @@ export function fieldErrorsOf(cause: unknown): ReadonlyMap<string, string> {
 }
 
 /**
- * Mensagem geral de uma falha de escrita.
+ * The general message for a failed write.
  *
- * @param conflict texto para 409, que depende da operação
+ * @param conflict the text for a 409, which depends on the operation
  */
 export function actionErrorMessage(
   cause: unknown,

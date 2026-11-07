@@ -1,16 +1,15 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * Roteamento mínimo por History API.
+ * Minimal routing over the History API.
  *
- * São poucas telas e nenhuma rota aninhada: uma biblioteca de roteamento
- * seria dependência sem uso que a justifique. O nginx já devolve o
- * `index.html` para qualquer caminho desconhecido, então os endereços são
- * reais e podem ser abertos diretamente.
+ * There are few screens and no nested routes: a routing library would be a
+ * dependency with no use to justify it. nginx already serves `index.html` for
+ * any unknown path, so the addresses are real and can be opened directly.
  */
 export type Route =
   | { readonly name: 'dashboard' }
-  /** Só em desenvolvimento: layout do dashboard com dados simulados. */
+  /** Development only: the dashboard layout running on mock data. */
   | { readonly name: 'dashboardPreview' }
   | { readonly name: 'pipeline' }
   | { readonly name: 'companies' }
@@ -27,12 +26,12 @@ export type Route =
 
 const NAVIGATION_EVENT = 'jh:navigate';
 
-/** UUID canônico; um id fora do formato nem chega à API. */
+/** Canonical UUID; an id outside the format never reaches the API. */
 const ID = '([0-9a-fA-F-]{36})';
 
 type Pattern = [RegExp, (match: RegExpMatchArray) => Route];
 
-/** No build de produção `DEV` é `false`: a pré-visualização com dados simulados nem existe. */
+/** In a production build `DEV` is `false`, so the mock preview does not exist at all. */
 const DEV_PATTERNS: readonly Pattern[] = import.meta.env.DEV
   ? [[/^\/dashboard\/preview\/?$/, () => ({ name: 'dashboardPreview' })]]
   : [];
@@ -78,7 +77,7 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
-/** Caminho com a query string: trocar só os filtros da URL também é navegação. */
+/** Path plus query string: changing only the filters in the URL is navigation too. */
 function currentLocation(): string {
   return `${window.location.pathname}${window.location.search}`;
 }
@@ -93,19 +92,19 @@ interface LinkProps {
   readonly className?: string;
   readonly children: React.ReactNode;
   readonly 'aria-current'?: 'page';
-  /** Nome acessível quando o texto visível não basta (ícone, ou contexto extra). */
+  /** Accessible name when the visible text is not enough (an icon, or extra context). */
   readonly 'aria-label'?: string;
-  /** Dica ao passar o mouse, para link só com ícone. */
+  /** Hover hint, for an icon-only link. */
   readonly title?: string;
 }
 
 /**
- * Link interno: é um `<a>` de verdade, então abre em nova aba com Ctrl/⌘ ou
- * botão do meio e funciona com teclado sem esforço extra.
+ * Internal link: a real `<a>`, so it opens in a new tab with Ctrl/⌘ or the
+ * middle button and works with the keyboard at no extra cost.
  */
 export function Link({ to, className, children, ...rest }: LinkProps): React.JSX.Element {
   function handleClick(event: React.MouseEvent<HTMLAnchorElement>): void {
-    // Âncora na mesma página (`#atencao`): o navegador rola sozinho.
+    // An anchor on the same page (`#atencao`): the browser scrolls by itself.
     if (
       to.startsWith('#') ||
       event.defaultPrevented ||
@@ -129,8 +128,8 @@ export function Link({ to, className, children, ...rest }: LinkProps): React.JSX
 }
 
 /**
- * Grava a query string na URL sem nova navegação: voltar e recarregar
- * mantêm os filtros, e o histórico não ganha uma entrada por filtro.
+ * Writes the query string into the URL without navigating: back and reload
+ * keep the filters, and the history does not gain one entry per filter.
  */
 export function replaceQuery(query: string): void {
   window.history.replaceState(null, '', `${window.location.pathname}${query === '' ? '' : `?${query}`}`);

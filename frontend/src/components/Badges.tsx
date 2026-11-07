@@ -3,9 +3,10 @@ import type { LeadPriority, LeadStatus } from '../types/lead';
 import type { MessageStatus } from '../types/outreach';
 
 /**
- * Indicadores de status, prioridade e score.
+ * Status, priority and score indicators.
  *
- * Todos trazem texto: a cor reforça, mas nunca é o único sinal (doc 08 §12).
+ * All of them carry text: colour reinforces but is never the only signal
+ * (doc 08 §12).
  */
 
 const STATUS_TONE: Readonly<Record<LeadStatus, string>> = {
@@ -43,7 +44,7 @@ const MESSAGE_TONE: Readonly<Record<MessageStatus, string>> = {
   CANCELLED: 'bg-stone-100 text-stone-600 ring-stone-300',
 };
 
-/** Estado da mensagem; "aprovada" diz "não enviada" no texto, não só na cor (regra 5). */
+/** Message state; "approved" says "not sent" in the text, not only in the colour (rule 5). */
 export function MessageStatusBadge({ status }: { readonly status: MessageStatus }): React.JSX.Element {
   return <span className={`${badge} ${MESSAGE_TONE[status]}`}>{MESSAGE_STATUS_LABEL[status]}</span>;
 }
@@ -52,7 +53,7 @@ export function PriorityBadge({ priority }: { readonly priority: LeadPriority })
   return <span className={`${badge} ${PRIORITY_TONE[priority]}`}>{PRIORITY_LABEL[priority]}</span>;
 }
 
-/** Score ausente é "sem análise", nunca zero (D7). */
+/** An absent score means "no analysis", never zero (D7). */
 export function ScoreIndicator({ score }: { readonly score: number | undefined }): React.JSX.Element {
   if (score === undefined) {
     return <span className="text-xs text-stone-500">Sem análise</span>;

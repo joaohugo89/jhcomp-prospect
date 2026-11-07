@@ -1,7 +1,7 @@
 import { input } from './styles';
 import type { Segments } from '../types/worklist';
 
-/** Valor do seletor: um segmento, nenhum filtro, ou "sem segmento". */
+/** The select's value: one segment, no filter, or "no segment". */
 export interface SegmentChoice {
   readonly segment: string;
   readonly noSegment: boolean;
@@ -10,10 +10,10 @@ export interface SegmentChoice {
 const NONE = '__sem_segmento__';
 
 /**
- * Filtro por segmento a partir dos segmentos em uso, com quantas empresas em
- * cada. Texto livre exigia a grafia exata e não mostrava o que existe; aqui só
- * se escolhe o que dá resultado. Um segmento da URL que não está na lista
- * (ex.: link antigo) continua selecionado.
+ * Segment filter built from the segments in use, with how many companies each
+ * one has. Free text demanded the exact spelling and showed nothing of what
+ * exists; here you can only pick something that returns results. A segment
+ * from the URL that is not in the list — an old link — stays selected.
  */
 export function SegmentSelect({
   value,
@@ -23,9 +23,9 @@ export function SegmentSelect({
 }: {
   readonly value: SegmentChoice;
   readonly onChange: (value: SegmentChoice) => void;
-  /** Ausente enquanto carrega: o seletor fica com o valor atual. */
+  /** Absent while loading: the select keeps its current value. */
   readonly segments: Segments | null;
-  /** Oferece "Sem segmento" (a listagem precisa saber filtrar por isso). */
+  /** Offers "no segment" (the listing has to know how to filter by it). */
   readonly allowNone: boolean;
 }): React.JSX.Element {
   const known = segments?.segments ?? [];

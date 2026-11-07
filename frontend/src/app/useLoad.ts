@@ -3,10 +3,10 @@ import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 import { HttpError } from '../services/httpClient';
 
 /**
- * Estado de uma leitura da API, com os casos exigidos pelo doc 08 §11.
+ * The state of a read from the API, covering the cases doc 08 §11 requires.
  *
- * Sessão expirada não aparece aqui: é tratada uma única vez pela aplicação,
- * que volta ao login (ver `onSessionExpired`).
+ * An expired session does not appear here: it is handled once by the
+ * application, which returns to the login screen (see `onSessionExpired`).
  */
 export type Load<T> =
   | { readonly kind: 'loading' }
@@ -16,24 +16,24 @@ export type Load<T> =
   | { readonly kind: 'error' };
 
 /**
- * Carrega dados e recarrega quando `key` muda ou `reload` é chamado.
+ * Loads data, and reloads when `key` changes or `reload` is called.
  *
- * `key` é uma chave textual dos parâmetros: a requisição depende de um valor
- * comparável por igualdade, e não da função `loader`, recriada a cada
- * renderização.
+ * `key` is a textual key over the parameters: the request depends on a value
+ * comparable by equality, not on the `loader` function, which is recreated on
+ * every render.
  */
 export function useLoad<T>(key: string, loader: (signal: AbortSignal) => Promise<T>): readonly [Load<T>, () => void] {
   const [version, setVersion] = useState(0);
-  // Resultado guardado com a chave e a versão que o produziram. Enquanto a
-  // requisição atual não responde, o estado é derivado, sem setState síncrono
-  // dentro do efeito, que custaria uma renderização extra.
+  // The result is stored with the key and version that produced it. While the
+  // current request is in flight the state is derived, with no synchronous
+  // setState inside the effect, which would cost an extra render.
   const [result, setResult] = useState<{
     readonly key: string;
     readonly version: number;
     readonly load: Load<T>;
   } | null>(null);
 
-  // Lê sempre o loader mais recente sem que ele seja dependência do efeito.
+  // Always reads the latest loader without making it a dependency of the effect.
   const load = useEffectEvent((signal: AbortSignal) => loader(signal));
 
   useEffect(() => {
@@ -63,12 +63,12 @@ export function useLoad<T>(key: string, loader: (signal: AbortSignal) => Promise
 }
 
 /**
- * Estado a exibir.
+ * The state to display.
  *
- * Ao recarregar a mesma chave (depois de uma alteração ou durante
- * acompanhamento de um processo), o último dado pronto continua na tela até o
- * novo chegar: voltar a "Carregando…" faria a tela piscar a cada consulta.
- * Chave nova é outra consulta, e aí sim mostra carregando.
+ * When reloading the same key — after a change, or while following a running
+ * process — the last ready data stays on screen until the new data arrives:
+ * falling back to a loading state would make the screen flash on every poll.
+ * A new key is a different query, and that does show the loading state.
  */
 function stateOf<T>(
   result: { readonly key: string; readonly version: number; readonly load: Load<T> } | null,
@@ -82,9 +82,9 @@ function stateOf<T>(
 }
 
 /**
- * Último dado pronto, mantido enquanto uma chave nova carrega (outra página,
- * outro filtro). Trocar o conteúdo por "Carregando…" encolhe a tela, puxa a
- * rolagem para cima e tira o foco do botão clicado.
+ * The last ready data, kept while a new key loads (another page, another
+ * filter). Replacing the content with a loading state shrinks the page, pulls
+ * the scroll position up and takes focus away from the button just clicked.
  */
 export function useLastReady<T>(state: Load<T>): T | null {
   const [last, setLast] = useState<T | null>(null);

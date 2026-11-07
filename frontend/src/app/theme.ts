@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
 
 /**
- * Modo claro (creme) e escuro (vinho). São só esses dois: sem escolha
- * guardada vale a preferência do aparelho, e o botão alterna um e outro.
+ * Light mode (cream) and dark mode (oxblood). Only those two: with no stored
+ * choice the device preference wins, and the button alternates between them.
  *
- * O tema é aplicado como `data-theme` no <html>, e `index.css` traz o modo
- * escuro nesse seletor. A escrita acontece na carga do módulo, antes do
- * primeiro render, porque a CSP desta aplicação não permite script inline
- * (`script-src 'self'`): não há como aplicar o tema antes do bundle.
+ * The theme is applied as `data-theme` on <html>, and `index.css` defines dark
+ * mode under that selector. It is written when the module loads, before the
+ * first render, because this application's CSP forbids inline script
+ * (`script-src 'self'`): there is no way to apply the theme before the bundle.
  */
 export type Theme = 'LIGHT' | 'DARK';
 
@@ -17,13 +17,13 @@ function systemTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'DARK' : 'LIGHT';
 }
 
-/** O tema guardado; sem escolha (ou sem armazenamento), o do aparelho. */
+/** The stored theme; with no choice, or no storage, the device's own. */
 export function readTheme(): Theme {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     return raw === 'LIGHT' || raw === 'DARK' ? raw : systemTheme();
   } catch {
-    // Janela anônima ou dados bloqueados: vale o do aparelho.
+    // A private window, or blocked data: the device preference wins.
     return systemTheme();
   }
 }
@@ -32,7 +32,7 @@ export function applyTheme(theme: Theme): void {
   document.documentElement.dataset['theme'] = theme === 'DARK' ? 'dark' : 'light';
 }
 
-/** Aplica o tema guardado. Chamado uma vez, antes do primeiro render. */
+/** Applies the stored theme. Called once, before the first render. */
 export function initTheme(): void {
   applyTheme(readTheme());
 }
@@ -45,7 +45,7 @@ export function useTheme(): readonly [Theme, (theme: Theme) => void] {
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      // A escolha vale só nesta visita.
+      // The choice only lasts for this visit.
     }
     applyTheme(next);
   }, []);

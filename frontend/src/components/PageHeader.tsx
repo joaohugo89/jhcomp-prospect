@@ -4,7 +4,7 @@ interface PageHeaderProps {
   readonly actions?: React.ReactNode;
 }
 
-/** Título da página. O `h1` é único por tela, para navegação por cabeçalhos. */
+/** The page title. There is exactly one `h1` per screen, for heading navigation. */
 export function PageHeader({ title, description, actions }: PageHeaderProps): React.JSX.Element {
   return (
     <header className="mb-4 flex flex-wrap items-end justify-between gap-3">

@@ -6,7 +6,7 @@ interface PaginationProps {
   readonly onChange: (page: number) => void;
 }
 
-/** Navegação entre páginas (RNF-002). A contagem é anunciada como texto. */
+/** Page navigation (RNF-002). The count is announced as text. */
 export function Pagination({ page, onChange }: PaginationProps): React.JSX.Element | null {
   if (page.totalPages <= 1) {
     return (

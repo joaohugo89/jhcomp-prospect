@@ -5,7 +5,7 @@ import type { ImportField, ImportRowStatus } from '../types/import';
 import type { LeadPriority, LeadStatus } from '../types/lead';
 import type { IdentifierType, MessageStatus, OutreachChannel } from '../types/outreach';
 
-/** Rótulos em português. Os valores da API continuam em inglês, que é o contrato. */
+/** Portuguese labels for the interface. API values stay in English: that is the contract. */
 
 export const STATUS_LABEL: Readonly<Record<LeadStatus, string>> = {
   NEW: 'Novo',
@@ -62,7 +62,7 @@ export const IMPORT_ROW_STATUS_LABEL: Readonly<Record<ImportRowStatus, string>> 
   REMOVED: 'Empresa excluída depois',
 };
 
-/** Critérios como afirmações: pontuam quando confirmadas (D24). */
+/** Criteria phrased as statements: they score when confirmed (D24). */
 export const CRITERION_LABEL: Readonly<Record<Criterion, string>> = {
   SITE_ABSENT: 'Empresa sem site',
   NO_HTTPS: 'Site sem HTTPS',
