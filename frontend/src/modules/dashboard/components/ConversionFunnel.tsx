@@ -6,16 +6,16 @@ const percent = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFracti
 const days = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 
 /**
- * Funil de conversão (RF-071): dos leads abertos no período, quantos
- * alcançaram cada stage, quanto passou de uma para a seguinte e quanto tempo
- * ficaram nela. Percentual e média só com amostra mínima (D29).
+ * Conversion funnel (RF-071): of the leads opened in the period, how many
+ * reached each stage, how many passed from one to the next, and how long they
+ * stayed. Percentage and average only with the minimum sample (D29).
  */
 export function ConversionFunnel({
   funil,
   leadsHref,
 }: {
   readonly funil: FunnelView;
-  /** Lista de leads hoje na stage, com os filtros do dashboard. */
+  /** The list of leads in the stage today, with the dashboard's filters. */
   readonly leadsHref: (status: string) => string;
 }): React.JSX.Element {
   const { cohort, stages, minimumSample } = funil;

@@ -17,21 +17,21 @@ const OUTCOME_LABEL: Readonly<Record<Deal['outcome'], string>> = {
 };
 
 /**
- * Negócio do lead (D25): serviço, valor e motivo de perda.
+ * The lead's deal (D25): service, value and loss reason.
  *
- * O negócio nasce quando o lead chega à proposta; antes disso a API responde
- * 404, que aqui é estado normal, não erro. Ganho ou perdido é o status do lead
- * (D2), por isso não há campo de resultado.
+ * The deal appears when the lead reaches the proposal; before that the API
+ * answers 404, which here is a normal state rather than an error. Won or lost
+ * is the lead's status (D2), which is why there is no outcome field.
  */
 export function DealSection({
   lead,
   onChanged,
 }: {
   readonly lead: Lead;
-  /** Negócio salvo: quem mostra o valor (resumo do lead) relê. */
+  /** The deal was saved: whatever shows the value (the lead summary) re-reads it. */
   readonly onChanged?: () => void;
 }): React.JSX.Element {
-  // O status entra na chave: chegar à proposta cria o negócio no servidor.
+  // The status is part of the key: reaching the proposal creates the deal on the server.
   const [state, reload] = useLoad(`${lead.id}:${lead.status}`, (signal) => getDeal(lead.id, signal));
 
   return (

@@ -1,18 +1,19 @@
 /**
- * Navegação entre leads da lista que o operador está trabalhando: o detalhe
- * oferece "anterior" e "próximo" na mesma ordem e com os mesmos filtros.
+ * Navigation between the leads of the list the operator is working: the
+ * detail offers previous and next in the same order and under the same
+ * filters.
  *
- * Fica no `sessionStorage` da aba: é conveniência de quem usa, não dado de
- * negócio. Sem armazenamento (janela anônima, bloqueio), o detalhe só não
- * mostra os atalhos.
+ * It lives in the tab's `sessionStorage`: a convenience, not business data.
+ * Without storage — a private window, blocked data — the detail simply does
+ * not show the shortcuts.
  */
 
 const KEY = 'jh-prospect:leads.navigation';
 
 export interface LeadNavigation {
-  /** Ids da página aberta, na ordem da lista. */
+  /** Ids of the open page, in list order. */
   readonly ids: readonly string[];
-  /** Query string da lista, para voltar a ela com os mesmos filtros. */
+  /** The list's query string, to return to it with the same filters. */
   readonly query: string;
 }
 
@@ -20,7 +21,7 @@ export function saveNavigation(navigation: LeadNavigation): void {
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify(navigation));
   } catch {
-    // Sem armazenamento, o detalhe fica sem anterior/próximo.
+    // Without storage the detail simply has no previous/next.
   }
 }
 
@@ -48,7 +49,7 @@ export function readNavigation(): LeadNavigation | null {
   }
 }
 
-/** Vizinhos do lead na lista; ausente se o lead não está nela. */
+/** The lead's neighbours in the list; absent when the lead is not in it. */
 export function neighbours(
   navigation: LeadNavigation | null,
   leadId: string,

@@ -5,9 +5,9 @@ import type { LeadStatusCount } from '../model/dashboardData';
 import { DashboardSection } from './DashboardSection';
 
 /**
- * Cor por etapa. As etapas em aberto seguem uma rampa de azul, do claro ao
- * escuro na ordem do funil: são ordenadas, não categorias soltas. Encerradas e
- * bloqueadas saem da rampa. A identidade vem sempre do nome ao lado.
+ * Colour per stage. The open stages follow a ramp from light to dark in
+ * funnel order: they are ordered, not loose categories. Closed and blocked
+ * stages leave the ramp. Identity always comes from the name beside it.
  */
 const STAGE_COLOR: Readonly<Record<LeadStatus, string>> = {
   NEW: 'bg-sky-300',
@@ -22,8 +22,9 @@ const STAGE_COLOR: Readonly<Record<LeadStatus, string>> = {
 };
 
 /**
- * FunnelView: leads por etapa, situação de agora. Barra segmentada com o todo,
- * cartões das etapas com lead (countCard e participação) e as vazias em pílulas.
+ * The funnel: leads per stage, as things stand now. A segmented bar for the
+ * whole, cards for the stages that have leads (count and share), and the empty
+ * ones as pills.
  */
 export function StatusProgressList({
   items,
@@ -31,9 +32,9 @@ export function StatusProgressList({
   leadsHref,
 }: {
   readonly items: readonly LeadStatusCount[];
-  /** Com segmento, cidade ou origem escolhidos, "vazio" não quer dizer "sem leads". */
+  /** With a segment, city or origin chosen, "empty" does not mean "no leads". */
   readonly filtered: boolean;
-  /** Drill-down: a etapa abre a lista de leads nela; ausente na pré-visualização. */
+  /** Drill-down: the stage opens the list of its leads; absent in the preview. */
   readonly leadsHref?: (status: string) => string;
 }): React.JSX.Element {
   const total = items.reduce((soma, item) => soma + item.count, 0);

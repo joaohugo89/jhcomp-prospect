@@ -3,15 +3,15 @@ import { DashboardSection } from './DashboardSection';
 
 const percent = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 
-/** Raio e comprimento do arco de meia-lua, no sistema de coordenadas do SVG. */
+/** Radius and length of the half-moon arc, in the SVG coordinate system. */
 const RADIUS = 40;
 const ARC = Math.PI * RADIUS;
 
 /**
- * Lead → ganho: dos leads abertos no período, quantos hoje estão ganhos
- * (RF-071, D29). Abaixo da amostra mínima, mostra só as contagens: um
- * percentual com poucos leads engana. Medidor ao lado dos números, para o
- * cartão ter a altura do que diz.
+ * Lead → won: of the leads opened in the period, how many are won today
+ * (RF-071, D29). Below the minimum sample it shows counts only: a percentage
+ * over a handful of leads misleads. The gauge sits beside the numbers so the
+ * card is only as tall as what it says.
  */
 export function ConversionGauge({
   conversion,

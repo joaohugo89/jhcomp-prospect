@@ -4,9 +4,9 @@ import { Link } from '../../../app/router';
 import { card } from '../../../components/styles';
 
 /**
- * Qualidade dos dados: sem segmento, a conversão por segmento fica
- * incompleta. Só aparece quando há o que corrigir; cabe na coluna de apoio,
- * ao lado do destaque.
+ * Data quality: without a segment, conversion by segment is incomplete. It
+ * only appears when there is something to fix, and fits in the supporting
+ * column beside the hero.
  */
 export function DataQualityNotice({ semSegmento }: { readonly semSegmento: number }): React.JSX.Element | null {
   if (semSegmento === 0) {

@@ -43,7 +43,7 @@ const TABS: readonly [Tab, string][] = [
 
 const DAY = 86_400_000;
 
-/** Foca o primeiro campo de um bloco e o traz para a tela (ações e atalhos). */
+/** Focuses the first field of a block and scrolls it into view (actions and shortcuts). */
 function focusIn(selector: string): void {
   window.requestAnimationFrame(() => {
     const target = document.querySelector<HTMLElement>(selector);
@@ -52,7 +52,7 @@ function focusIn(selector: string): void {
   });
 }
 
-/** Atalho só fora de campo de texto: digitar "n" numa nota não pode trocar de aba. */
+/** Shortcuts only outside text fields: typing "n" in a note must not switch tabs. */
 function isTyping(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement &&
@@ -61,19 +61,19 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 /**
- * Detalhe do lead (doc 08 §7, D31).
+ * Lead detail (doc 08 §7, D31).
  *
- * Topo: o essencial sem rolar (status, valor, responsável, próxima tarefa,
- * tempo na etapa, score) e as quatro ações do dia a dia. Lateral fixa: o
- * estado do lead (propriedades, negócio, tarefas). Centro: registrar e ver o
- * histórico no mesmo lugar; análise e mensagens em abas. Atalhos: n
- * (interação), t (tarefa), j/k (próximo/anterior da lista).
+ * Top: the essentials without scrolling (status, value, owner, next task, time
+ * in stage, score) and the four everyday actions. Fixed sidebar: the lead's
+ * state (properties, deal, tasks). Centre: recording and reading the history
+ * in one place, with analysis and messages in tabs. Shortcuts: n
+ * (interaction), t (task), j/k (next/previous in the list).
  */
 export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Element {
   const [state, reload] = useLoad(id, (signal) => getLead(id, signal));
-  // Lead alterado nesta tela substitui o carregado, sem nova ida à API.
+  // A lead changed on this screen replaces the loaded one, with no new API call.
   const [updated, setUpdated] = useState<Lead | null>(null);
-  // Interação registrada não altera o lead, mas precisa aparecer no histórico.
+  // A recorded interaction does not change the lead, but has to appear in the history.
   const [interactions, setInteractions] = useState(0);
   const [summaryVersion, setSummaryVersion] = useState(0);
   const [summary] = useLoad(`${id}|${summaryVersion}`, async (signal) => ({
@@ -230,7 +230,7 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
                   setTab(key);
                 }}
                 onKeyDown={(event) => {
-                  // Setas trocam de aba, como no padrão de abas do WAI-ARIA.
+                  // Arrows switch tabs, following the WAI-ARIA tabs pattern.
                   const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
                   const next = TABS[(index + step + TABS.length) % TABS.length];
                   if (step !== 0 && next !== undefined) {
@@ -260,7 +260,7 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
                   setInteractions((count) => count + 1);
                   refreshSummary();
                   if (type === 'DO_NOT_CONTACT_REQUEST') {
-                    // O pedido muda o status no servidor: relê o lead.
+                    // The request changes the status on the server: re-read the lead.
                     setUpdated(null);
                     reload();
                   }
@@ -273,7 +273,7 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
             <AnalysisSection
               lead={lead}
               onScoreChanged={() => {
-                // O score mudou no servidor: descarta a cópia local e relê o lead.
+                // The score changed on the server: drop the local copy and re-read the lead.
                 setUpdated(null);
                 reload();
                 refreshSummary();
@@ -291,7 +291,7 @@ export function LeadDetailPage({ id }: { readonly id: string }): React.JSX.Eleme
             <OutreachSection
               lead={lead}
               onRecorded={() => {
-                // Envio registrado vira interação e pode mudar o status: relê o lead.
+                // A recorded send becomes an interaction and may change the status: re-read the lead.
                 setInteractions((count) => count + 1);
                 setUpdated(null);
                 reload();
@@ -335,7 +335,7 @@ function NeighbourLink({
   );
 }
 
-/** As quatro ações do dia a dia, sempre no topo. */
+/** The four everyday actions, always at the top. */
 function ActionBar({
   actions,
 }: {
@@ -377,7 +377,7 @@ function ActionBar({
   );
 }
 
-/** O essencial do lead num relance, sem rolar (D31). */
+/** The lead's essentials at a glance, without scrolling (D31). */
 function SummaryStrip({
   lead,
   summary,

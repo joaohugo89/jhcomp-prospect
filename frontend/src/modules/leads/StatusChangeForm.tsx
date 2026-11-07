@@ -7,7 +7,7 @@ import { buttonPrimary, input } from '../../components/styles';
 import { changeLeadStatus } from '../../services/leadService';
 import type { Lead, LeadStatus } from '../../types/lead';
 
-/** Estados sem volta por esta tela: pedem confirmação antes de enviar. */
+/** States with no way back from this screen: they ask for confirmation first. */
 export const IRREVERSIBLE: ReadonlySet<LeadStatus> = new Set(['WON', 'LOST', 'DO_NOT_CONTACT']);
 
 const IRREVERSIBLE_TEXT: Partial<Record<LeadStatus, string>> = {
@@ -16,22 +16,23 @@ const IRREVERSIBLE_TEXT: Partial<Record<LeadStatus, string>> = {
   DO_NOT_CONTACT: 'A empresa não deve mais ser abordada. O bloqueio não pode ser desfeito por mudança de status.',
 };
 
-/** O mínimo para mudar o status: serve ao lead completo e ao card do Kanban. */
+/** The minimum needed to change status: serves both the full lead and the Kanban card. */
 export type StatusSubject = Pick<Lead, 'id' | 'status' | 'allowedTransitions'>;
 
 interface StatusChangeFormProps {
   readonly lead: StatusSubject;
   readonly onChanged: (lead: Lead) => void;
-  /** Destino já escolhido, como ao soltar um card numa coluna. */
+  /** A target already chosen, as when dropping a card into a column. */
   readonly initialTarget?: LeadStatus;
 }
 
 /**
- * Mudança de status (doc 06 §2).
+ * Status change (doc 06 §2).
  *
- * Só oferece as transições que o servidor informou como permitidas; a regra
- * continua no servidor. `CONTACTED` exige que o operador marque que o contato
- * de fato ocorreu: aprovar ou abrir um aplicativo de mensagem não é contato.
+ * It only offers the transitions the server reported as allowed; the rule
+ * itself stays on the server. `CONTACTED` requires the operator to tick that
+ * the contact actually happened: approving a message, or opening a messaging
+ * app, is not contact.
  */
 export function StatusChangeForm({ lead, onChanged, initialTarget }: StatusChangeFormProps): React.JSX.Element {
   const [target, setTarget] = useState<LeadStatus | ''>(

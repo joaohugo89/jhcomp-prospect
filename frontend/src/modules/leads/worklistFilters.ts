@@ -3,8 +3,8 @@ import { LEAD_PRIORITIES, LEAD_STATUSES } from '../../types/lead';
 import { WORKLIST_FOCUS, WORKLIST_SORT, type WorklistFilters } from '../../types/worklist';
 
 /**
- * Filtros da fila de leads e sua forma na URL. A mesma query string serve
- * para o drill-down do dashboard, para favoritar e para as visões salvas.
+ * The lead queue's filters and their shape in the URL. The same query string
+ * serves the dashboard drill-down, bookmarking and the saved views.
  */
 
 export const EMPTY_FILTERS: WorklistFilters = {
@@ -28,13 +28,13 @@ function pick<T extends string>(options: readonly T[], value: string | null): T 
   return options.find((option) => option === value) ?? '';
 }
 
-/** Só número inteiro de 0 a 100; o resto é ignorado, como se não viesse. */
+/** Whole numbers from 0 to 100 only; anything else is ignored, as if absent. */
 function score(value: string | null): string {
   const trimmed = value?.trim() ?? '';
   return /^\d{1,3}$/.test(trimmed) && Number(trimmed) <= 100 ? trimmed : '';
 }
 
-/** Lê a query string; valor desconhecido é ignorado, nunca vira erro. */
+/** Reads the query string; an unknown value is ignored, never an error. */
 export function filtersFromQuery(query: string): WorklistFilters {
   const params = new URLSearchParams(query);
   const text = (key: string): string => params.get(key)?.trim() ?? '';
@@ -57,7 +57,7 @@ export function filtersFromQuery(query: string): WorklistFilters {
   };
 }
 
-/** Query string só com o que difere do padrão: URL curta e legível. */
+/** A query string holding only what differs from the default: short and readable. */
 const FIELDS: readonly (keyof WorklistFilters)[] = [
   'search',
   'status',
@@ -91,7 +91,7 @@ export function filtersToQuery(filters: WorklistFilters): string {
   return params.toString();
 }
 
-/** Algum filtro além da ordenação: distingue "nada cadastrado" de "nada encontrado". */
+/** Any filter beyond sorting: distinguishes "nothing registered" from "nothing found". */
 export function isFiltered(filters: WorklistFilters): boolean {
   return filtersToQuery({ ...filters, sort: EMPTY_FILTERS.sort, direction: EMPTY_FILTERS.direction }) !== '';
 }

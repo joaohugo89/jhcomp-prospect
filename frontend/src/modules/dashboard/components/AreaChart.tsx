@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-/** Um ponto da série: `label` curto no eixo, `title` completo na dica. */
+/** One point of the series: a short `label` on the axis, the full `title` in the tooltip. */
 export interface ChartPoint {
   readonly key: string;
   readonly label: string;
@@ -12,23 +12,23 @@ interface AreaChartProps {
   readonly name: string;
   readonly points: readonly ChartPoint[];
   readonly format: (value: number) => string;
-  /** Rótulo compacto do eixo Y (ex.: "R$ 2 mil"). */
+  /** Compact label for the Y axis (for example "R$ 2 mil"). */
   readonly formatTick: (value: number) => string;
-  /** Contagens têm passo inteiro no eixo; valores monetários não. */
+  /** Counts step by whole numbers on the axis; monetary values do not. */
   readonly integer: boolean;
 }
 
 const TICKS = 4;
 const MAX_X_LABELS = 6;
-/** Folga acima do maior value, em % da altura: o marcador de pico cabe sem sair do gráfico. */
+/** Headroom above the largest value, as a % of the height, so the peak marker fits inside the chart. */
 const HEADROOM = 0.18;
 
 /**
- * Área de uma única série (uma série dispensa legenda: o título a nomeia).
- * Linha e área em SVG que estica com a largura; pontos, rótulos e dica em HTML
- * por cima, para não distorcerem. A linha vertical acompanha o ponteiro. Pelo
- * teclado é um `slider`: as setas percorrem os intervalos e o leitor de tela
- * anuncia intervalo e value.
+ * A single-series area chart (one series needs no legend: the title names
+ * it). The line and the area are SVG that stretches with the width; points,
+ * labels and the tooltip are HTML on top, so they do not distort. The vertical
+ * line follows the pointer. By keyboard it is a `slider`: the arrows step
+ * through the intervals and the screen reader announces interval and value.
  */
 export function AreaChart({ name, points, format, formatTick, integer }: AreaChartProps): React.JSX.Element {
   const [active, setActive] = useState<number | null>(null);
@@ -191,7 +191,7 @@ export function AreaChart({ name, points, format, formatTick, integer }: AreaCha
   );
 }
 
-/** Teto "redondo" do eixo, dividido em quatro passos iguais. */
+/** A "round" ceiling for the axis, divided into four equal steps. */
 function niceTop(max: number, integer: boolean): number {
   if (max <= 0) {
     return TICKS;
@@ -208,9 +208,10 @@ function ticks(top: number): readonly number[] {
 }
 
 /**
- * Elemento centrado em `x` (%), encostado na borda perto dos extremos: dica,
- * marcador de pico e rótulo nunca saem do gráfico em tela estreita.
- * `translate` (e não `transform`) é a propriedade que as classes do Tailwind 4 usam.
+ * An element centred at `x` (%), pinned to the edge near the extremes, so the
+ * tooltip, the peak marker and the label never leave the chart on a narrow
+ * screen. `translate` — not `transform` — is the property Tailwind 4 classes
+ * use.
  */
 function alongX(x: number): React.CSSProperties {
   if (x < 12) {

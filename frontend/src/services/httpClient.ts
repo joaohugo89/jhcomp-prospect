@@ -1,20 +1,20 @@
 /**
- * Cliente HTTP centralizado (doc 03 §2 e §10).
+ * Centralised HTTP client (doc 03 §2 and §10).
  *
- * Toda chamada à API passa por aqui. Nenhum `fetch` solto nos módulos: é o que
- * garante um único lugar para cookie de sessão, token CSRF, timeout, formato de
- * erro e aviso de sessão expirada.
+ * Every API call goes through here. No loose `fetch` in the modules: that is
+ * what keeps the session cookie, the CSRF token, timeouts, the error shape and
+ * the session-expired notice in a single place.
  */
 import type { ApiError, ProblemDetail } from '../types/apiError';
 
-// Caminho relativo: frontend e API ficam na mesma origem, servidos pelo nginx
-// em container e pelo proxy do Vite em desenvolvimento (decisao D1).
+// A relative path: the frontend and the API share one origin, served by nginx
+// in containers and by the Vite proxy in development (decision D1).
 const DEFAULT_BASE_URL = '/api/v1';
 const DEFAULT_TIMEOUT_MS = 15_000;
-// Nome proprio do projeto, definido em SecurityConfig. Cookie nao e isolado
-// por porta: um nome generico colidiria com outro projeto em localhost e o
-// navegador enviaria dois cookies de mesmo nome, levando o servidor a comparar
-// o cabecalho contra o valor errado e recusar com 403.
+// Project-specific names, defined in SecurityConfig. Cookies are not isolated
+// by port: a generic name would collide with another project on localhost, the
+// browser would send two cookies with the same name, and the server would
+// compare the header against the wrong value and refuse with 403.
 const CSRF_COOKIE = 'JH_XSRF';
 const CSRF_HEADER = 'X-JH-XSRF';
 const UNSAFE_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
@@ -23,7 +23,7 @@ const sessionExpiredListeners = new Set<() => void>();
 
 const apiBaseUrl: string = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL;
 
-/** Erro de API já normalizado, sempre lançado por este módulo. */
+/** An already normalised API error, the only thing this module throws. */
 export class HttpError extends Error implements ApiError {
   readonly status: number;
   readonly type: string;
@@ -41,15 +41,14 @@ export class HttpError extends Error implements ApiError {
 }
 
 /**
- * Le o token CSRF que o backend emite em cookie (decisao D1).
+ * Reads the CSRF token the backend issues in a cookie (decision D1).
  *
- * Este cookie e deliberadamente legivel por JavaScript, ao contrario do cookie
- * de sessao: o frontend precisa reenviar o valor em cabecalho. A protecao
- * continua valendo porque um site atacante nao consegue ler cookies de outra
- * origem.
+ * This cookie is deliberately readable by JavaScript, unlike the session
+ * cookie: the frontend has to echo the value in a header. The protection still
+ * holds because an attacking site cannot read cookies from another origin.
  */
 function readCsrfToken(): string | undefined {
-  // document pode nao existir em ambiente sem DOM.
+  // `document` may not exist in an environment without a DOM.
   if (typeof document === 'undefined') {
     return undefined;
   }
@@ -83,7 +82,7 @@ async function toHttpError(response: Response): Promise<HttpError> {
   try {
     payload = await response.json();
   } catch {
-    // Resposta sem corpo JSON: não é motivo para esconder o status.
+    // A response with no JSON body is no reason to hide the status.
     payload = undefined;
   }
 
@@ -108,21 +107,21 @@ async function toHttpError(response: Response): Promise<HttpError> {
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, signal, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
 
-  // RNF-005: toda chamada externa tem timeout.
+  // RNF-005: every external call has a timeout.
   const timeoutSignal = AbortSignal.timeout(timeoutMs);
   const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 
-  // Metodos que alteram estado exigem o token CSRF; GET nao.
+  // State-changing methods require the CSRF token; GET does not.
   const csrfToken = UNSAFE_METHODS.has(method) ? readCsrfToken() : undefined;
 
-  // FormData vai como multipart: o navegador define o Content-Type com o
-  // boundary, que não pode ser escrito à mão.
+  // FormData goes as multipart: the browser sets the Content-Type with the
+  // boundary, which cannot be written by hand.
   const isForm = body instanceof FormData;
 
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
-    // A sessão é um cookie HttpOnly (decisão D1), por isso credentials é
-    // obrigatório e nenhum token é guardado em JavaScript.
+    // The session is an HttpOnly cookie (decision D1), so credentials are
+    // required and no token is ever held in JavaScript.
     credentials: 'include',
     headers: {
       Accept: 'application/json',
@@ -134,9 +133,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   });
 
   if (!response.ok) {
-    // 401 fora de /auth significa que a sessão que a tela pressupunha não
-    // existe mais. As rotas de /auth tratam o 401 elas mesmas: no login é
-    // credencial inválida, em /auth/me é apenas "não autenticado".
+    // A 401 outside /auth means the session the screen assumed no longer
+    // exists. The /auth routes handle their own 401: on login it is an invalid
+    // credential, on /auth/me it simply means "not authenticated".
     if (response.status === 401 && !path.startsWith('/auth/')) {
       for (const listener of sessionExpiredListeners) {
         listener();
@@ -153,12 +152,12 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 }
 
 /**
- * Avisa quando a API responde que a sessão expirou (doc 08 §11).
+ * Notifies when the API reports that the session has expired (doc 08 §11).
  *
- * Um único ponto, em vez de cada tela tratar o 401: a resposta é sempre a
- * mesma, voltar ao login explicando o motivo.
+ * One place, rather than every screen handling 401: the answer is always the
+ * same — go back to login and explain why.
  *
- * @returns função que cancela a inscrição
+ * @returns a function that cancels the subscription
  */
 export function onSessionExpired(listener: () => void): () => void {
   sessionExpiredListeners.add(listener);
@@ -167,7 +166,7 @@ export function onSessionExpired(listener: () => void): () => void {
   };
 }
 
-/** Monta a query string omitindo valores vazios, para não enviar filtro sem efeito. */
+/** Builds the query string, omitting empty values so no inert filter is sent. */
 export function toQuery(params: Readonly<Record<string, string | number | boolean | undefined>>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {

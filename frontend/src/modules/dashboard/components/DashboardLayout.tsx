@@ -1,30 +1,30 @@
 interface DashboardLayoutProps {
-  /** Linha sob o título: período. */
+  /** The line under the title: the period. */
   readonly subtitle?: React.ReactNode;
-  /** Controles à direita do título (`HeaderFilters`). */
+  /** Controls to the right of the title (`HeaderFilters`). */
   readonly filters?: React.ReactNode;
-  /** O que pede ação agora; vem antes dos números do período. */
+  /** What needs action now; it comes before the period's numbers. */
   readonly attention?: React.ReactNode;
-  /** Bloco de destaque (gráfico de desempenho). */
+  /** The hero block (the performance chart). */
   readonly hero: React.ReactNode;
-  /** Coluna ao lado do destaque: conversão, origem e aviso de dados. */
+  /** The column beside the hero: conversion, origin and the data notice. */
   readonly highlights: React.ReactNode;
-  /** Métricas-chave, em largura total. */
+  /** Key metrics, full width. */
   readonly metrics: React.ReactNode;
-  /** Coluna larga de baixo: funil de agora e funil de conversão. */
+  /** The wide bottom column: the current funnel and the conversion funnel. */
   readonly funnel: React.ReactNode;
-  /** Coluna estreita de baixo: atividade recente e relatório de conversão. */
+  /** The narrow bottom column: recent activity and the conversion report. */
   readonly activity: React.ReactNode;
 }
 
 /**
- * Esqueleto da página, na ordem de leitura do celular: cabeçalho, o que pede
- * atenção, destaque e seus cartões, métricas-chave, funis e atividades.
+ * The page skeleton, in the reading order of a phone: header, what needs
+ * attention, the hero and its cards, key metrics, funnels and activity.
  *
- * A partir de 1280px é uma grade de 3 colunas: o destaque ocupa duas e os
- * cartões de apoio empilham na terceira; embaixo, os dois funis empilham nas
- * duas largas e o feed fica na estreita. Assim cada coluna tem conteúdo até o
- * fim, sem um bloco curto ao lado de um longo.
+ * From 1280px up it is a three-column grid: the hero takes two and the
+ * supporting cards stack in the third; below, the two funnels stack in the
+ * wide pair and the feed sits in the narrow one. That way every column has
+ * content all the way down, instead of a short block beside a long one.
  */
 export function DashboardLayout(props: DashboardLayoutProps): React.JSX.Element {
   return (
@@ -48,7 +48,7 @@ export function DashboardLayout(props: DashboardLayoutProps): React.JSX.Element 
   );
 }
 
-/** Título, subtítulo e filtros. Também usado sozinho enquanto o resumo carrega. */
+/** Title, subtitle and filters. Also used on its own while the summary loads. */
 export function DashboardHeader({
   subtitle,
   filters,

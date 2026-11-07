@@ -3,7 +3,7 @@ import { AlarmClock, Building, FileText, ListTodo, PhoneOutgoing, Users } from '
 import type { CurrentMetrics, PeriodMetrics } from '../model/dashboardData';
 import { MetricGrid, type MetricCardProps } from './MetricCard';
 
-/** Métricas-key: as do período e as de agora, com a origem de cada número no subtítulo. */
+/** Key metrics: the period's and the current ones, each number's source in the subtitle. */
 export function KeyMetrics({
   period,
   current,
@@ -11,7 +11,7 @@ export function KeyMetrics({
 }: {
   readonly period: PeriodMetrics;
   readonly current: CurrentMetrics;
-  /** Lista de leads numa etapa, com os filtros do dashboard; ausente na pré-visualização. */
+  /** The list of leads in a stage, with the dashboard's filters; absent in the preview. */
   readonly leadsHref?: (status: string) => string;
 }): React.JSX.Element {
   const link = (href: string): { readonly href?: string } => (leadsHref === undefined ? {} : { href });
@@ -41,7 +41,7 @@ function countCard(
   subtitle: string,
   icon: MetricCardProps['icon'],
   tone: MetricCardProps['tone'],
-  /** Valor acima de zero pede ação (ex.: tarefa atrasada). */
+  /** A value above zero needs action (an overdue task, say). */
   alertWhenPositive = false,
 ): MetricCardProps {
   const state = value === 0 ? 'empty' : alertWhenPositive ? 'alert' : 'normal';

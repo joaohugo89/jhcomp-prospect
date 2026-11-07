@@ -2,28 +2,28 @@ import type { BoardCard } from '../../types/crm';
 import type { LeadStatus } from '../../types/lead';
 
 /**
- * Sinais de ação dos cards do Kanban: o que está parado e o que precisa ser
- * feito. Regras puras, sobre os dados que o quadro já traz; sem relógio
- * implícito, para o teste fixar o "agora".
+ * Action signals for the Kanban cards: what is stalled and what needs doing.
+ * Pure rules over the data the board already carries, with no implicit clock,
+ * so a test can pin "now".
  */
 
 const DAY = 86_400_000;
 
-/** Dias numa etapa em andamento a partir dos quais o lead está parado. */
+/** Days in an in-progress stage after which the lead counts as stalled. */
 export const STALE_DAYS = 7;
 
-/** Dias sem interação registrada a partir dos quais o lead esfriou. */
+/** Days without a recorded interaction after which the lead has gone cold. */
 export const QUIET_DAYS = 14;
 
-/** Etapas encerradas não "param": o tempo nelas não pede ação. */
+/** Closed stages do not "stall": time spent in them calls for nothing. */
 const CLOSED: ReadonlySet<LeadStatus> = new Set(['WON', 'LOST']);
 
 export interface CardSignals {
-  /** Dias inteiros na etapa atual. */
+  /** Whole days in the current stage. */
   readonly daysInStage: number;
   readonly stale: boolean;
   readonly overdueTask: boolean;
-  /** Dias desde a última interação, quando ela existe e já passou do limite. */
+  /** Days since the last interaction, when there is one and it is past the threshold. */
   readonly quietDays?: number;
 }
 

@@ -21,10 +21,11 @@ interface FindingRowProps {
 }
 
 /**
- * Achado com evidência, pontos e revisão (RF-031, RF-032, RF-033).
+ * A finding with its evidence, points and review (RF-031, RF-032, RF-033).
  *
- * O estado aparece sempre em texto: "não verificado" nunca é mostrado como
- * fato confirmado (aceite do RF-031), e a cor só reforça.
+ * The state is always shown as text: "not verified" is never presented as a
+ * confirmed fact (the acceptance criterion of RF-031), and colour only
+ * reinforces it.
  */
 export function FindingRow({ finding, onReviewed }: FindingRowProps): React.JSX.Element {
   const [reviewing, setReviewing] = useState(false);

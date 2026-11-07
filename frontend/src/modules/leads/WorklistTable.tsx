@@ -8,19 +8,19 @@ import { daysLabel, STALE_DAYS } from '../crm/pipelineSignals';
 
 const DAY = 86_400_000;
 
-/** Etapas em andamento: só nelas o tempo parado pede ação. */
+/** In-progress stages: only there does idle time call for action. */
 const IN_PROGRESS = new Set(['QUALIFIED', 'CONTACT_APPROVED', 'CONTACTED', 'IN_CONVERSATION', 'PROPOSAL_SENT']);
 
 interface WorklistTableProps {
   readonly items: readonly WorklistItem[];
-  /** Referência dos sinais (dias na etapa, atraso), fixa por carga. */
+  /** Reference instant for the signals (days in stage, overdue), fixed per load. */
   readonly now: number;
   readonly sort: WorklistSort;
   readonly direction: WorklistFilters['direction'];
   readonly onSort: (sort: WorklistSort, direction: WorklistFilters['direction']) => void;
   readonly selected: ReadonlySet<string>;
   readonly onSelect: (ids: ReadonlySet<string>) => void;
-  /** Lead com o resumo aberto ao lado. */
+  /** The lead whose summary is open beside the list. */
   readonly previewId: string | null;
   readonly onPreview: (leadId: string) => void;
 }
@@ -28,11 +28,11 @@ interface WorklistTableProps {
 interface SortableColumn {
   readonly sort: WorklistSort;
   readonly label: string;
-  /** Primeiro clique: o que o operador quer ver primeiro (maior valor, mais tempo parado). */
+  /** First click: what the operator wants first (highest value, longest idle). */
   readonly firstDirection: WorklistFilters['direction'];
   /**
-   * "Na etapa" ordena pela data de entrada: entrada mais antiga primeiro é
-   * mais dias primeiro, então o sentido mostrado é o inverso do enviado.
+   * "In stage" sorts by the entry date: oldest entry first means most days
+   * first, so the direction shown is the inverse of the one sent.
    */
   readonly inverted?: boolean;
   readonly className?: string;
@@ -47,9 +47,10 @@ const COLUMNS: Readonly<Record<'company' | 'nextTask' | 'stage' | 'value' | 'sco
 };
 
 /**
- * Fila de leads: cada linha responde "o que faço com este lead?". Clicar na
- * linha abre o resumo ao lado; o nome é um botão, para o teclado chegar lá.
- * Cabeçalhos ordenam no servidor; a seleção alimenta as ações em lote.
+ * The lead queue: every row answers "what do I do with this one?". Clicking a
+ * row opens the summary beside it; the name is a button, so the keyboard can
+ * reach it. Headers sort on the server, and the selection feeds the bulk
+ * actions.
  */
 export function WorklistTable(props: WorklistTableProps): React.JSX.Element {
   const { items, now, selected, onSelect, previewId, onPreview } = props;
@@ -66,8 +67,9 @@ export function WorklistTable(props: WorklistTableProps): React.JSX.Element {
   }
 
   return (
-    // relative: os textos só para leitor de tela (sr-only, posição absoluta) ficam presos
-    // aqui; sem isso escapam da rolagem da tabela e alargam a página no celular.
+    // relative: the screen-reader-only text (sr-only, absolutely positioned)
+    // is contained here; without it, it escapes the table's scroll area and
+    // widens the page on a phone.
     <div className="relative overflow-x-auto rounded-2xl border border-stone-200 glass">
       <table className="min-w-full text-sm">
         <caption className="sr-only">Leads</caption>
@@ -128,7 +130,7 @@ function SortHeader({
   onSort,
 }: { readonly column: SortableColumn } & Pick<WorklistTableProps, 'sort' | 'direction' | 'onSort'>): React.JSX.Element {
   const active = sort === column.sort;
-  // Sentido como o operador vê (mais dias primeiro = decrescente), não como o servidor recebe.
+  // The direction as the operator sees it (most days first = descending), not as the server receives it.
   const shown = active ? (column.inverted === true ? (direction === 'asc' ? 'desc' : 'asc') : direction) : null;
   const Icon = shown === null ? ArrowUpDown : shown === 'asc' ? ArrowUp : ArrowDown;
   const isRight = column.className?.includes('text-right') === true;

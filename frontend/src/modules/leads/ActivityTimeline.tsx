@@ -16,10 +16,10 @@ import { getLeadTimeline } from '../../services/leadService';
 import type { TimelineEntry } from '../../types/lead';
 
 /**
- * Histórico do lead (RF-013): cronológico e somente leitura.
+ * The lead's history (RF-013): chronological and read-only.
  *
- * `refreshKey` muda quando o lead é alterado nesta tela, para que o evento
- * recém-criado apareça sem recarregar a página.
+ * `refreshKey` changes when the lead is modified on this screen, so a
+ * just-created event appears without reloading the page.
  */
 export function ActivityTimeline({
   leadId,

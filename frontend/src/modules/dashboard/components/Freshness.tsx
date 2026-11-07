@@ -3,8 +3,8 @@ import { RotateCw } from 'lucide-react';
 const TIME = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 /**
- * Quando os números foram carregados e um botão para atualizar. Sem isso o
- * operador não sabe se olha dado de agora ou de horas atrás.
+ * When the numbers were loaded, and a button to refresh. Without it the
+ * operator cannot tell current data from data hours old.
  */
 export function Freshness({
   loadedAt,

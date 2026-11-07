@@ -9,8 +9,8 @@ import type {
 } from './dashboardData';
 
 /**
- * Dados simulados do dashboard, para testes e para a pré-visualização em
- * desenvolvimento. Empresas e pessoas são fictícias (doc 10 §10).
+ * Mock dashboard data, for tests and for the development preview. Companies
+ * and people are fictitious (doc 10 §10).
  */
 export const mockDashboardData: DashboardData = {
   period: { from: '2026-10-08', to: '2026-11-06' },
@@ -71,7 +71,7 @@ export const mockRecentActivities: readonly RecentActivity[] = [
   },
 ];
 
-/** Período anterior de mesmo tamanho, para a variação do destaque. */
+/** The previous period of the same length, for the hero's change indicator. */
 export const mockPreviousMetrics: PeriodMetrics = {
   companiesAdded: 18,
   contactsRegistered: 9,
@@ -79,7 +79,7 @@ export const mockPreviousMetrics: PeriodMetrics = {
   wonValue: 3200,
 };
 
-/** Cinco semanas do período, somando os totais de `mockDashboardData`. */
+/** Five weeks of the period, summing to the totals in `mockDashboardData`. */
 export const mockTimeSeries: TimeSeries = {
   granularity: 'WEEK',
   points: [
@@ -104,7 +104,7 @@ export const mockConversion: ConversionView = {
   total: { leads: 24, contacted: 9, won: 2, sufficientSample: true },
 };
 
-/** Referência das datas de `mockAttention`. */
+/** The reference date for `mockAttention`. */
 export const MOCK_NOW = Date.parse('2026-11-06T15:00:00Z');
 
 export const mockAttention: AttentionView = {

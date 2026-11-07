@@ -11,7 +11,7 @@ import { LEAD_PRIORITIES } from '../../types/lead';
 import type { Teammate } from '../../types/session';
 import type { SavedView, WorklistFilters } from '../../types/worklist';
 
-/** Recortes de um clique: os mesmos do painel de atenção do dashboard. */
+/** One-click filters: the same ones as the dashboard's attention panel. */
 type Quick = 'all' | 'mine' | 'unassigned' | 'overdue' | 'stale' | 'withoutTask';
 
 const QUICK: readonly [Quick, string][] = [
@@ -32,7 +32,7 @@ function quickOf(filters: WorklistFilters, currentUserId: string): Quick | null 
   return filters.assignee === '' ? 'all' : null;
 }
 
-/** Aplica um recorte, mantendo os demais filtros (busca, segmento, etc.). */
+/** Applies one of them, keeping the other filters (search, segment, and so on). */
 function applyQuick(filters: WorklistFilters, quick: Quick, currentUserId: string): WorklistFilters {
   const base = { ...filters, focus: '' as const, unassigned: false, assignee: '' };
   switch (quick) {
@@ -81,9 +81,9 @@ export function QuickFilters({
 }
 
 /**
- * Ações em lote sobre os leads selecionados: só responsável e prioridade.
- * Status fica fora de propósito: "Contatado" exige confirmar o contato lead a
- * lead (regra 6) e os estados finais pedem confirmação individual.
+ * Bulk actions over the selected leads: owner and priority only. Status is
+ * deliberately excluded: `CONTACTED` requires confirming the contact lead by
+ * lead (rule 6), and the final states deserve individual confirmation.
  */
 export function BulkBar({
   selected,
@@ -195,8 +195,8 @@ export function BulkBar({
 }
 
 /**
- * Visões salvas de quem está usando: buscas que se repetem viram um clique e
- * valem em qualquer aparelho. Abrir uma visão é navegar para a URL dela.
+ * The current user's saved views: a search that repeats becomes one click and
+ * works on any device. Opening a view is navigating to its URL.
  */
 export function SavedViews({
   views,
@@ -206,7 +206,7 @@ export function SavedViews({
 }: {
   readonly views: readonly SavedView[];
   readonly currentQuery: string;
-  /** Administrador: pode publicar a visão para a equipe (D31). */
+  /** Administrator: may publish the view to the team (D31). */
   readonly canShare: boolean;
   readonly onChanged: () => void;
 }): React.JSX.Element {
@@ -291,7 +291,7 @@ export function SavedViews({
               placeholder="Ex.: Minhas propostas"
               maxLength={60}
               value={name}
-              // Campo aberto por pedido explícito do operador: o foco vai direto para ele.
+              // The field was opened by an explicit request, so focus goes straight to it.
               // oxlint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
               onChange={(event) => {

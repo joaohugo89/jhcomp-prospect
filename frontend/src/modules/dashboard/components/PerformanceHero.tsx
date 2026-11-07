@@ -17,7 +17,7 @@ interface MetricOption {
   readonly currency: boolean;
 }
 
-/** As métricas do período, com as mesmas definições dos cartões. */
+/** The period metrics, with the same definitions as the cards. */
 const HERO_METRICS: readonly [MetricOption, ...MetricOption[]] = [
   { key: 'wonValue', label: 'Valor ganho', currency: true },
   { key: 'companiesAdded', label: 'Empresas adicionadas', currency: false },
@@ -30,7 +30,7 @@ export type GranularityChoice = Granularity | 'AUTO';
 const GRANULARITY_LABEL: Readonly<Record<Granularity, string>> = { DAY: 'dia', WEEK: 'semana', MONTH: 'mês' };
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
-/** Resumo sob o gráfico, em formato curto para caber no celular; o value exato está no título. */
+/** Summary under the chart, in short form to fit a phone; the exact value is in the title. */
 const compactCurrency = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
@@ -40,21 +40,21 @@ const compactCurrency = new Intl.NumberFormat('pt-BR', {
 
 interface PerformanceHeroProps {
   readonly atual: PeriodMetrics;
-  /** Período anterior de mesmo tamanho; ausente enquanto carrega ou se falhar. */
+  /** The previous period of the same length; absent while loading or on failure. */
   readonly anterior: PeriodMetrics | undefined;
-  /** Série do período; `null` enquanto a primeira carga não chega. */
+  /** The period's series; `null` until the first load arrives. */
   readonly serie: TimeSeries | null;
-  /** A série está sendo recarregada: o gráfico anterior fica, atenuado. */
+  /** The series is being reloaded: the previous chart stays, dimmed. */
   readonly recarregando: boolean;
   readonly leadsNoPeriodo: number | undefined;
   readonly granularity: GranularityChoice;
   readonly diarioPermitido: boolean;
   readonly onGranularidade: (choice: GranularityChoice) => void;
-  /** Estado de carga ou erro da série, quando não há gráfico para mostrar. */
+  /** The series' loading or error state, when there is no chart to show. */
   readonly fallback?: React.ReactNode;
 }
 
-/** Bloco de destaque: a métrica escolhida no tempo, com total e variação. */
+/** The hero block: the chosen metric over time, with total and change. */
 export function PerformanceHero(props: PerformanceHeroProps): React.JSX.Element {
   const { atual, anterior, serie, recarregando, leadsNoPeriodo, fallback } = props;
   const [metricKey, setMetricKey] = useState<MetricKey>('wonValue');

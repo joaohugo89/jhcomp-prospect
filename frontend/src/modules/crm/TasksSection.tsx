@@ -9,19 +9,19 @@ import { buttonSecondary, card, input } from '../../components/styles';
 import { createTask, listTasks, updateTask } from '../../services/crmService';
 import type { Task } from '../../types/crm';
 
-/** Tarefas do lead (RF-042): abertas primeiro, como o servidor ordena. */
+/** The lead's tasks (RF-042): open ones first, in the server's order. */
 export function TasksSection({
   leadId,
   onChanged,
 }: {
   readonly leadId: string;
-  /** Tarefa criada ou concluída: quem mostra a próxima tarefa (resumo do lead) relê. */
+  /** A task was created or completed: whatever shows the next task re-reads it. */
   readonly onChanged?: () => void;
 }): React.JSX.Element {
   const [state, reload] = useLoad(leadId, (signal) => listTasks(leadId, signal));
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  // Referência fixa para "atrasada": o relógio não é lido durante a renderização.
+  // A fixed reference for "overdue": the clock is never read during rendering.
   const [now] = useState(() => Date.now());
 
   async function toggle(task: Task): Promise<void> {
@@ -96,7 +96,7 @@ function TaskDue({ task, now }: { readonly task: Task; readonly now: number }): 
   if (task.dueAt === undefined) {
     return null;
   }
-  // Texto, e não só cor, indica o atraso (doc 08 §12).
+  // Text, not colour alone, marks the delay (doc 08 §12).
   const overdue = new Date(task.dueAt).getTime() < now;
   return (
     <p className={`text-xs ${overdue ? 'font-medium text-red-700' : 'text-stone-500'}`}>
@@ -137,7 +137,7 @@ function NewTaskForm({
 
   return (
     <form
-      // Responde à largura do cartão (lateral estreita do lead), não à da tela.
+      // Responds to the card's width (the lead's narrow sidebar), not the screen's.
       className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 @md:grid-cols-[2fr_1fr_auto]"
       onSubmit={(event) => {
         event.preventDefault();

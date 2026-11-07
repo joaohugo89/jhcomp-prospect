@@ -5,8 +5,8 @@ import { card } from '../../../components/styles';
 import type { ConversionView, ConversionGroup } from '../model/dashboardData';
 
 /**
- * Relatório de conversão por origem e segmento (RF-071), recolhido por padrão.
- * O denominador fica sempre à vista; percentual só com amostra suficiente.
+ * Conversion report by origin and segment (RF-071), collapsed by default. The
+ * denominator is always visible; a percentage only with a sufficient sample.
  */
 export function ConversionReport({ conversion }: { readonly conversion: ConversionView }): React.JSX.Element {
   const [open, setOpen] = useState(false);
@@ -98,7 +98,7 @@ function ConversionTable({
   );
 }
 
-/** Contagem e, com amostra suficiente, o percentual sobre os leads do grupo. */
+/** The count and, with a sufficient sample, the percentage over the group's leads. */
 function rate(count: number, grupo: ConversionGroup): string {
   if (!grupo.sufficientSample || grupo.leads === 0) {
     return String(count);

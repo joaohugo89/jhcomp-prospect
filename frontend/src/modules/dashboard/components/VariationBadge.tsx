@@ -5,8 +5,9 @@ import type { Variation } from '../model/dashboardData';
 const percent = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1, signDisplay: 'exceptZero' });
 
 /**
- * Variação contra o período anterior de mesmo tamanho. Direção por ícone e
- * sinal, não só por cor. Sem base de comparação, diz isso em vez de um "+∞%".
+ * Change against the previous period of the same length. Direction by icon
+ * and sign, not by colour alone. With no base to compare against it says so,
+ * rather than printing "+∞%".
  */
 export function VariationBadge({ variation }: { readonly variation: Variation }): React.JSX.Element | null {
   if (variation.kind === 'noData') {

@@ -21,9 +21,9 @@ import {
 } from './model/mockDashboardData';
 
 /**
- * O dashboard inteiro com dados simulados, sem API. Só existe em
- * desenvolvimento (`/dashboard/preview`): serve para ajustar o layout sem
- * depender de dados no banco.
+ * The whole dashboard on mock data, with no API. It exists only in
+ * development (`/dashboard/preview`), for adjusting the layout without
+ * depending on what is in the database.
  */
 export function DashboardPreviewPage(): React.JSX.Element {
   const data = mockDashboardData;

@@ -6,21 +6,21 @@ import { card } from '../../../components/styles';
 export type Tone = 'brand' | 'sky' | 'indigo' | 'violet' | 'emerald' | 'slate';
 
 /**
- * `vazio`: zero, atenuado para não competir com os números que importam.
- * `alerta`: pede ação; sinalizado por texto e ícone, não só por cor.
+ * `empty`: zero, dimmed so it does not compete with the numbers that matter.
+ * `alert`: needs action; signalled by text and icon, not by colour alone.
  */
 export type MetricState = 'normal' | 'empty' | 'alert';
 
 export interface MetricCardProps {
   readonly title: string;
-  /** Já formatado (countCard ou moeda). */
+  /** Already formatted (a count or a currency amount). */
   readonly value: string;
-  /** Como o número é obtido, curto: a metodologia fica à vista. */
+  /** How the number is obtained, briefly: the methodology stays visible. */
   readonly subtitle: string;
   readonly state: MetricState;
   readonly icon: LucideIcon;
   readonly tone: Tone;
-  /** Drill-down: o cartão inteiro leva à lista por trás do número. */
+  /** Drill-down: the whole card leads to the list behind the number. */
   readonly href?: string;
 }
 
@@ -34,7 +34,7 @@ const ICON_TONE: Readonly<Record<Tone | 'amber', string>> = {
   amber: 'bg-amber-50 text-amber-700',
 };
 
-/** Grade de indicadores: 2 colunas no celular, 3 no tablet, 6 em tela larga. */
+/** The indicator grid: 2 columns on a phone, 3 on a tablet, 6 on a wide screen. */
 export function MetricGrid({
   title,
   legenda,
@@ -59,7 +59,7 @@ export function MetricGrid({
   );
 }
 
-/** Um indicador: título e ícone, value e subtítulo. Vive dentro de um `<dl>` (`MetricGrid`). */
+/** One indicator: title and icon, value and subtitle. Lives inside a `<dl>` (`MetricGrid`). */
 export function MetricCard({
   title,
   value,
@@ -80,7 +80,7 @@ export function MetricCard({
         {href === undefined ? (
           title
         ) : (
-          // Link "esticado": o pseudo-elemento cobre o cartão, e o nome acessível é o título.
+          // A "stretched" link: the pseudo-element covers the card, and the accessible name is the title.
           <Link to={href} className="outline-none after:absolute after:inset-0 after:content-['']">
             {title}
           </Link>

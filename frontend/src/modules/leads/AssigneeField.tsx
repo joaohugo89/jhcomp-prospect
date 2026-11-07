@@ -9,8 +9,9 @@ import { getTeam } from '../../services/teamService';
 import type { Lead } from '../../types/lead';
 
 /**
- * Responsável pelo lead. Qualquer membro atribui ou remove; o servidor exige
- * membro ativo da mesma organização. É o que o dashboard e a fila usam em "Meus".
+ * The lead's owner. Any member can assign or clear it; the server requires an
+ * active member of the same organisation. It is what the dashboard and the
+ * queue use for "mine".
  */
 export function AssigneeField({
   lead,
@@ -23,7 +24,7 @@ export function AssigneeField({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const members = team.kind === 'ready' ? team.data.content : [];
-  // Responsável que deixou a organização continua visível até ser trocado.
+  // An owner who has left the organisation stays visible until replaced.
   const unknown = lead.assignedUserId !== undefined && !members.some((member) => member.userId === lead.assignedUserId);
 
   async function change(value: string): Promise<void> {
@@ -36,7 +37,7 @@ export function AssigneeField({
     try {
       onChanged(await assignLead(lead.id, next));
     } catch (cause: unknown) {
-      // 404 aqui é, quase sempre, membro que deixou de estar ativo desde que a lista carregou.
+      // A 404 here almost always means a member stopped being active since the list loaded.
       setError(
         cause instanceof HttpError && cause.type === 'RESOURCE_NOT_FOUND'
           ? 'A pessoa escolhida não é mais membro ativo. Recarregue a página.'

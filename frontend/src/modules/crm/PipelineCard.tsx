@@ -10,7 +10,7 @@ import type { LeadStatus } from '../../types/lead';
 import { StatusChangeForm } from '../leads/StatusChangeForm';
 import { daysLabel, signalsOf } from './pipelineSignals';
 
-/** Card com o formulário de mudança aberto e, se veio de arrastar, o destino. */
+/** The card with its change form open and, when it came from a drag, the target. */
 export interface Moving {
   readonly leadId: string;
   readonly target?: LeadStatus;
@@ -21,7 +21,7 @@ export type Density = 'compact' | 'detailed';
 interface PipelineCardProps {
   readonly card: BoardCard;
   readonly density: Density;
-  /** Instante de referência dos sinais (dias na etapa, atrasos). */
+  /** Reference instant for the signals (days in stage, overdue items). */
   readonly now: number;
   readonly moving: Moving | null;
   readonly onDragStart: () => void;
@@ -31,9 +31,9 @@ interface PipelineCardProps {
 }
 
 /**
- * Card do Kanban. Compacto: empresa, cidade, valor e sinais de ação.
- * Detalhado: também segmento, prioridade, score, serviço, última interação e
- * próxima tarefa. "Mover" é um ícone no canto, sempre alcançável pelo teclado.
+ * A Kanban card. Compact: company, city, value and action signals. Detailed:
+ * also segment, priority, score, service, last interaction and next task. The
+ * move control is an icon in the corner, always reachable by keyboard.
  */
 export function PipelineCard({
   card,
@@ -53,7 +53,7 @@ export function PipelineCard({
   );
 
   return (
-    // Arrastar é atalho de mouse; o teclado usa o botão "Mover".
+    // Dragging is a mouse shortcut; the keyboard uses the move button.
     // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <article
       draggable={draggable}
@@ -148,8 +148,9 @@ export function PipelineCard({
 }
 
 /**
- * Sinais de ação, cada um com ícone e texto: nunca só cor. Lead que entrou na
- * etapa hoje não ganha selo de tempo: não pede ação e só ocuparia espaço.
+ * Action signals, each with an icon and text: never colour alone. A lead that
+ * entered the stage today gets no time badge: it needs no action and would
+ * only take up space.
  */
 function Signals({ signals }: { readonly signals: ReturnType<typeof signalsOf> }): React.JSX.Element | null {
   const { daysInStage, stale, overdueTask, quietDays } = signals;

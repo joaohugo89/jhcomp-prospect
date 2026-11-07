@@ -38,24 +38,25 @@ import {
   toTimeSeries,
 } from './model/dashboardData';
 
-/** Feed curto, da altura do funil ao lado; o resto fica nas páginas seguintes. */
+/** A short feed, the height of the funnel beside it; the rest is on later pages. */
 const ACTIVITY_PAGE_SIZE = 6;
 
-/** Por dia, colunas finas demais deixam de ser legíveis. */
+/** Daily columns become too thin to read beyond this. */
 const MAX_DAILY_DAYS = 92;
 
-/** Ao voltar para a aba depois disso, os números são recarregados sozinhos. */
+/** Returning to the tab after this reloads the numbers on its own. */
 const STALE_AFTER_MS = 2 * 60_000;
 
 /**
  * Dashboard (RF-070, RF-071, doc 08 §4).
  *
- * Esta página é o único ponto que fala com a API: guarda os filtros, busca os
- * dados e os converte para o modelo de tela (`model/dashboardData`). Os
- * componentes em `components/` só apresentam o que recebem.
+ * This page is the only place that talks to the API: it holds the filters,
+ * fetches the data and converts it into the view model
+ * (`model/dashboardData`). The components in `components/` only present what
+ * they are given.
  */
 export function DashboardPage({ session }: { readonly session: Session }): React.JSX.Element {
-  // Rascunho editado no painel; `filters` é o que está aplicado.
+  // The draft edited in the panel; `filters` is what is applied.
   const [draft, setDraft] = useState(defaultFilters);
   const [filters, setFilters] = useState(draft);
   const [granularity, setGranularity] = useState<GranularityChoice>('AUTO');
@@ -68,7 +69,7 @@ export function DashboardPage({ session }: { readonly session: Session }): React
     filters.assignee,
   ].join('|');
 
-  // Mesmo tamanho, imediatamente antes: base da variação mostrada no destaque.
+  // Same length, immediately before: the base for the change shown in the hero.
   const anterior = previousPeriod({ from: filters.from, to: filters.to });
   const previousFilters = { ...filters, from: anterior.from, to: anterior.to };
 
@@ -87,12 +88,13 @@ export function DashboardPage({ session }: { readonly session: Session }): React
   const [timeline, reloadTimeline] = useLoad(`${key}|${unit ?? ''}`, (signal) =>
     getDashboardTimeline(filters, unit, signal),
   );
-  // Ao recarregar, o gráfico anterior fica, atenuado: sem salto de layout.
+  // While reloading, the previous chart stays, dimmed: no layout jump.
   const lastTimeline = useLastReady(timeline);
   const serie = lastTimeline === null ? null : toTimeSeries(lastTimeline);
 
-  // Quando o resumo chegou: "Atualizado às" e referência para "há N dias". Vem do
-  // próprio carregamento (fora da renderização, que precisa ser pura).
+  // When the summary arrived: drives "updated at" and the "N days ago"
+  // reference. It comes from the load itself, outside rendering, which has to
+  // stay pure.
   const loadedAt = summary.kind === 'ready' ? summary.data.receivedAt : null;
   const [refreshRequestedAt, setRefreshRequestedAt] = useState(0);
   const [activityToken, setActivityToken] = useState(0);
@@ -234,11 +236,13 @@ function Filters({ filters, draft, onDraftChange, onFilters, team, currentUserId
 }
 
 /**
- * Carrega a atividade paginada e entrega a `RecentActivityList` já convertida.
+ * Loads the paginated activity and hands `RecentActivityList` the converted
+ * result.
  *
- * Ao trocar de página, a página atual continua na tela, atenuada, até a nova
- * chegar (`useLastReady`): a rolagem não pula e o foco fica no botão clicado.
- * `token` muda quando o operador pede para atualizar o dashboard.
+ * When the page changes, the current page stays on screen, dimmed, until the
+ * new one arrives (`useLastReady`): the scroll position does not jump and
+ * focus stays on the button that was clicked. `token` changes when the
+ * operator asks to refresh the dashboard.
  */
 function RecentActivityPanel({
   filters,
@@ -274,8 +278,9 @@ function RecentActivityPanel({
 }
 
 /**
- * Lista de leads com os filtros do dashboard (drill-down). O período não vai:
- * a lista mostra quem está na etapa agora, e não tem filtro de data.
+ * The lead list with the dashboard's filters (drill-down). The period does
+ * not travel with it: the list shows who is in the stage now, and has no date
+ * filter.
  */
 function leadsUrl(filters: DashboardFilters, extra: Readonly<Record<string, string>>): string {
   const params = new URLSearchParams();
@@ -294,7 +299,7 @@ function leadsUrl(filters: DashboardFilters, extra: Readonly<Record<string, stri
   return query === '' ? '/leads' : `/leads?${query}`;
 }
 
-/** Últimos `count` dias, contando hoje. */
+/** The last `count` days, counting today. */
 function lastDays(count: number): Pick<DashboardFilters, 'from' | 'to'> {
   const today = new Date();
   const start = new Date(today);
@@ -302,19 +307,19 @@ function lastDays(count: number): Pick<DashboardFilters, 'from' | 'to'> {
   return { from: localDate(start), to: localDate(today) };
 }
 
-/** 30 dias é o padrão do servidor (D25). */
+/** 30 days is the server's default (D25). */
 function defaultFilters(): DashboardFilters {
   return { ...lastDays(30), segment: '', city: '', source: '', assignee: '' };
 }
 
-/** O funil de agora ignora o período; só os outros filtros o esvaziam. */
+/** The current funnel ignores the period; only the other filters can empty it. */
 function isFiltered(filters: DashboardFilters): boolean {
   return (
     filters.segment.trim() !== '' || filters.city.trim() !== '' || filters.source !== '' || filters.assignee !== ''
   );
 }
 
-/** Atalho cujo período coincide com o aplicado, para marcá-lo como ativo. */
+/** The shortcut whose period matches the applied one, so it can be marked active. */
 function presetOf(filters: DashboardFilters): number | undefined {
   return PRESETS.find((count) => {
     const range = lastDays(count);
@@ -322,14 +327,14 @@ function presetOf(filters: DashboardFilters): number | undefined {
   });
 }
 
-/** Dias do período, contando as duas pontas. */
+/** Days in the period, counting both ends. */
 function days(filters: DashboardFilters): number {
   const start = Date.parse(`${filters.from}T00:00:00Z`);
   const end = Date.parse(`${filters.to}T00:00:00Z`);
   return Number.isNaN(start) || Number.isNaN(end) ? 0 : Math.round((end - start) / 86_400_000) + 1;
 }
 
-/** AAAA-MM-DD como DD/MM, sem passar por fuso: é data de calendário. */
+/** YYYY-MM-DD as DD/MM, without going through a time zone: it is a calendar date. */
 function shortDate(value: string): string {
   const [, month, day] = value.split('-');
   return month === undefined || day === undefined ? value : `${day}/${month}`;

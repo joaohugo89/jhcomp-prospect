@@ -18,7 +18,7 @@ import { PipelineColumn } from './PipelineColumn';
 
 const NO_FILTERS: BoardFilters = { search: '', segment: '', city: '' };
 
-/** Escolha de quem usa, por etapa; sem escolha, etapa vazia começa recolhida. */
+/** The user's choice, per stage; with no choice, an empty stage starts collapsed. */
 type CollapsedStages = Readonly<Partial<Record<LeadStatus, boolean>>>;
 
 function parseDensity(raw: unknown): Density | undefined {
@@ -37,12 +37,13 @@ function parseCollapsed(raw: unknown): CollapsedStages | undefined {
 }
 
 /**
- * Pipeline em Kanban (RF-040, doc 08 §8).
+ * The Kanban pipeline (RF-040, doc 08 §8).
  *
- * Mover card é mudar o status do lead (D2): o servidor valida a transição.
- * Arrastar é atalho; o botão "Mover" faz o mesmo pelo teclado. Destinos que
- * pedem confirmação (`CONTACTED` e estados finais) nunca são aplicados direto
- * ao soltar: abrem o formulário do card com o destino escolhido.
+ * Moving a card is changing the lead's status (D2), and the server validates
+ * the transition. Dragging is a shortcut; the move button does the same from
+ * the keyboard. Targets that require confirmation — `CONTACTED` and the final
+ * states — are never applied straight on drop: they open the card's form with
+ * the target preselected.
  */
 export function PipelinePage(): React.JSX.Element {
   const { draft, setDraft, applied, apply, isFiltered, queryKey } = useFilters(NO_FILTERS);
@@ -56,7 +57,7 @@ export function PipelinePage(): React.JSX.Element {
     {},
     parseCollapsed,
   );
-  // "Agora" dos sinais: fixo enquanto a tela está aberta, para todos os cards concordarem.
+  // "Now" for the signals: fixed while the screen is open, so every card agrees.
   const [now] = useState(() => Date.now());
 
   async function drop(card: BoardCard, target: LeadStatus): Promise<void> {
@@ -199,7 +200,7 @@ export function PipelinePage(): React.JSX.Element {
   );
 }
 
-/** Totais do quadro: o que está em aberto e o que foi ganho na janela das colunas finais. */
+/** Board totals: what is open, and what was won inside the final columns' window. */
 function BoardSummary({ columns }: { readonly columns: readonly BoardColumn[] }): React.JSX.Element {
   const open = columns.filter((column) => !column.stage.terminal);
   const won = columns.find((column) => column.stage.key === 'WON');
@@ -226,7 +227,7 @@ function BoardSummary({ columns }: { readonly columns: readonly BoardColumn[] })
   );
 }
 
-/** Compacto mostra mais leads por tela; detalhado traz tudo o que o card sabe. */
+/** Compact shows more leads per screen; detailed shows everything the card knows. */
 function DensityToggle({
   density,
   onChange,

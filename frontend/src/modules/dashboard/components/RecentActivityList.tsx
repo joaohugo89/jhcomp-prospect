@@ -18,7 +18,7 @@ import { Link } from '../../../app/router';
 import { card } from '../../../components/styles';
 import type { RecentActivity, Transition } from '../model/dashboardData';
 
-/** Tone suave por natureza do evento, da paleta da aplicação. */
+/** A soft tone per kind of event, from the application palette. */
 type Tone = 'emerald' | 'brand' | 'sky' | 'violet' | 'slate' | 'red';
 
 const TONE: Readonly<Record<Tone, { readonly icon: string; readonly badge: string }>> = {
@@ -39,13 +39,13 @@ const TONE: Readonly<Record<Tone, { readonly icon: string; readonly badge: strin
 interface Presentation {
   readonly icon: LucideIcon;
   readonly tone: Tone;
-  /** Etiqueta à direita: a etapa de chegada ou o tipo de interação. */
+  /** The tag on the right: the stage reached, or the interaction type. */
   readonly etiqueta: string;
-  /** Linha de detail sob o nome da empresa. */
+  /** The detail line under the company name. */
   readonly detail: string;
 }
 
-/** Últimas alterações em cartões compactos. Só apresenta: não carrega nada. */
+/** The latest changes in compact cards. Presentation only: it loads nothing. */
 export function RecentActivityList({
   atividades,
 }: {
@@ -55,7 +55,7 @@ export function RecentActivityList({
     return <p className="text-sm text-stone-600">Nenhuma atividade no período.</p>;
   }
   return (
-    // Uma lista só, com divisórias: seis atividades cabem onde antes cabiam quatro cartões.
+    // A single divided list: six activities fit where four cards used to.
     <ul className={`${card} divide-y divide-stone-100`}>
       {atividades.map((atividade) => (
         <ActivityItem key={atividade.id} atividade={atividade} />
@@ -139,7 +139,7 @@ function apresentar(transition: Transition): Presentation {
 const HOUR = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const DAY = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' });
 
-/** Só a hora para eventos de hoje; dia e mês para os anteriores. A data completa fica no `title`. */
+/** Time only for today's events, day and month for older ones. The full date is in the `title`. */
 function horario(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {

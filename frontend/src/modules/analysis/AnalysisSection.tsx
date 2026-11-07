@@ -11,12 +11,13 @@ import type { AnalysisDetail, AnalysisSummary } from '../../types/analysis';
 import type { Lead, LeadPriority } from '../../types/lead';
 import { FindingRow } from './FindingRow';
 
-/** Intervalo entre consultas enquanto a análise roda em segundo plano. */
+/** Interval between polls while the analysis runs in the background. */
 const POLL_MS = 3000;
 
 /**
- * Faixas sugeridas do doc 06 §7. Só sugestão: a prioridade continua sendo
- * decisão do operador, e as faixas ainda não foram calibradas com dados reais.
+ * The suggested bands from doc 06 §7. A suggestion only: priority remains the
+ * operator's decision, and the bands have not been calibrated against real
+ * outcomes yet.
  */
 function suggestedPriority(score: number): LeadPriority {
   if (score >= 80) {
@@ -33,8 +34,8 @@ function isActive(analysis: AnalysisSummary): boolean {
 }
 
 /**
- * Presença digital do lead (doc 08 §7): pedido, acompanhamento, achados e
- * decomposição do score (RF-030 a RF-033).
+ * The lead's digital presence (doc 08 §7): request, progress, findings and
+ * the score breakdown (RF-030 to RF-033).
  */
 export function AnalysisSection({
   lead,
@@ -50,7 +51,7 @@ export function AnalysisSection({
   const latest = state.kind === 'ready' ? state.data.content[0] : undefined;
   const active = latest !== undefined && isActive(latest);
 
-  // Acompanha a análise em andamento consultando de tempos em tempos.
+  // Follows a running analysis by polling at intervals.
   useEffect(() => {
     if (!active) {
       return undefined;
@@ -61,8 +62,8 @@ export function AnalysisSection({
     };
   }, [active, reload]);
 
-  // Ao terminar, o score do lead mudou no servidor: avisa a página. Só na
-  // transição de "em andamento" para "concluída", nunca durante a renderização.
+  // On completion the lead's score changed on the server, so tell the page.
+  // Only on the transition from running to completed, never during rendering.
   const notifyScoreChanged = useEffectEvent(onScoreChanged);
   const wasActive = useRef(false);
   const completed = latest?.status === 'COMPLETED';

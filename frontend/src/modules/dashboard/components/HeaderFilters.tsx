@@ -12,15 +12,15 @@ export const PRESETS: readonly number[] = [7, 30, 90];
 interface HeaderFiltersProps {
   readonly draft: DashboardFilters;
   readonly onDraftChange: (next: DashboardFilters) => void;
-  /** Aplica o rascunho; o botão fica desabilitado com período inválido. */
+  /** Applies the draft; the button is disabled while the period is invalid. */
   readonly onApply: () => void;
-  /** Atalho: aplica na hora os últimos `days` dias, mantendo os outros filtros. */
+  /** Shortcut: applies the last `days` days immediately, keeping the other filters. */
   readonly onPreset: (days: number) => void;
-  /** Atalho cujo período coincide com o aplicado; ausente é período personalizado. */
+  /** The shortcut matching the applied period; absent means a custom period. */
   readonly activePreset: number | undefined;
-  /** Membros ativos, para filtrar por responsável. */
+  /** Active members, for filtering by owner. */
   readonly team: readonly Teammate[];
-  /** Quem está usando: vira a opção "Meus leads". */
+  /** Who is using it: becomes the "my leads" option. */
   readonly currentUserId: string;
 }
 
@@ -28,9 +28,9 @@ const toolbarButton =
   'inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500';
 
 /**
- * Período e filtros, à direita do título. Atalhos de período aplicam na hora;
- * o período personalizado, o segmento, a cidade e a origem ficam num painel
- * e valem ao aplicar.
+ * Period and filters, to the right of the title. Period shortcuts apply
+ * immediately; the custom period, the segment, the city and the origin live in
+ * a panel and take effect on apply.
  */
 export function HeaderFilters({
   draft,
@@ -44,7 +44,7 @@ export function HeaderFilters({
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
 
-  // Esc fecha o painel e devolve o foco ao botão que o abriu.
+  // Esc closes the panel and returns focus to the button that opened it.
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -122,8 +122,9 @@ export function HeaderFilters({
       </div>
 
       {open && (
-        // Fundo do painel: tocar fora fecha, e o toque não atravessa para o que está
-        // embaixo (no celular, acionaria um card ou link sem querer). Teclado fecha com Esc.
+        // The panel backdrop: tapping outside closes it, and the tap does not
+        // pass through to what is underneath (on mobile it would trigger a card
+        // or a link by accident). The keyboard closes with Esc.
         // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           aria-hidden="true"

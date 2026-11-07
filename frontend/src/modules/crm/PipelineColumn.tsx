@@ -10,7 +10,7 @@ interface PipelineColumnProps {
   readonly column: BoardColumn;
   readonly density: Density;
   readonly now: number;
-  /** Recolhida: faixa estreita com nome e contagem, que continua aceitando cards. */
+  /** Collapsed: a narrow strip with name and count that still accepts cards. */
   readonly collapsed: boolean;
   readonly onToggle: () => void;
   readonly dragging: BoardCard | null;
@@ -25,12 +25,12 @@ interface PipelineColumnProps {
 const toggleButton =
   'rounded-md p-1 text-stone-400 hover:glass hover:text-stone-700 focus-visible:outline-2 focus-visible:outline-brand-500';
 
-/** Uma etapa do Kanban: cabeçalho com contagem e valor, cards que rolam por dentro. */
+/** One Kanban stage: a header with count and value, and cards that scroll inside. */
 export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
   const { column, collapsed, dragging } = props;
   const { stage, total, totalValue, recentDays, cards } = column;
   const accepts = dragging !== null && dragging.allowedTransitions.includes(stage.key);
-  // Ao arrastar, as etapas que não aceitam o card ficam apagadas: o destino possível salta aos olhos.
+  // While dragging, stages that cannot take the card are dimmed, so the possible target stands out.
   const refuses = dragging !== null && !accepts && dragging.status !== stage.key;
   const headingId = `coluna-${stage.key}`;
 
@@ -39,7 +39,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
     : `border-stone-200 bg-stone-100 ${refuses ? 'opacity-50' : ''}`;
 
   return (
-    // Arrastar é atalho de mouse; o teclado usa o botão "Mover" de cada card.
+    // Dragging is a mouse shortcut; the keyboard uses each card's move button.
     // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <section
       aria-labelledby={headingId}
@@ -112,7 +112,7 @@ export function PipelineColumn(props: PipelineColumnProps): React.JSX.Element {
           {cards.length === 0 ? (
             <p className="py-4 text-center text-xs text-stone-500">Nenhum lead nesta etapa.</p>
           ) : (
-            // Rola por dentro da coluna; o -mx/px deixa o contorno de foco dos cards visível.
+            // Scrolls inside the column; the -mx/px keeps the cards' focus ring visible.
             <ul className="space-y-2 md:-mx-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:px-1 md:pb-1">
               {cards.map((card) => (
                 <li key={card.leadId}>

@@ -3,9 +3,9 @@ import type { ConversionView } from '../model/dashboardData';
 import { DashboardSection } from './DashboardSection';
 
 /**
- * Cor fixa por origem, nunca pela posição na lista: trocar o filtro não
- * repinta as origens que continuam. A legenda (nome ao lado) carrega a
- * identidade; a cor só reforça.
+ * A fixed colour per origin, never by position in the list: changing the
+ * filter does not repaint the origins that remain. The legend beside it
+ * carries the identity; colour only reinforces.
  */
 const SOURCE_COLOR: Readonly<Record<string, string>> = {
   CSV_IMPORT: 'bg-brand-600',
@@ -14,13 +14,13 @@ const SOURCE_COLOR: Readonly<Record<string, string>> = {
 };
 const OTHER_COLOR = 'bg-stone-400';
 
-/** Origem dos leads abertos no período: participação de cada uma no total. */
+/** Origin of the leads opened in the period: each one's share of the total. */
 export function LeadSourceSplit({
   conversion,
   sourceHref,
 }: {
   readonly conversion: ConversionView | undefined;
-  /** Drill-down: a origem abre a lista de leads dela; ausente na pré-visualização. */
+  /** Drill-down: the origin opens its own list of leads; absent in the preview. */
   readonly sourceHref?: (source: string) => string;
 }): React.JSX.Element {
   const total = conversion?.total.leads ?? 0;

@@ -20,9 +20,9 @@ const DAY = 86_400_000;
 const RECENT = 3;
 
 /**
- * Resumo do lead ao lado da lista: o essencial para decidir sem sair dela.
- * Painel não modal (a lista continua usável); Esc fecha e devolve o foco a
- * quem abriu.
+ * The lead summary beside the list: enough to decide without leaving it. A
+ * non-modal panel — the list stays usable — and Esc closes it and returns
+ * focus to whatever opened it.
  */
 export function LeadPreview({
   leadId,
@@ -35,7 +35,7 @@ export function LeadPreview({
 }): React.JSX.Element {
   const [summary, reload] = useLoad(leadId, (signal) => getLeadSummary(leadId, signal));
   const heading = useRef<HTMLHeadingElement>(null);
-  // Ao carregar, o foco vai para o título; ao fechar, o painel devolve a quem abriu.
+  // On load focus moves to the title; on close the panel returns it to the opener.
   useEffect(() => {
     if (summary.kind === 'ready') {
       heading.current?.focus();

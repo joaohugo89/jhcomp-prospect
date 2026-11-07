@@ -9,7 +9,7 @@ import type { AttentionView, AttentionRow, AttentionSectionView } from '../model
 interface SectionSpec {
   readonly key: keyof AttentionView;
   readonly title: string;
-  /** Por que o item está aqui; aparece sob o nome da empresa. */
+  /** Why the item is here; shown under the company name. */
   readonly reason: (item: AttentionRow, now: number) => string;
   readonly icon: LucideIcon;
   readonly tone: string;
@@ -53,19 +53,19 @@ const SECTIONS: readonly SectionSpec[] = [
 ];
 
 /**
- * "Precisa de atenção": o que fazer agora, antes dos números do período.
- * Cada linha leva ao lead; vazio é boa notícia e diz isso.
+ * "Needs attention": what to do now, ahead of the period's numbers. Each row
+ * leads to its lead; empty is good news and says so.
  */
 export function AttentionPanel({
   atencao,
   now,
 }: {
   readonly atencao: AttentionView;
-  /** Instante de referência para "há N dias". */
+  /** The reference instant for "N days ago". */
   readonly now: number;
 }): React.JSX.Element {
   const total = SECTIONS.reduce((sum, spec) => sum + atencao[spec.key].total, 0);
-  // Só o que tem pendência vira cartão; o resto cabe numa linha de "em dia".
+  // Only sections with something outstanding become cards; the rest fit on one "all clear" line.
   const pending = SECTIONS.filter((spec) => atencao[spec.key].total > 0);
   const clear = SECTIONS.filter((spec) => atencao[spec.key].total === 0);
 
@@ -118,7 +118,7 @@ export function AttentionPanel({
   );
 }
 
-/** Cartões por linha conforme quantas seções têm pendência: nada de cartão vazio ocupando espaço. */
+/** Cards per row according to how many sections have work: no empty card taking up space. */
 const CARD_GRID: Readonly<Record<number, string>> = {
   1: 'grid-cols-1',
   2: 'md:grid-cols-2',
@@ -126,7 +126,7 @@ const CARD_GRID: Readonly<Record<number, string>> = {
   4: 'sm:grid-cols-2 xl:grid-cols-4',
 };
 
-/** Com poucas seções o cartão é largo: os items se espalham em colunas em vez de virar uma lista estreita. */
+/** With few sections the card is wide: the items spread into columns instead of a narrow list. */
 const ITEM_GRID: Readonly<Record<number, string>> = {
   1: 'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5',
   2: 'lg:grid-cols-2',

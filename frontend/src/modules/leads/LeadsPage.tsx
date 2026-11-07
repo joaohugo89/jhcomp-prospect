@@ -26,12 +26,12 @@ function pick<T extends string>(options: readonly T[], value: string): T | '' {
 }
 
 /**
- * Lista de leads como fila de trabalho (RF-012, doc 08 §6, D31).
+ * The lead list as a work queue (RF-012, doc 08 §6, D31).
  *
- * Cada linha diz o que fazer com o lead; clicar abre o resumo ao lado. Os
- * filtros moram na URL (drill-down do dashboard, favoritos e visões salvas
- * usam a mesma forma), e a ordem da página alimenta o "anterior/próximo" do
- * detalhe.
+ * Each row says what to do with the lead; clicking opens the summary beside
+ * it. The filters live in the URL — the dashboard drill-down, bookmarks and
+ * saved views all use the same form — and the page's order feeds the
+ * previous/next navigation in the detail.
  */
 export function LeadsPage({ session }: { readonly session: Session }): React.JSX.Element {
   const [applied, setApplied] = useState<WorklistFilters>(() => filtersFromQuery(window.location.search));
@@ -41,7 +41,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
-  // Filtros secundários: contados no botão e abertos de saída quando a URL já traz algum.
+  // Secondary filters: counted on the button, and open from the start when the URL already carries one.
   const advancedCount = [
     applied.priority,
     applied.city.trim(),
@@ -56,7 +56,7 @@ export function LeadsPage({ session }: { readonly session: Session }): React.JSX
     page: await listWorklist(applied, page, signal),
     receivedAt: Date.now(),
   }));
-  // Ao trocar filtro ou página, a tabela anterior fica, atenuada, até a nova chegar.
+  // On a filter or page change the previous table stays, dimmed, until the new one arrives.
   const shown = useLastReady(state);
   const [segments] = useLoad('segments', (signal) => getSegments(signal));
   const [team] = useLoad('team', (signal) => getTeam(signal));

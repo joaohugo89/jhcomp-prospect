@@ -17,7 +17,7 @@ import {
 } from '../../types/crm';
 import type { Lead } from '../../types/lead';
 
-/** Abordagens: as que o bloqueio de não contato impede quando partem de nós. */
+/** Approaches: the ones a do-not-contact block prevents when they come from us. */
 const APPROACHES: ReadonlySet<InteractionType> = new Set(['CONTACT', 'MEETING', 'PROPOSAL']);
 
 const DEFAULT_DIRECTION: Readonly<Record<InteractionType, InteractionDirection>> = {
@@ -34,11 +34,12 @@ function pick<T extends string>(options: readonly T[], value: string, fallback: 
 }
 
 /**
- * Registro de interação (RF-041, D25).
+ * Recording an interaction (RF-041, D25).
  *
- * Registrar contato não muda o status do lead: `CONTACTED` continua sendo
- * decisão do operador (regra 6). Pedido de não contato é a exceção e move o
- * lead para "Não contatar" na hora, por isso pede confirmação.
+ * Recording a contact does not change the lead's status: `CONTACTED` remains
+ * the operator's decision (rule 6). A do-not-contact request is the exception
+ * and moves the lead there immediately, which is why it asks for
+ * confirmation.
  */
 export function InteractionForm({
   lead,
@@ -58,7 +59,7 @@ export function InteractionForm({
   const [message, setMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ReadonlyMap<string, string>>(new Map());
 
-  // A regra é do servidor (409); aqui só evita o envio que já se sabe recusado.
+  // The rule belongs to the server (409); this only avoids a request already known to fail.
   const blocked = lead.status === 'DO_NOT_CONTACT' && APPROACHES.has(type) && direction === 'OUTBOUND';
 
   async function submit(): Promise<void> {
