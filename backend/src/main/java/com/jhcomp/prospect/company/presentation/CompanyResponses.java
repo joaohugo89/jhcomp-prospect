@@ -11,11 +11,11 @@ import com.jhcomp.prospect.company.infrastructure.persistence.CompanyEntity;
 import com.jhcomp.prospect.company.infrastructure.persistence.LeadSourceEntity;
 
 /**
- * Respostas do modulo de empresa.
+ * Responses of the company module.
  *
- * <p>Nao expoem {@code organizationId} nem as colunas normalizadas: a primeira
- * e implicita na sessao, as outras servem para comparar, nunca para exibir
- * (doc 04 §2).
+ * <p>They expose neither {@code organizationId} nor the normalised columns:
+ * the first is implicit in the session, the others exist to compare and never
+ * to display (doc 04 §2).
  */
 public final class CompanyResponses {
 
@@ -61,7 +61,7 @@ public final class CompanyResponses {
         }
     }
 
-    /** Origem de um dado (RF-022). */
+    /** The origin of a value (RF-022). */
     public record SourceResponse(
             UUID id,
             UUID leadId,
@@ -87,7 +87,7 @@ public final class CompanyResponses {
         }
     }
 
-    /** Possivel duplicata (RF-014). Sugestao para revisao, nunca mesclagem. */
+    /** A possible duplicate (RF-014). A suggestion for review, never a merge. */
     public record DuplicateCandidateResponse(
             UUID companyId, String name, String city, String state, boolean archived, Set<DuplicateSignal> signals) {
 

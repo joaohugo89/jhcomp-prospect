@@ -11,9 +11,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Cadastro de empresa (RF-010, doc 05 §4).
+ * Company creation (RF-010, doc 05 §4).
  *
- * <p>Nao ha {@code organizationId}: a organizacao vem da sessao.
+ * <p>There is no {@code organizationId}: the organisation comes from the
+ * session.
  */
 public record CreateCompanyRequest(
         @NotBlank @Size(max = 200) String name,

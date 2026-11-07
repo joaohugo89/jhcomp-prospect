@@ -29,16 +29,16 @@ import com.jhcomp.prospect.shared.web.PageResponse;
 import jakarta.validation.Valid;
 
 /**
- * Empresas (RF-010, RF-012, RF-014, RF-022; doc 05 §4).
+ * Companies (RF-010, RF-012, RF-014, RF-022; doc 05 §4).
  *
- * <p>Sem regra de negocio: valida a entrada e delega ao caso de uso. Nenhum
- * parametro carrega a organizacao.
+ * <p>No business logic: it validates the input and delegates to the use case.
+ * No parameter carries the organisation.
  */
 @RestController
 @RequestMapping("/companies")
 public class CompanyController {
 
-    /** Campo publico de ordenacao para propriedade da entidade. */
+    /** A public sort field mapped to an entity property. */
     private static final Map<String, String> SORTABLE = Map.of(
             "name", "normalizedName",
             "city", "city",
@@ -81,13 +81,13 @@ public class CompanyController {
         return PageResponse.from(companyService.list(criteria, pageable), CompanyResponse::from);
     }
 
-    /** Segmentos em uso, para o filtro e para sugerir no cadastro (sem criar grafias novas por engano). */
+    /** Segments in use, for the filter and for suggestions in the form, so no new spelling is created by accident. */
     @GetMapping("/segments")
     public CompanySegmentsQuery.Segments segments() {
         return segmentsQuery.segments(organizationContext.requireOrganizationId());
     }
 
-    /** Possiveis duplicatas enquanto o cadastro e digitado (RF-014). So sugere. */
+    /** Possible duplicates while the form is typed (RF-014). It only suggests. */
     @PostMapping("/duplicate-check")
     public List<DuplicateCandidateResponse> duplicateCheck(
             @Valid @RequestBody CompanyToolRequests.DuplicateCheckRequest request) {
@@ -96,7 +96,7 @@ public class CompanyController {
                 .toList();
     }
 
-    /** Segmento ou cidade em varias empresas de uma vez. */
+    /** Segment or city across several companies at once. */
     @PostMapping("/bulk")
     public CompanyService.BulkResult bulk(@Valid @RequestBody CompanyToolRequests.BulkUpdateRequest request) {
         return companyService.bulkUpdate(request.companyIds(), request.segment(), request.city(), request.state());
@@ -117,7 +117,7 @@ public class CompanyController {
         return CompanyResponse.from(companyService.archive(companyId));
     }
 
-    /** Historico de origem da empresa (RF-022). */
+    /** The company's provenance history (RF-022). */
     @GetMapping("/{companyId}/sources")
     public PageResponse<SourceResponse> sources(
             @PathVariable UUID companyId,
@@ -128,7 +128,7 @@ public class CompanyController {
         return PageResponse.from(companyService.sources(companyId, pageable), SourceResponse::from);
     }
 
-    /** Possiveis duplicatas (RF-014). No maximo dez por sinal. */
+    /** Possible duplicates (RF-014). At most ten per signal. */
     @GetMapping("/{companyId}/duplicates")
     public List<DuplicateCandidateResponse> duplicates(@PathVariable UUID companyId) {
         return companyService.duplicates(companyId).stream()

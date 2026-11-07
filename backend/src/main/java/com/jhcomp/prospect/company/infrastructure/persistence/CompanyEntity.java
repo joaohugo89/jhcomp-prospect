@@ -14,17 +14,17 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 /**
- * Empresa: cadastro mestre (RF-010, doc 06 §1).
+ * A company: the master record (RF-010, doc 06 §1).
  *
- * <p>Uma empresa pode existir sem oportunidade ativa. Company e Lead nao sao
- * sinonimos.
+ * <p>A company can exist with no active opportunity. Company and Lead are not
+ * synonyms.
  *
- * <p>As colunas normalizadas sao derivadas pelo {@link ContactNormalizer}
- * dentro desta classe, e nao pelo chamador: deixar a derivacao do lado de fora
- * permitiria gravar um registro com normalizacao divergente, e a deduplicacao e
- * o bloqueio de contato dependem dela (decisao D10).
+ * <p>The normalised columns are derived by {@link ContactNormalizer} inside
+ * this class rather than by the caller: leaving the derivation outside would
+ * allow a record to be written with divergent normalisation, and both
+ * deduplication and contact blocking depend on it (decision D10).
  *
- * <p>Nunca exposta diretamente na API (doc 03 §5).
+ * <p>Never exposed directly by the API (doc 03 §5).
  */
 @Entity
 @Table(name = "company")
@@ -74,11 +74,11 @@ public class CompanyEntity extends AssignedIdEntity {
     @Column(name = "archived_at")
     private Instant archivedAt;
 
-    /** Quem cadastrou ou importou. Nao muda com mesclagem (D32). */
+    /** Who registered or imported it. Unchanged by a merge (D32). */
     @Column(name = "created_by_user_id", updatable = false)
     private UUID createdByUserId;
 
-    /** Empresa que absorveu esta numa mesclagem (D32). Gravada so pela mesclagem, com trava. */
+    /** The company that absorbed this one in a merge (D32). Written only by the merge, under a lock. */
     @Column(name = "merged_into_company_id", insertable = false, updatable = false)
     private UUID mergedIntoCompanyId;
 
@@ -89,7 +89,7 @@ public class CompanyEntity extends AssignedIdEntity {
     private Instant updatedAt;
 
     protected CompanyEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public CompanyEntity(UUID id, UUID organizationId, UUID createdByUserId, CompanyData data, Instant now) {
@@ -101,7 +101,7 @@ public class CompanyEntity extends AssignedIdEntity {
         apply(data);
     }
 
-    /** Dados editaveis de uma empresa. */
+    /** A company's editable data. */
     public record CompanyData(
             String name,
             String tradeName,
@@ -133,8 +133,8 @@ public class CompanyEntity extends AssignedIdEntity {
         this.address = Texts.blankToNull(data.address());
         this.notes = Texts.blankToNull(data.notes());
 
-        // Derivados. Nulos quando o valor informado nao permite normalizacao
-        // confiavel; um palpite aproximaria registros distintos.
+        // Derived. Null when the value given does not allow confident
+        // normalisation; a guess would draw distinct records together.
         this.normalizedName = ContactNormalizer.name(this.name).orElseThrow(
                 () -> new IllegalArgumentException("Company name cannot be normalized"));
         this.normalizedDomain = ContactNormalizer.domain(this.websiteUrl).orElse(null);
@@ -142,13 +142,14 @@ public class CompanyEntity extends AssignedIdEntity {
     }
 
     /**
-     * Preenche apenas os campos opcionais que estao vazios.
+     * Fills only the optional fields that are empty.
      *
-     * <p>Nunca sobrescreve valor existente (RF-023): um dado ja cadastrado pode
-     * ter sido confirmado por outra fonte, e uma planilha nao tem como saber.
-     * Nome, cidade e estado nunca mudam por aqui: identificam a empresa.
+     * <p>It never overwrites an existing value (RF-023): data already on file
+     * may have been confirmed by another source, and a spreadsheet has no way
+     * of knowing. Name, city and state never change here: they identify the
+     * company.
      *
-     * @return chaves da API dos campos preenchidos, na ordem do cadastro
+     * @return the API keys of the fields filled, in form order
      */
     public List<String> fillBlanks(CompanyData incoming, Instant now) {
         List<String> filled = new ArrayList<>();

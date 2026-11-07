@@ -19,11 +19,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * Oportunidade comercial associada a uma empresa (RF-011, doc 06 §1).
+ * A commercial opportunity attached to a company (RF-011, doc 06 §1).
  *
- * <p>{@code status} e a fonte unica do estado comercial (decisao D2). As
- * transicoes validas vivem em {@link LeadStatusTransitions}; esta classe apenas
- * as aplica e mantem {@code closed_at} coerente com o estado.
+ * <p>{@code status} is the single source of commercial state (decision D2).
+ * The valid transitions live in {@link LeadStatusTransitions}; this class only
+ * applies them and keeps {@code closed_at} consistent with the state.
  */
 @Entity
 @Table(name = "lead")
@@ -36,8 +36,9 @@ public class LeadEntity extends AssignedIdEntity {
     private UUID companyId;
 
     /**
-     * Empresa, somente leitura: a coluna e gravada por {@code companyId}. Existe
-     * para filtrar e exibir a listagem sem uma consulta por linha.
+     * The company, read-only: the column is written through {@code companyId}.
+     * It exists so the listing can filter and display without one query per
+     * row.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", insertable = false, updatable = false)
@@ -69,15 +70,15 @@ public class LeadEntity extends AssignedIdEntity {
     private Instant closedAt;
 
     protected LeadEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     /**
-     * Abre uma oportunidade para a empresa.
+     * Opens an opportunity for the company.
      *
-     * <p>Recebe a empresa, e nao seu id solto: a organizacao do lead e
-     * derivada dela, e assim nao ha como montar um lead de uma organizacao
-     * apontando para empresa de outra (a V4 tambem recusa no banco).
+     * <p>It takes the company, not a loose id: the lead's organisation is
+     * derived from it, so there is no way to build a lead of one organisation
+     * pointing at a company of another (V4 refuses it in the database too).
      */
     public LeadEntity(UUID id, CompanyEntity company, LeadPriority priority, Instant now) {
         super(id);
@@ -91,11 +92,12 @@ public class LeadEntity extends AssignedIdEntity {
     }
 
     /**
-     * Aplica uma transicao de estado.
+     * Applies a state transition.
      *
-     * @return {@code true} se o estado mudou; {@code false} se o estado
-     *     informado era o atual, caso em que nada e alterado
-     * @throws IllegalStateException se a transicao nao for permitida
+     * @return {@code true} when the state changed; {@code false} when the
+     *     state given was already the current one, in which case nothing is
+     *     altered
+     * @throws IllegalStateException when the transition is not allowed
      */
     public boolean changeStatus(LeadStatus newStatus, Instant now) {
         if (!LeadStatusTransitions.isAllowed(this.status, newStatus)) {
@@ -107,15 +109,15 @@ public class LeadEntity extends AssignedIdEntity {
         }
 
         this.status = newStatus;
-        // closed_at acompanha o estado terminal; o banco tem CHECK para a
-        // mesma regra, de modo que um caminho que esqueca disso falha cedo.
+        // closed_at follows the terminal state; the database has a CHECK for
+        // the same rule, so any path that forgets it fails early.
         this.closedAt = newStatus.isTerminal() ? now : null;
         this.updatedAt = now;
 
         return true;
     }
 
-    /** Score da ultima analise concluida, com a versao da formula (D3). */
+    /** The score of the latest completed analysis, with the formula version (D3). */
     public void applyScore(int newScore, String version, Instant now) {
         this.score = newScore;
         this.scoreVersion = version;

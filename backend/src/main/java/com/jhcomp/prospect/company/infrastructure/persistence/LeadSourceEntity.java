@@ -14,13 +14,14 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 /**
- * Proveniencia: de onde veio um dado e quando foi coletado (RF-020, RF-022).
+ * Provenance: where a value came from and when it was collected (RF-020,
+ * RF-022).
  *
- * <p>Fica no modulo de empresa porque descreve a origem do dado da empresa
- * ({@code company_id} obrigatorio, D6); {@code lead_id} e preenchido quando a
- * origem tambem justifica uma oportunidade.
+ * <p>It lives in the company module because it describes the origin of the
+ * company's data ({@code company_id} is mandatory, D6); {@code lead_id} is
+ * filled when the origin also justifies an opportunity.
  *
- * <p>Registro acrescido, nunca alterado: nao ha metodo de atualizacao.
+ * <p>An append-only record, never altered: there is no update method.
  */
 @Entity
 @Table(name = "lead_source")
@@ -61,7 +62,7 @@ public class LeadSourceEntity extends AssignedIdEntity {
     private Instant createdAt;
 
     protected LeadSourceEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public LeadSourceEntity(
@@ -86,7 +87,7 @@ public class LeadSourceEntity extends AssignedIdEntity {
         this.collectedByUserId = collectedByUserId;
     }
 
-    /** Dados de uma origem, como informados pelo operador ou pela importacao. */
+    /** An origin's data, as given by the operator or by the import. */
     public record SourceData(
             SourceType type, String name, String reference, String url, Instant collectedAt, String note) {}
 

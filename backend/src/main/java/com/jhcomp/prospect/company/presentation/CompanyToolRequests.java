@@ -12,15 +12,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/** Pedidos das ferramentas da lista de empresas: duplicata ao digitar e edicao em lote. */
+/** Requests from the company list's tools: duplicate-while-typing and bulk editing. */
 public final class CompanyToolRequests {
 
     private CompanyToolRequests() {
     }
 
     /**
-     * O que o formulario tem ate agora. Por POST, e nao query string: telefone
-     * e site nao vao parar em log de acesso.
+     * What the form holds so far. A POST rather than a query string: the phone
+     * and the site must not end up in an access log.
      */
     public record DuplicateCheckRequest(
             @Size(max = 200) String name,
@@ -35,7 +35,7 @@ public final class CompanyToolRequests {
         }
     }
 
-    /** Segmento e/ou cidade com estado; o que vier nulo nao muda. */
+    /** Segment and/or city with state; whatever arrives null is left unchanged. */
     public record BulkUpdateRequest(
             @NotEmpty @Size(max = CompanyService.MAX_BULK) List<@NotNull UUID> companyIds,
             @Size(max = 80) @Pattern(regexp = InputPatterns.NOT_BLANK_WHEN_PRESENT, message = "must not be blank")

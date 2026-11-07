@@ -9,10 +9,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Atualizacao parcial de empresa (doc 05 §4).
+ * A partial company update (doc 05 §4).
  *
- * <p>Campo ausente mantem o valor; texto vazio limpa um campo opcional. Nome,
- * cidade e estado sao obrigatorios e nao podem ser limpos.
+ * <p>An absent field keeps its value; an empty string clears an optional one.
+ * Name, city and state are required and cannot be cleared.
  */
 public record UpdateCompanyRequest(
         @Size(max = 200) @Pattern(regexp = InputPatterns.NOT_BLANK_WHEN_PRESENT, message = "must not be blank")

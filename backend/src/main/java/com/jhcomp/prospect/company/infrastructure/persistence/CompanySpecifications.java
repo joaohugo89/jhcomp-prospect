@@ -13,17 +13,17 @@ import com.jhcomp.prospect.shared.persistence.LikePatterns;
 import jakarta.persistence.criteria.Predicate;
 
 /**
- * Filtros combinaveis da listagem de empresas (RF-012).
+ * Combinable filters for the company listing (RF-012).
  *
- * <p>O escopo de organizacao nao e um filtro opcional: e aplicado sempre, e
- * nao existe forma de montar a consulta sem ele.
+ * <p>The organisation scope is not an optional filter: it is always applied,
+ * and there is no way to build the query without it.
  */
 public final class CompanySpecifications {
 
     private CompanySpecifications() {
     }
 
-    /** Criterios de listagem. Campos nulos ou vazios nao filtram. */
+    /** Listing criteria. Null or empty fields filter nothing. */
     public record Criteria(String search, String segment, String city, String state, boolean includeArchived) {}
 
     public static Specification<CompanyEntity> matching(UUID organizationId, Criteria criteria) {
@@ -35,14 +35,14 @@ public final class CompanySpecifications {
                 predicates.add(builder.isNull(root.get("archivedAt")));
             }
 
-            // A busca compara com o nome normalizado, pela mesma regra usada
-            // ao gravar (D10): "salao" encontra "Salão", e espaco excedente no
-            // termo nao impede o resultado.
+            // The search compares against the normalised name, by the same
+            // rule used when writing (D10): "salao" finds "Salão", and extra
+            // whitespace in the term does not prevent a match.
             ContactNormalizer.name(criteria.search()).ifPresent(term -> predicates.add(builder.like(
                     root.get("normalizedName"), LikePatterns.contains(term), LikePatterns.ESCAPE)));
 
             if (hasText(criteria.segment())) {
-                // Mesmo segmento com outra caixa ou espaco nas pontas (CompanyOriginSql.SEGMENT_EQUALS).
+                // The same segment in another case or with surrounding spaces (CompanyOriginSql.SEGMENT_EQUALS).
                 predicates.add(builder.equal(
                         builder.lower(builder.trim(root.get("segment"))),
                         criteria.segment().strip().toLowerCase(Locale.ROOT)));

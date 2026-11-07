@@ -1,14 +1,15 @@
 package com.jhcomp.prospect.company.domain;
 
 /**
- * Sinal que aproximou duas empresas (doc 06 §4), do mais forte ao mais fraco.
+ * The signal that brought two companies together (doc 06 §4), strongest
+ * first.
  *
- * <p>Sinal e sugestao, nunca decisao: nenhuma mesclagem acontece sem revisao
- * humana (RF-014).
+ * <p>A signal is a suggestion, never a decision: no merge happens without
+ * human review (RF-014).
  */
 public enum DuplicateSignal {
     DOMAIN,
     PHONE,
-    /** Nome normalizado igual na mesma cidade e estado. */
+    /** An identical normalised name in the same city and state. */
     NAME_CITY_STATE
 }

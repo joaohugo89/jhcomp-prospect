@@ -11,13 +11,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /**
- * Empresas.
+ * Companies.
  *
- * <p>Toda consulta recebe {@code organizationId} (RNF-001, doc 04 §4). O
- * {@code findById} herdado nao e usado pelos casos de uso: buscar por id sem
- * escopo e exatamente o que permite acesso cruzado entre organizacoes.
- * Listagens filtradas usam {@link CompanySpecifications}, que sempre aplica o
- * escopo.
+ * <p>Every query takes {@code organizationId} (RNF-001, doc 04 §4). The
+ * inherited {@code findById} is not used by the use cases: looking something
+ * up by id without a scope is exactly what allows cross-organisation access.
+ * Filtered listings use {@link CompanySpecifications}, which always applies
+ * the scope.
  */
 public interface CompanyRepository
         extends JpaRepository<CompanyEntity, UUID>, JpaSpecificationExecutor<CompanyEntity> {
@@ -25,8 +25,9 @@ public interface CompanyRepository
     Optional<CompanyEntity> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
     /**
-     * Grafia ja usada na organizacao para o mesmo segmento, sem distinguir
-     * caixa: a mais usada (D31). Vazio quando o segmento e novo.
+     * The spelling already used in the organisation for the same segment,
+     * ignoring case: the most used one (D31). Empty when the segment is
+     * new.
      */
     @Query(value = """
             select segment from company
@@ -38,8 +39,8 @@ public interface CompanyRepository
     Optional<String> findExistingSegment(
             @Param("organizationId") UUID organizationId, @Param("segment") String segment);
 
-    // Candidatos a duplicata (doc 06 §4). Um metodo por sinal, para que cada
-    // consulta use o indice correspondente da V3.
+    // Duplicate candidates (doc 06 §4). One method per signal, so each query
+    // uses the matching index from V3.
 
     List<CompanyEntity> findTop10ByOrganizationIdAndNormalizedDomainAndIdNot(
             UUID organizationId, String normalizedDomain, UUID excludedId);
@@ -50,8 +51,8 @@ public interface CompanyRepository
     List<CompanyEntity> findTop10ByOrganizationIdAndNormalizedNameAndCityIgnoreCaseAndStateAndIdNot(
             UUID organizationId, String normalizedName, String city, String state, UUID excludedId);
 
-    // Variantes em lote, para a importacao: uma consulta por sinal para o
-    // arquivo inteiro, em vez de tres por linha.
+    // Batch variants, for the import: one query per signal for the whole
+    // file, instead of three per row.
 
     List<CompanyEntity> findByOrganizationIdAndNormalizedDomainIn(UUID organizationId, Collection<String> domains);
 

@@ -1,32 +1,32 @@
 package com.jhcomp.prospect.company.infrastructure.persistence;
 
 /**
- * Origem de uma empresa em SQL: o tipo da primeira proveniencia gravada, o
- * caminho pelo qual ela entrou no sistema (D29). Uma importacao que depois
- * completa a empresa nao muda a origem.
+ * A company's origin in SQL: the type of its first recorded provenance, the
+ * path by which it entered the system (D29). An import that later completes
+ * the company does not change the origin.
  *
- * <p>Um lugar so para a regra: o dashboard conta por ela e a fila de leads
- * filtra por ela, entao o numero que o dashboard mostra bate com a lista que
- * ele abre.
+ * <p>One place for the rule: the dashboard counts by it and the lead queue
+ * filters by it, so the number the dashboard shows matches the list it
+ * opens.
  */
 public final class CompanyOriginSql {
 
     private CompanyOriginSql() {
     }
 
-    /** Subconsulta sobre a empresa de alias {@code c}. */
+    /** A subquery over the company aliased {@code c}. */
     public static final String ORIGIN = """
             (select s.source_type from lead_source s
               where s.organization_id = c.organization_id and s.company_id = c.id
               order by s.recorded_seq limit 1)""";
 
     /**
-     * Segmento da empresa {@code c} igual ao parametro {@code :segment}, sem
-     * distinguir maiusculas nem espacos nas pontas: "Barbearia" e " barbearia"
-     * sao o mesmo segmento.
+     * Company {@code c}'s segment equals the {@code :segment} parameter,
+     * ignoring case and surrounding spaces: "Barbearia" and " barbearia" are
+     * the same segment.
      */
     public static final String SEGMENT_EQUALS = "lower(btrim(c.segment)) = lower(btrim(:segment))";
 
-    /** Empresa {@code c} sem segmento informado. */
+    /** Company {@code c} has no segment recorded. */
     public static final String WITHOUT_SEGMENT = "(c.segment is null or btrim(c.segment) = '')";
 }

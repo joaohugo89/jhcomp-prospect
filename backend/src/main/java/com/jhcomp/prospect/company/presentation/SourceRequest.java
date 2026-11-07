@@ -11,11 +11,12 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
 /**
- * Origem informada pelo operador (RF-020).
+ * An origin supplied by the operator (RF-020).
  *
- * <p>Nao ha campo de tipo: por esta rota a origem e sempre {@code MANUAL}.
- * Aceitar o tipo do cliente permitiria registrar como importacao ou integracao
- * um dado digitado a mao, e a proveniencia deixaria de ser confiavel.
+ * <p>There is no type field: on this route the origin is always
+ * {@code MANUAL}. Accepting the type from the client would allow hand-typed
+ * data to be recorded as an import or an integration, and provenance would
+ * stop being trustworthy.
  */
 public record SourceRequest(
         @NotBlank @Size(max = 120) String name,
@@ -28,7 +29,7 @@ public record SourceRequest(
         return new SourceData(SourceType.MANUAL, name, reference, url, collectedAt, note);
     }
 
-    /** Origem opcional: ausente, o caso de uso aplica a origem manual padrao. */
+    /** The origin is optional: when absent, the use case applies the default manual origin. */
     public static SourceData toDataOrNull(SourceRequest request) {
         return request == null ? null : request.toData();
     }

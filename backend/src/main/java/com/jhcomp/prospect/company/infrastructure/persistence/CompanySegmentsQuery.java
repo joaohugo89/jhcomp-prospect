@@ -9,12 +9,13 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Segmentos em uso na organizacao, com quantas empresas ativas em cada.
+ * The segments in use in the organisation, with how many active companies
+ * each one has.
  *
- * <p>Segmento e texto livre: sem uma lista do que ja existe, cada cadastro
- * inventa a sua grafia e o filtro por segmento deixa de juntar o que e igual.
- * Grafias que so diferem em caixa ou espaco contam como um segmento so; o
- * rotulo mostrado e a grafia mais usada.
+ * <p>A segment is free text: without a list of what already exists, every
+ * entry invents its own spelling and the segment filter stops grouping what is
+ * the same. Spellings differing only in case or spacing count as one segment;
+ * the label shown is the most used spelling.
  */
 @Repository
 public class CompanySegmentsQuery {
