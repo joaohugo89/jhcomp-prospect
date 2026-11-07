@@ -4,7 +4,7 @@
 # mantem o compilador e o cache do Maven fora do que vai para producao.
 
 # ---------- Estagio 1: build ----------
-FROM maven:3.9.12-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 
 WORKDIR /build
 
