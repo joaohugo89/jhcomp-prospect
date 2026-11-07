@@ -19,8 +19,9 @@ import com.jhcomp.prospect.shared.text.Texts;
 /**
  * Deals (D2, RF-043).
  *
- * <p>O deal nasce quando o lead chega a proposta enviada, ou a ganho sem ter
- * passado por proposta. Antes disso nao ha valor nem servico a registrar.
+ * <p>A deal appears when the lead reaches proposal sent, or won without having
+ * passed through a proposal. Before that there is no value or service to
+ * record.
  */
 @Service
 public class DealService {
@@ -35,7 +36,7 @@ public class DealService {
         this.clock = clock;
     }
 
-    /** Deal com o lead, de onde vem o resultado (D2). */
+    /** The deal together with its lead, which is where the outcome comes from (D2). */
     public record DealView(DealEntity deal, LeadStatus leadStatus) {}
 
     @Transactional(readOnly = true)
@@ -46,7 +47,7 @@ public class DealService {
         return new DealView(deal, lead.getStatus());
     }
 
-    /** Atualiza servico, valor e motivo de perda. So existe deal a partir da proposta. */
+    /** Updates service, value and loss reason. A deal only exists from the proposal onwards. */
     @Transactional
     public DealView update(UUID leadId, String service, BigDecimal estimatedValue, String lossReason) {
         LeadEntity lead = leadService.find(leadId);
@@ -56,7 +57,7 @@ public class DealService {
         return new DealView(deal, lead.getStatus());
     }
 
-    /** Reage a mudanca de status na mesma transacao: deal e status nunca divergem. */
+    /** Reacts to the status change in the same transaction: deal and status never diverge. */
     @EventListener
     void onStatusChanged(LeadStatusChanged event) {
         if (event.to() == LeadStatus.PROPOSAL_SENT || event.to() == LeadStatus.WON) {

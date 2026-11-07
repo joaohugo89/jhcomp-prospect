@@ -30,16 +30,16 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 
 /**
- * Quadro Kanban (RF-040, doc 08 §8): uma coluna por etapa, com o necessario
- * para os cards.
+ * The Kanban board (RF-040, doc 08 §8): one column per stage, with what the
+ * cards need.
  *
- * <p>Cada coluna traz no maximo {@link #CARDS_PER_STAGE} cards, o total e o
- * valor dos negocios da etapa inteira; o restante fica na listagem de leads,
- * que e paginada (RNF-002). Ultima interacao, proxima tarefa, servico e
- * entrada na etapa vem numa consulta cada para o quadro inteiro, nao uma por
- * card. As colunas finais mostram so os encerrados nos ultimos
- * {@link #RECENT_CLOSED_DAYS} dias: sem isso cresceriam para sempre e
- * disputariam espaco com as etapas em andamento.
+ * <p>Each column carries at most {@link #CARDS_PER_STAGE} cards, the total,
+ * and the deal value of the whole stage; the rest stays in the lead listing,
+ * which is paginated (RNF-002). Last interaction, next task, service and stage
+ * entry each come from a single query for the whole board, not one per card.
+ * The final columns show only what closed within the last
+ * {@link #RECENT_CLOSED_DAYS} days: without that they would grow forever and
+ * compete for space with the stages in progress.
  */
 @Service
 public class BoardService {
@@ -75,20 +75,20 @@ public class BoardService {
         this.clock = clock;
     }
 
-    /** {@code stageEnteredAt}: quando o lead chegou na etapa atual. */
+    /** {@code stageEnteredAt}: when the lead reached its current stage. */
     public record Card(
             LeadEntity lead, DealEntity deal, InteractionEntity lastInteraction, TaskEntity nextTask,
             Instant stageEnteredAt) {}
 
     /**
-     * {@code totalValue}: soma do valor dos negocios de todos os leads da etapa,
-     * nao so dos cards mostrados. {@code recentDays}: janela das colunas
-     * finais; nulo nas etapas em andamento.
+     * {@code totalValue}: the deal value summed over every lead in the stage,
+     * not only the cards shown. {@code recentDays}: the final columns' window;
+     * null on the stages in progress.
      */
     public record Column(
             PipelineStages.Stage stage, long total, BigDecimal totalValue, Integer recentDays, List<Card> cards) {}
 
-    /** Filtros opcionais aplicados a todas as colunas. */
+    /** Optional filters applied to every column. */
     public record Filters(String search, String segment, String city) {}
 
     @Transactional(readOnly = true)
@@ -143,9 +143,9 @@ public class BoardService {
     }
 
     /**
-     * Soma do valor estimado dos negocios dos leads que atendem aos criterios
-     * da etapa. Os mesmos filtros da listagem (e o escopo da organizacao)
-     * valem aqui, pela mesma {@code Specification}.
+     * The estimated deal value summed over the leads matching the stage's
+     * criteria. The same filters as the listing — and the organisation scope —
+     * apply here, through the same {@code Specification}.
      */
     private BigDecimal stageValue(UUID organizationId, LeadSpecifications.Criteria criteria) {
         CriteriaBuilder builder = entityManager.getCriteriaBuilder();

@@ -22,16 +22,17 @@ import com.jhcomp.prospect.shared.security.OrganizationContext;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
- * Interacoes do lead (RF-041).
+ * A lead's interactions (RF-041).
  *
- * <p>Registrar interacao nao muda o status do lead: contato registrado nao
- * move para {@code CONTACTED} sozinho (regra 6 do produto). A excecao e o
- * pedido de nao contato, que precisa valer na hora (doc 06 §9).
+ * <p>Recording an interaction does not change the lead's status: a recorded
+ * contact does not move it to {@code CONTACTED} on its own (product rule 6).
+ * The exception is a do-not-contact request, which has to take effect
+ * immediately (doc 06 §9).
  */
 @Service
 public class InteractionService {
 
-    /** Tolerancia para relogio do navegador um pouco adiantado. */
+    /** Tolerance for a browser clock that is slightly fast. */
     private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(5);
 
     private final InteractionRepository repository;
@@ -65,12 +66,12 @@ public class InteractionService {
             String notes) {}
 
     /**
-     * Registra a interacao.
+     * Records the interaction.
      *
-     * <p>Abordagem de saida a lead bloqueado e recusada (regra 4 do produto):
-     * o bloqueio vale para registrar contato, nao so para gerar mensagem, e
-     * inclui a lista de nao contato. Contato iniciado pela empresa continua
-     * registravel.
+     * <p>An outbound approach to a blocked lead is refused (product rule 4):
+     * the block applies to recording a contact, not only to generating a
+     * message, and it includes the do-not-contact list. A contact the company
+     * started is still recordable.
      */
     @Transactional
     public InteractionEntity record(UUID leadId, NewInteraction input) {
@@ -99,8 +100,8 @@ public class InteractionService {
                 now));
 
         if (input.type() == InteractionType.DO_NOT_CONTACT_REQUEST) {
-            // A lista de nao contato vale mesmo para lead ganho ou perdido, que
-            // nao muda mais de status (D26).
+            // The do-not-contact list applies even to a won or lost lead,
+            // which no longer changes status (D26).
             events.publishEvent(new DoNotContactRequested(lead.getOrganizationId(), lead.getId(), input.occurredAt()));
             if (lead.getStatus() != LeadStatus.DO_NOT_CONTACT
                     && LeadStatusTransitions.isAllowed(lead.getStatus(), LeadStatus.DO_NOT_CONTACT)) {

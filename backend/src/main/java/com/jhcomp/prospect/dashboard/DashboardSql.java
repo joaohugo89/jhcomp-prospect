@@ -11,38 +11,38 @@ import com.jhcomp.prospect.company.infrastructure.persistence.CompanyOriginSql;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
- * Trechos de SQL comuns as consultas do dashboard. Um lugar so para os
- * filtros: resumo, serie, conversao, atencao e funil contam com as mesmas
- * regras, e os numeros de uma secao batem com os da outra.
+ * SQL fragments shared by the dashboard's queries. One place for the filters:
+ * summary, series, conversion, attention and funnel count under the same
+ * rules, so the numbers of one section match another's.
  */
 final class DashboardSql {
 
     private DashboardSql() {
     }
 
-    /** Filtros. Periodo semiaberto: {@code [from, to)}. Campos nulos nao filtram. */
+    /** The filters. A half-open period: {@code [from, to)}. Null fields filter nothing. */
     record Filters(
             UUID organizationId, Instant from, Instant to, String segment, String city, SourceType source,
             UUID assignee) {}
 
-    /** Tipo da primeira proveniencia gravada da empresa {@code c} (D29). */
+    /** The type of company {@code c}'s first recorded provenance (D29). */
     static final String ORIGIN = CompanyOriginSql.ORIGIN;
 
-    /** Empresa {@code c} dentro dos filtros de segmento, cidade e origem. */
+    /** Company {@code c} within the segment, city and origin filters. */
     private static final String COMPANY = """
             (cast(:segment as text) is null or %s)
             and (cast(:city as text) is null or lower(c.city) = lower(:city))
             and (cast(:source as text) is null or %s = :source)
             """.formatted(CompanyOriginSql.SEGMENT_EQUALS, ORIGIN);
 
-    /** Lead {@code l} da empresa {@code c}: filtros da empresa e responsavel do lead. */
+    /** Lead {@code l} of company {@code c}: the company's filters plus the lead's owner. */
     static final String LEAD_FILTER = COMPANY + """
             and (cast(:assignee as uuid) is null or l.assigned_user_id = :assignee)
             """;
 
     /**
-     * Empresa {@code c} sem lead na consulta (empresas adicionadas). Com
-     * responsavel, conta a empresa que tem algum lead dele.
+     * Company {@code c} with no lead in the query (companies added). With an
+     * owner, it counts a company that has any lead of theirs.
      */
     static final String COMPANY_FILTER = COMPANY + """
             and (cast(:assignee as uuid) is null or exists (

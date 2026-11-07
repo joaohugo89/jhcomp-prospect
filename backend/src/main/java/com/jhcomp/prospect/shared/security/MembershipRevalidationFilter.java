@@ -23,27 +23,28 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 /**
- * Revalida a associacao do usuario em cada requisicao autenticada.
+ * Revalidates the user's membership on every authenticated request.
  *
- * <p>Sem este filtro, {@code organizationId} e {@code role} ficariam
- * congelados na sessao por toda a sua duracao. Revogar uma associacao,
- * desabilitar um usuario, suspender uma organizacao ou rebaixar um
- * administrador a operador nao teria efeito algum ate a sessao expirar — o
- * usuario continuaria operando com o privilegio antigo por horas. Isso
- * contraria o critério de aceite do RF-003, que exige que operacoes
- * administrativas sejam bloqueadas para quem nao tem permissao.
+ * <p>Without this filter, {@code organizationId} and {@code role} would stay
+ * frozen in the session for its whole lifetime. Revoking a membership,
+ * disabling a user, suspending an organisation or demoting an administrator to
+ * operator would have no effect until the session expired — the user would go
+ * on working with the old privilege for hours. That contradicts the acceptance
+ * criterion of RF-003, which requires administrative operations to be refused
+ * to whoever lacks permission.
  *
- * <p>Quando a associacao deixa de ser valida, a sessao e encerrada e o
- * contexto limpo; a requisicao segue na cadeia e a propria autorizacao
- * responde 401 no formato padrao da API, sem duplicar aqui a escrita do JSON.
+ * <p>When the membership stops being valid, the session is ended and the
+ * context cleared; the request continues down the chain and authorisation
+ * itself answers 401 in the API's standard format, rather than duplicating the
+ * JSON writing here.
  *
- * <p>Quando apenas o papel mudou, o principal e substituido e regravado na
- * sessao, de modo que a mudanca passa a valer imediatamente.
+ * <p>When only the role changed, the principal is replaced and written back to
+ * the session, so the change takes effect immediately.
  *
- * <p>Custo: uma consulta indexada por requisicao autenticada. No volume do MVP
- * isso e irrelevante, e a alternativa — revalidar a cada N minutos — deixaria
- * uma janela em que o privilegio revogado ainda funciona. Se o volume crescer,
- * o lugar de introduzir intervalo ou cache e aqui.
+ * <p>Cost: one indexed query per authenticated request. At MVP volume that is
+ * irrelevant, and the alternative — revalidating every N minutes — would leave
+ * a window in which a revoked privilege still works. If volume grows, this
+ * filter is where an interval or a cache belongs.
  */
 public class MembershipRevalidationFilter extends OncePerRequestFilter {
 
@@ -68,7 +69,7 @@ public class MembershipRevalidationFilter extends OncePerRequestFilter {
         if (authentication == null
                 || !authentication.isAuthenticated()
                 || !(authentication.getPrincipal() instanceof AuthenticatedUser user)) {
-            // Requisicao anonima ou principal de outro tipo: nada a revalidar.
+            // An anonymous request, or a principal of another type: nothing to revalidate.
             filterChain.doFilter(request, response);
             return;
         }
@@ -77,9 +78,9 @@ public class MembershipRevalidationFilter extends OncePerRequestFilter {
                 memberRepository.findActiveMembershipsByUserId(user.userId());
 
         if (memberships.size() != 1) {
-            // Zero: associacao revogada, usuario desabilitado ou organizacao
-            // suspensa. Mais de uma: organizacao ambigua, mesma recusa aplicada
-            // no login.
+            // Zero: membership revoked, user disabled, or organisation
+            // suspended. More than one: an ambiguous organisation, the same
+            // refusal applied at login.
             log.info("Sessao encerrada: associacao ativa invalida para o usuario {}", user.userId());
             endSession(request);
             filterChain.doFilter(request, response);
@@ -89,8 +90,8 @@ public class MembershipRevalidationFilter extends OncePerRequestFilter {
         OrganizationMemberEntity membership = memberships.getFirst();
 
         if (!membership.getOrganization().getId().equals(user.organizationId())) {
-            // A organizacao do usuario mudou: a sessao atual nao representa
-            // mais um contexto valido e precisa ser refeita pelo login.
+            // The user's organisation changed: the current session no longer
+            // represents a valid context and has to be rebuilt by logging in.
             log.warn("Sessao encerrada: organizacao divergente para o usuario {}", user.userId());
             endSession(request);
             filterChain.doFilter(request, response);
@@ -100,8 +101,8 @@ public class MembershipRevalidationFilter extends OncePerRequestFilter {
         Instant credentialsChangedAt = membership.getUser().getCredentialsChangedAt();
         if (credentialsChangedAt != null
                 && (user.authenticatedAt() == null || user.authenticatedAt().isBefore(credentialsChangedAt))) {
-            // Senha trocada ou redefinida depois que esta sessao foi aberta: quem
-            // tinha a senha antiga nao continua dentro (D28).
+            // The password was changed or reset after this session was opened:
+            // whoever held the old password does not stay in (D28).
             log.info("Sessao encerrada: senha alterada depois do login do usuario {}", user.userId());
             endSession(request);
             filterChain.doFilter(request, response);

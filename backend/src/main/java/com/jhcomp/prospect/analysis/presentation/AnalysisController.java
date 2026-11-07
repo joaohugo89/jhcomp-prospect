@@ -35,10 +35,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Analises de presenca digital (RF-030 a RF-033, doc 05 §8).
+ * Digital presence analyses (RF-030 to RF-033, doc 05 §8).
  *
- * <p>Pedir analise responde {@code 202 Accepted}: a verificacao roda em
- * segundo plano, e o cliente acompanha pelo status.
+ * <p>Requesting one answers {@code 202 Accepted}: the verification runs in the
+ * background and the client follows it through the status.
  */
 @RestController
 public class AnalysisController {
@@ -69,7 +69,7 @@ public class AnalysisController {
         return AnalysisDetailResponse.from(analysisService.find(analysisId));
     }
 
-    /** Revisao humana (RF-033): mantem ou corrige o estado; a nota vira evidencia. */
+    /** Human review (RF-033): keeps or corrects the state; the note becomes evidence. */
     @PatchMapping("/findings/{findingId}/review")
     public AnalysisDetailResponse review(@PathVariable UUID findingId, @Valid @RequestBody ReviewRequest request) {
         return AnalysisDetailResponse.from(analysisService.review(findingId, request.status(), request.note()));
@@ -78,10 +78,10 @@ public class AnalysisController {
     public record ReviewRequest(@NotNull FindingStatus status, @Size(max = 500) String note) {}
 
     /**
-     * Analise sem achados.
+     * An analysis without its findings.
      *
-     * <p>{@code score} so existe com a analise concluida: pendente ou com
-     * falha nao e "score zero" (D7).
+     * <p>{@code score} exists only once the analysis completes: pending or
+     * failed is not "score zero" (D7).
      */
     public record AnalysisSummary(
             UUID id,
@@ -123,7 +123,7 @@ public class AnalysisController {
         }
     }
 
-    /** Achado com a decomposicao dos pontos (RF-032) e a revisao (RF-033). */
+    /** A finding with its point breakdown (RF-032) and its review (RF-033). */
     public record FindingResponse(
             UUID id,
             Criterion criterion,

@@ -28,31 +28,33 @@ import com.jhcomp.prospect.shared.persistence.LikePatterns;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
- * Fila de trabalho de leads (RF-012, doc 08 §6): cada linha ja diz o que fazer
- * com o lead, com responsavel, valor, proxima tarefa e tempo na etapa.
+ * The lead work queue (RF-012, doc 08 §6): each row already says what to do
+ * with the lead, with owner, value, next task and time in stage.
  *
- * <p>Leitura em SQL no modulo de CRM, e nao na listagem do modulo de lead: os
- * campos vem de deal, tarefa e historico, e o modulo de lead nao depende do de
- * CRM. Ordenar por valor ou por prazo da proxima tarefa exige o banco.
+ * <p>Read in SQL in the CRM module rather than in the lead module's listing:
+ * the fields come from deal, task and history, and the lead module does not
+ * depend on the CRM. Sorting by value, or by the next task's due date,
+ * requires the database.
  *
- * <p>As regras de "parado" e "sem tarefa" sao as do Kanban e do painel de
- * atencao (D30), e a origem e a da D29: o numero do dashboard bate com a lista
- * que ele abre.
+ * <p>The "stalled" and "no task" rules are the Kanban's and the attention
+ * panel's (D30), and the origin is D29's: the dashboard's number matches the
+ * list it opens.
  */
 @Repository
 public class LeadWorklistQuery {
 
-    /** Mesmo limite do Kanban e do painel de atencao. */
+    /** The same threshold as the Kanban and the attention panel. */
     static final int STALE_DAYS = 7;
 
-    /** Recortes de um clique, os mesmos do painel de atencao. */
+    /** One-click slices, the same ones as the attention panel. */
     public enum Focus { OVERDUE, STALE, WITHOUT_TASK }
 
     public enum SortField { COMPANY, SCORE, CREATED, UPDATED, STAGE, VALUE, NEXT_TASK }
 
     /**
-     * Criterios; nulos nao filtram. {@code noSegment} so as empresas sem
-     * segmento; {@code leadId} um lead so (resumo do detalhe e da previa).
+     * Criteria; nulls filter nothing. {@code noSegment} keeps only companies
+     * with no segment; {@code leadId} narrows to one lead (the detail's and
+     * the preview's summary).
      */
     public record Criteria(
             UUID leadId,
@@ -91,8 +93,8 @@ public class LeadWorklistQuery {
             Instant updatedAt) {}
 
     /**
-     * Expressao de ordenacao por campo. Nulos sempre por ultimo: lead sem
-     * valor nao aparece "primeiro" ao ordenar pelo maior valor.
+     * The sort expression per field. Nulls always last: a lead with no value
+     * must not come "first" when sorting by highest value.
      */
     private static final Map<SortField, String> ORDER = Map.of(
             SortField.COMPANY, "c.normalized_name",
@@ -161,7 +163,7 @@ public class LeadWorklistQuery {
             where.add("l.assigned_user_id = :assignee");
             params.addValue("assignee", criteria.assignee());
         }
-        // Faixa de score nao inclui lead sem score: sem analise nao e score baixo (D7).
+        // A score range excludes leads with no score: no analysis is not a low score (D7).
         if (criteria.scoreMin() != null) {
             where.add("l.score >= :scoreMin");
             params.addValue("scoreMin", criteria.scoreMin());
@@ -230,7 +232,7 @@ public class LeadWorklistQuery {
                     instant(row.getTimestamp("created_at")),
                     instant(row.getTimestamp("updated_at")));
         });
-        // Pagina alem do fim nao traz linha, e com ela o total: conta a parte.
+        // A page past the end returns no row, and with it no total: count separately.
         if (items.isEmpty() && pageable.getOffset() > 0) {
             total[0] = count(where, params);
         }

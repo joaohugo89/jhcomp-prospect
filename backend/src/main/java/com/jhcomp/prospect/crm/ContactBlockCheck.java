@@ -3,14 +3,14 @@ package com.jhcomp.prospect.crm;
 import com.jhcomp.prospect.lead.infrastructure.persistence.LeadEntity;
 
 /**
- * Consulta a lista de nao contato antes de registrar abordagem (regra 4).
+ * Queries the do-not-contact list before recording an approach (rule 4).
  *
- * <p>Implementada pelo modulo de outreach, dono da lista. A interface fica
- * aqui para que o CRM nao dependa do outreach, que ja depende do CRM para
- * registrar o envio como interacao.
+ * <p>Implemented by the outreach module, which owns the list. The interface
+ * lives here so the CRM does not depend on outreach, which already depends on
+ * the CRM to record a send as an interaction.
  */
 public interface ContactBlockCheck {
 
-    /** Algum identificador da empresa do lead esta bloqueado no canal, ou em todos. */
+    /** Some identifier of the lead's company is blocked on the channel, or on all of them. */
     boolean isBlocked(LeadEntity lead, InteractionChannel channel);
 }

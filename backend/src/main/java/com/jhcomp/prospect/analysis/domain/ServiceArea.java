@@ -5,8 +5,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Segmentos e estados atendidos, para os criterios de compatibilidade e
- * localizacao (doc 06 §7). Comparacao sem diferenca de caixa.
+ * The segments and states served, for the service fit and location criteria
+ * (doc 06 §7). Comparison is case-insensitive.
  */
 public record ServiceArea(Set<String> segments, Set<String> states) {
 

@@ -6,20 +6,22 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Quais enderecos o fetcher pode acessar (docs/07 §6, regra 8 do produto).
+ * Which addresses the fetcher may reach (docs/07 §6, product rule 8).
  *
- * <p>Bloqueia tudo que nao e internet publica: loopback, redes privadas,
- * link-local (inclui o endereco de metadata de nuvem 169.254.169.254), CGNAT,
- * IPv6 de uso local e faixas reservadas. Sem isso, um site cadastrado como
- * {@code http://169.254.169.254/} ou um dominio que resolve para 10.0.0.5 faria
- * o servidor consultar a propria rede interna em nome de quem cadastrou.
+ * <p>It blocks everything that is not the public internet: loopback, private
+ * networks, link-local (including the cloud metadata address
+ * 169.254.169.254), CGNAT, IPv6 local use and reserved ranges. Without this, a
+ * site registered as {@code http://169.254.169.254/}, or a domain resolving to
+ * 10.0.0.5, would make the server query its own internal network on behalf of
+ * whoever registered it.
  *
- * <p>IPv4 mapeado em IPv6 e avaliado pelo IPv4 de dentro: {@code ::ffff:127.0.0.1}
- * e loopback. Para IPv6 vale lista de permissao: so unicast global.
+ * <p>An IPv4-mapped IPv6 address is judged by the IPv4 inside it:
+ * {@code ::ffff:127.0.0.1} is loopback. For IPv6 an allowlist applies: global
+ * unicast only.
  */
 public final class AddressPolicy {
 
-    /** Politica de producao: so internet publica. */
+    /** The production policy: public internet only. */
     public static final AddressPolicy PUBLIC_ONLY = new AddressPolicy(false);
 
     private final boolean allowLoopback;
@@ -28,7 +30,7 @@ public final class AddressPolicy {
         this.allowLoopback = allowLoopback;
     }
 
-    /** Somente para teste do fetcher contra servidor local. Nunca em bean de producao. */
+    /** For testing the fetcher against a local server only. Never in a production bean. */
     static AddressPolicy allowingLoopbackForTests() {
         return new AddressPolicy(true);
     }
@@ -63,9 +65,9 @@ public final class AddressPolicy {
     }
 
     /**
-     * IPv6 por lista de permissao: so unicast global (2000::/3), menos as
-     * faixas que carregam ou encaminham IPv4 e as de documentacao. Uma lista de
-     * bloqueio deixaria passar faixa esquecida; aqui o desconhecido e recusado.
+     * IPv6 by allowlist: global unicast only (2000::/3), minus the ranges that
+     * carry or forward IPv4 and the documentation ones. A blocklist would let
+     * a forgotten range through; here the unknown is refused.
      */
     private static boolean isReservedIpv6(byte[] b) {
         int b0 = b[0] & 0xff;
@@ -81,9 +83,9 @@ public final class AddressPolicy {
     }
 
     /**
-     * IPv4 de dentro de um IPv6 mapeado (::ffff:a.b.c.d), avaliado como IPv4.
-     * Demais formas de IPv4 embutido (NAT64, 6to4, Teredo) ficam fora de
-     * 2000::/3 ou sao excluidas explicitamente, e sao recusadas.
+     * The IPv4 inside a mapped IPv6 address (::ffff:a.b.c.d), judged as IPv4.
+     * The other forms of embedded IPv4 (NAT64, 6to4, Teredo) fall outside
+     * 2000::/3 or are excluded explicitly, and are refused.
      */
     private static InetAddress embeddedIpv4(InetAddress address) {
         if (!(address instanceof Inet6Address)) {
@@ -97,7 +99,7 @@ public final class AddressPolicy {
         try {
             return InetAddress.getByAddress(new byte[] {b[12], b[13], b[14], b[15]});
         } catch (UnknownHostException exception) {
-            // Quatro bytes sempre formam um IPv4 valido; nunca chega aqui.
+            // Four bytes always form a valid IPv4; this is never reached.
             throw new IllegalStateException(exception);
         }
     }

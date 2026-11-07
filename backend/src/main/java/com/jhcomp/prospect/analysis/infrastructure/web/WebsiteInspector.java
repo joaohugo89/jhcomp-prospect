@@ -19,15 +19,15 @@ import com.jhcomp.prospect.analysis.domain.WebsiteObservation.Outcome;
 import com.jhcomp.prospect.shared.text.Hashes;
 
 /**
- * Verificacao do site: robots.txt, HTTPS e sinais da pagina inicial (doc 06 §6).
+ * Website verification: robots.txt, HTTPS and home page signals (doc 06 §6).
  *
- * <p>Ordem: primeiro o robots.txt, que tambem diz se o site responde e por
- * qual esquema; so depois a pagina inicial, se o robots.txt permitir. Nada
- * alem dela e lido: a analise nao navega pelo site.
+ * <p>Order: robots.txt first, which also says whether the site answers and
+ * under which scheme; only then the home page, if robots.txt allows it.
+ * Nothing beyond it is read: the analysis does not browse the site.
  *
- * <p>Conteudo da pagina e dado nao confiavel (regra 9 do produto). Dele saem
- * apenas sinais booleanos por expressao regular e um hash; o HTML nao e
- * guardado, interpretado como instrucao nem executado.
+ * <p>Page content is untrusted data (product rule 9). Only boolean signals
+ * matched by regular expression and a hash come out of it; the HTML is neither
+ * stored, nor interpreted as an instruction, nor executed.
  */
 @Component
 public class WebsiteInspector implements WebsiteChecker, DisposableBean {
@@ -35,9 +35,9 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
     static final int MAX_REDIRECTS = 3;
 
     /**
-     * Prazo total da verificacao de um site. Cada requisicao ja tem o proprio
-     * prazo, mas robots.txt, HTTP e redirecionamentos somam varias: sem este
-     * teto, um site lento ocuparia o worker por minutos.
+     * The total deadline for verifying one site. Each request already has its
+     * own, but robots.txt, HTTP and redirects add up to several: without this
+     * ceiling, a slow site would occupy the worker for minutes.
      */
     static final Duration TOTAL_DEADLINE = Duration.ofSeconds(45);
     static final int MAX_PAGE_BYTES = 1024 * 1024;
@@ -74,7 +74,7 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
         }
     }
 
-    /** Prazo da verificacao em curso, por thread: o bean e compartilhado. */
+    /** The deadline of the verification in progress, per thread: the bean is shared. */
     private final ThreadLocal<Long> deadline = new ThreadLocal<>();
 
     private SafeHttpFetcher.Response fetch(URI uri, int maxBytes) throws FetchException {
@@ -99,8 +99,9 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
         }
         String requested = start.toString();
 
-        // 1. robots.txt por HTTPS; sem resposta, por HTTP. A resposta, de
-        // qualquer status, ja prova que o site existe e por qual esquema.
+        // 1. robots.txt over HTTPS; with no answer, over HTTP. The response,
+        // whatever its status, already proves the site exists and under which
+        // scheme.
         RobotsAttempt https = fetchRobots("https", start.getHost(), start.getPort());
         RobotsAttempt robots = https;
         if (https.failure() != null) {
@@ -120,7 +121,7 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
                     false, false, null, null, now);
         }
 
-        // 2. Pagina inicial, seguindo redirecionamentos validados um a um.
+        // 2. The home page, following redirects validated one by one.
         URI current = withScheme(start, httpsAvailable ? "https" : "http");
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             SafeHttpFetcher.Response response;
@@ -137,8 +138,9 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
                 }
                 URI target = next.get();
                 httpsAvailable = httpsAvailable || "https".equals(target.getScheme());
-                // Outro host tem outro robots.txt, que tambem e respeitado. Sem
-                // resposta dele (inclusive endereco bloqueado), o destino nao e lido.
+                // Another host has another robots.txt, which is respected too.
+                // With no answer from it — a blocked address included — the
+                // destination is not read.
                 if (!target.getHost().equalsIgnoreCase(current.getHost())) {
                     RobotsAttempt targetRobots = fetchRobots(target.getScheme(), target.getHost(), target.getPort());
                     if (targetRobots.failure() != null) {
@@ -179,11 +181,11 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
     private record RobotsAttempt(RobotsRules rules, String failure) {}
 
     /**
-     * robots.txt de um host. 4xx libera, 5xx proibe (RFC 9309); sem resposta,
-     * devolve o motivo e nenhuma regra.
+     * A host's robots.txt. 4xx allows, 5xx forbids (RFC 9309); with no answer
+     * it returns the reason and no rules.
      */
     private RobotsAttempt fetchRobots(String scheme, String host, int port) {
-        // robots.txt vale por autoridade: host e porta.
+        // robots.txt applies per authority: host and port.
         URI uri = URI.create(scheme + "://" + host + (port == -1 ? "" : ":" + port) + "/robots.txt");
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             SafeHttpFetcher.Response response;
@@ -208,11 +210,11 @@ public class WebsiteInspector implements WebsiteChecker, DisposableBean {
             }
             return new RobotsAttempt(RobotsRules.parse(response.text()), null);
         }
-        // Redirecionamento demais no robots.txt: tratado como inexistente.
+        // Too many redirects on robots.txt: treated as if it did not exist.
         return new RobotsAttempt(RobotsRules.allowAll(), null);
     }
 
-    /** Falhas que tentar por HTTP nao muda: o nome nao existe ou o endereco e proibido. */
+    /** Failures that retrying over HTTP cannot change: the name does not exist, or the address is forbidden. */
     private static boolean isFinal(String failure) {
         return failure.equals("DNS") || failure.equals("BLOCKED_ADDRESS") || failure.equals("INVALID_URL");
     }

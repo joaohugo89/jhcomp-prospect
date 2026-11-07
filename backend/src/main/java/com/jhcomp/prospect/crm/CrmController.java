@@ -35,10 +35,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * CRM: pipeline, quadro, deal, interacoes e tarefas (RF-040 a RF-043, doc 05 §9).
+ * CRM: pipeline, board, deal, interactions and tasks (RF-040 to RF-043,
+ * doc 05 §9).
  *
- * <p>Mover card e {@code PATCH /leads/{id}/status} (D2); nao existe rota de
- * etapa de deal.
+ * <p>Moving a card is {@code PATCH /leads/{id}/status} (D2); there is no deal
+ * stage route.
  */
 @RestController
 public class CrmController {
@@ -88,7 +89,7 @@ public class CrmController {
         return DealResponse.from(dealService.update(leadId, request.service(), request.estimatedValue(), request.lossReason()));
     }
 
-    // ---- Interacoes -------------------------------------------------------
+    // ---- Interactions -----------------------------------------------------
 
     @PostMapping("/leads/{leadId}/interactions")
     @ResponseStatus(HttpStatus.CREATED)
@@ -108,7 +109,7 @@ public class CrmController {
         return PageResponse.from(interactionService.list(leadId, pageable), InteractionResponse::from);
     }
 
-    // ---- Tarefas ----------------------------------------------------------
+    // ---- Tasks ------------------------------------------------------------
 
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
@@ -132,7 +133,7 @@ public class CrmController {
         return PageResponse.from(taskService.list(leadId, pageable), TaskResponse::from);
     }
 
-    // ---- Contratos --------------------------------------------------------
+    // ---- Contracts --------------------------------------------------------
 
     public record StageResponse(LeadStatus key, String name, int position, boolean terminal) {
         static StageResponse from(PipelineStages.Stage stage) {
@@ -141,8 +142,8 @@ public class CrmController {
     }
 
     /**
-     * Card compacto do Kanban (doc 08 §8). {@code stageEnteredAt}: quando o
-     * lead chegou na etapa atual, para o tempo parado na etapa.
+     * A compact Kanban card (doc 08 §8). {@code stageEnteredAt}: when the lead
+     * reached its current stage, which drives the time-in-stage signal.
      */
     public record CardResponse(
             UUID leadId,
@@ -188,9 +189,9 @@ public class CrmController {
     }
 
     /**
-     * Coluna do quadro. {@code totalValue}: soma dos negocios da etapa inteira,
-     * em BRL. {@code recentDays}: nas colunas finais, a janela de fechamento
-     * mostrada; ausente nas etapas em andamento.
+     * A board column. {@code totalValue}: the deals of the whole stage summed,
+     * in BRL. {@code recentDays}: on the final columns, the closing window
+     * shown; absent on the stages in progress.
      */
     public record ColumnResponse(
             StageResponse stage, long total, BigDecimal totalValue, Integer recentDays, List<CardResponse> cards) {
@@ -204,15 +205,15 @@ public class CrmController {
         }
     }
 
-    /** Dinheiro com duas casas, nunca ponto flutuante (regra 10 do produto). */
+    /** Money with two decimal places, never floating point (product rule 10). */
     public record DealRequest(
             @Size(max = 200) String service,
             @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal estimatedValue,
             @Size(max = 500) String lossReason) {}
 
     /**
-     * Deal. {@code outcome} vem do status do lead (D2): {@code OPEN},
-     * {@code WON} ou {@code LOST}.
+     * A deal. {@code outcome} is derived from the lead's status (D2):
+     * {@code OPEN}, {@code WON} or {@code LOST}.
      */
     public record DealResponse(
             UUID leadId, String service, BigDecimal estimatedValue, String currency, String lossReason,
@@ -256,7 +257,7 @@ public class CrmController {
             Instant dueAt,
             UUID assignedUserId) {}
 
-    /** Estado completo da tarefa: campo ausente e limpo, nao mantido. */
+    /** The task's complete state: an absent field is cleared, not kept. */
     public record UpdateTaskRequest(
             @NotBlank @Size(max = 200) @Pattern(regexp = InputPatterns.NOT_BLANK_WHEN_PRESENT) String title,
             Instant dueAt,

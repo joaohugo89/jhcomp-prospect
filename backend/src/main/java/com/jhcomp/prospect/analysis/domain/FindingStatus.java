@@ -1,21 +1,21 @@
 package com.jhcomp.prospect.analysis.domain;
 
 /**
- * Estado de verificacao de um achado (doc 06 §5, docs/04 §2).
+ * The verification state of a finding (doc 06 §5, docs/04 §2).
  *
- * <p>Cada criterio e uma afirmacao sobre a empresa. O estado diz o que se sabe
- * sobre ela. So {@link #CONFIRMED} pontua: "nao encontrado" significa apenas
- * que a pesquisa nao achou, nunca prova de inexistencia (regra 3 do produto).
+ * <p>Each criterion is a statement about the company. The state says what is
+ * known about it. Only {@link #CONFIRMED} scores: "not found" means merely
+ * that the search did not find it, never proof of absence (product rule 3).
  */
 public enum FindingStatus {
-    /** A afirmacao foi verificada e vale. */
+    /** The statement was verified and holds. */
     CONFIRMED,
-    /** A pesquisa nao encontrou a informacao. Nao e prova de que ela falta. */
+    /** The search did not find the information. That is not proof it is missing. */
     NOT_FOUND,
-    /** Nao foi possivel verificar: site fora do ar, robots.txt, criterio manual. */
+    /** Verification was not possible: site down, robots.txt, or a manual criterion. */
     NOT_VERIFIED,
-    /** A afirmacao nao se aplica a esta empresa. */
+    /** The statement does not apply to this company. */
     NOT_APPLICABLE,
-    /** Ha evidencia de que a afirmacao e falsa. */
+    /** There is evidence that the statement is false. */
     CONTRADICTED
 }

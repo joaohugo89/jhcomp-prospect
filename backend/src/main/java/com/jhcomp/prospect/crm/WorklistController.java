@@ -19,8 +19,8 @@ import com.jhcomp.prospect.shared.security.OrganizationContext;
 import com.jhcomp.prospect.shared.web.PageResponse;
 
 /**
- * Fila de trabalho de leads (doc 05 §5, D31). Paginada (RNF-002), com teto de
- * pagina; a organizacao vem da sessao, nunca do pedido.
+ * The lead work queue (doc 05 §5, D31). Paginated (RNF-002), with a page cap;
+ * the organisation comes from the session, never from the request.
  */
 @RestController
 @RequestMapping("/leads")
@@ -38,7 +38,7 @@ public class WorklistController {
         this.clock = clock;
     }
 
-    /** Filtros da fila, lidos da query string; ausentes nao filtram. */
+    /** The queue's filters, read from the query string; absent ones filter nothing. */
     public record WorklistParams(
             String search,
             LeadStatus status,
@@ -89,9 +89,9 @@ public class WorklistController {
     }
 
     /**
-     * Resumo de um lead: os mesmos campos de uma linha da fila (responsavel,
-     * valor, proxima tarefa, entrada na etapa). Lead de outra organizacao
-     * responde 404, como se nao existisse.
+     * One lead's summary: the same fields as a queue row (owner, value, next
+     * task, stage entry). A lead from another organisation answers 404, as if
+     * it did not exist.
      */
     @GetMapping("/{leadId}/summary")
     public LeadWorklistQuery.Item summary(@PathVariable UUID leadId) {

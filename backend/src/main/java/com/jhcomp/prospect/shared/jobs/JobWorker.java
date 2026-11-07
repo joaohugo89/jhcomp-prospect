@@ -11,18 +11,18 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Consome a fila de jobs (D15).
+ * Consumes the job queue (D15).
  *
- * <p>O agendamento so existe quando {@code jhcomp.jobs.worker.enabled} e
- * verdadeiro ({@link JobSchedulingConfig}). Nos testes ele fica desligado e o
- * teste chama {@link #runPending()} quando quer, sem depender de tempo.
+ * <p>The schedule only exists when {@code jhcomp.jobs.worker.enabled} is true
+ * ({@link JobSchedulingConfig}). In tests it is switched off and the test
+ * calls {@link #runPending()} when it wants to, without depending on time.
  */
 @Component
 public class JobWorker {
 
     private static final Logger log = LoggerFactory.getLogger(JobWorker.class);
 
-    /** Teto por rodada: uma fila grande nao monopoliza o worker. */
+    /** A cap per round: a large queue does not monopolise the worker. */
     static final int MAX_JOBS_PER_RUN = 10;
 
     private final JobQueue queue;
@@ -38,7 +38,7 @@ public class JobWorker {
         runPending();
     }
 
-    /** @return quantos jobs foram executados nesta rodada */
+    /** @return how many jobs ran in this round */
     public int runPending() {
         int executed = 0;
         while (executed < MAX_JOBS_PER_RUN) {
@@ -63,8 +63,9 @@ public class JobWorker {
             handler.handle(job);
             queue.markSucceeded(job.getId());
         } catch (RuntimeException exception) {
-            // O detalhe vai para o log do servidor; no job fica so a classe do
-            // erro, que nao carrega dado da empresa nem mensagem interna.
+            // The detail goes to the server log; the job keeps only the error
+            // class, which carries neither company data nor an internal
+            // message.
             log.warn("Job {} ({}) falhou na tentativa {}", job.getId(), job.getJobType(), job.getAttempts(), exception);
             queue.markFailed(job.getId(), exception.getClass().getSimpleName())
                     .ifPresent(handler::onGiveUp);

@@ -3,13 +3,13 @@ package com.jhcomp.prospect.analysis.domain;
 import java.time.Instant;
 
 /**
- * O que a verificacao automatica viu no site (doc 06 §6).
+ * What the automated verification saw on the site (doc 06 §6).
  *
- * <p>Conteudo de pagina externa e dado nao confiavel (regra 9 do produto):
- * daqui saem apenas sinais booleanos e um hash, nunca texto da pagina.
+ * <p>External page content is untrusted data (product rule 9): only boolean
+ * signals and a hash come out of here, never the page's text.
  *
- * @param httpsAvailable nulo quando nao foi possivel saber
- * @param detail motivo tecnico curto, como {@code DNS} ou {@code TIMEOUT}
+ * @param httpsAvailable null when it could not be determined
+ * @param detail a short technical reason, such as {@code DNS} or {@code TIMEOUT}
  */
 public record WebsiteObservation(
         Outcome outcome,
@@ -24,15 +24,15 @@ public record WebsiteObservation(
         Instant observedAt) {
 
     public enum Outcome {
-        /** Nenhum site cadastrado: nada foi acessado. */
+        /** No website on file: nothing was accessed. */
         NO_WEBSITE,
-        /** Nenhuma resposta: DNS, conexao, endereco bloqueado ou tempo esgotado. */
+        /** No answer: DNS, connection, a blocked address, or a timeout. */
         UNREACHABLE,
-        /** O site respondeu, mas o robots.txt nao permite ler a pagina inicial. */
+        /** The site answered, but robots.txt does not allow reading the home page. */
         ROBOTS_DISALLOWED,
-        /** A pagina inicial respondeu com erro ou com conteudo que nao e HTML. */
+        /** The home page answered with an error, or with content that is not HTML. */
         PAGE_UNUSABLE,
-        /** Pagina inicial lida. */
+        /** The home page was read. */
         PAGE_READ
     }
 

@@ -5,18 +5,19 @@ import java.util.List;
 import com.jhcomp.prospect.lead.domain.LeadStatus;
 
 /**
- * Etapas da pipeline padrao (doc 06 §3, D2, D25).
+ * The default pipeline's stages (doc 06 §3, D2, D25).
  *
- * <p>No codigo, e nao em tabela: cada etapa e um valor de {@link LeadStatus},
- * e uma tabela que espelhasse o enum seria segunda fonte de verdade a manter
- * sincronizada. Sem CRUD no MVP (D9); quando a pipeline precisar ser
- * configuravel, ai sim ganha tabela.
+ * <p>In code, not in a table: each stage is a {@link LeadStatus} value, and a
+ * table mirroring the enum would be a second source of truth to keep in sync.
+ * No CRUD in the MVP (D9); when the pipeline has to become configurable, that
+ * is when it gets a table.
  *
- * <p>{@code DO_NOT_CONTACT} nao e etapa: e bloqueio, fora do fluxo comercial.
+ * <p>{@code DO_NOT_CONTACT} is not a stage: it is a block, outside the
+ * commercial flow.
  */
 public final class PipelineStages {
 
-    /** Etapa da pipeline. {@code key} e o status do lead que ela representa. */
+    /** A pipeline stage. {@code key} is the lead status it represents. */
     public record Stage(LeadStatus key, String name, int position, boolean terminal) {}
 
     public static final List<Stage> DEFAULT = List.of(

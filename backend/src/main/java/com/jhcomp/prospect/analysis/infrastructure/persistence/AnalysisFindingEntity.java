@@ -17,10 +17,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 /**
- * Achado de um criterio (RF-031).
+ * A finding for one criterion (RF-031).
  *
- * <p>Os pontos sao sempre derivados do estado pela {@link ScoreFormula}, nunca
- * atribuidos de fora: assim nao ha como gravar pontos sem confirmacao.
+ * <p>The points are always derived from the state by {@link ScoreFormula},
+ * never assigned from outside: that way there is no path to storing points
+ * without a confirmation.
  */
 @Entity
 @Table(name = "analysis_finding")
@@ -70,7 +71,7 @@ public class AnalysisFindingEntity extends AssignedIdEntity {
     private String reviewNote;
 
     protected AnalysisFindingEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     public AnalysisFindingEntity(
@@ -94,8 +95,8 @@ public class AnalysisFindingEntity extends AssignedIdEntity {
     }
 
     /**
-     * Revisao humana (RF-033): mantem ou troca o estado e registra quem e quando.
-     * O estado original da verificacao continua gravado.
+     * Human review (RF-033): keeps or replaces the state and records who and
+     * when. The verification's original state stays stored.
      */
     public void review(FindingStatus newStatus, String note, UUID reviewerId, Instant now) {
         this.reviewStatus = newStatus == this.status ? ReviewStatus.CONFIRMED : ReviewStatus.CORRECTED;

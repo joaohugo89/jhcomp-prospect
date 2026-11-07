@@ -35,10 +35,10 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
 /**
- * Autenticacao por sessao (RF-001, RF-002, decisao D1).
+ * Session authentication (RF-001, RF-002, decision D1).
  *
- * <p>Nao existe {@code /auth/refresh}: a decisao D1 descartou token de curta
- * duracao, de modo que nao ha o que renovar.
+ * <p>There is no {@code /auth/refresh}: decision D1 ruled out short-lived
+ * tokens, so there is nothing to renew.
  */
 @RestController
 @RequestMapping("/auth")
@@ -78,10 +78,9 @@ public class AuthController {
         String email = MembershipUserDetailsService.normalizeEmail(request.email());
         String clientIp = ClientIpResolver.resolve(httpRequest);
 
-        // Reserva e contabiliza a tentativa no mesmo passo atomico. Verificar
-        // o limite e so depois registrar a falha permitiria que requisicoes
-        // concorrentes passassem todas pela verificacao antes de qualquer uma
-        // ser contabilizada.
+        // Reserves and records the attempt in the same atomic step. Checking
+        // the limit and only then recording the failure would let concurrent
+        // requests all pass the check before any of them was counted.
         if (!loginAttemptLimiter.tryAcquire(email, clientIp)) {
             auditService.record(AuditService.AuditEntry.loginFailure(clientIp, "RATE_LIMITED"));
             throw new TooManyAttemptsException();
@@ -92,26 +91,26 @@ public class AuthController {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, request.password()));
         } catch (AuthenticationException exception) {
-            // O limitador ja contou a tentativa na reserva. Na auditoria, o
-            // motivo e generico: distinguir "e-mail inexistente" de "senha
-            // errada" ali seria inofensivo, mas um caminho unico reduz a
-            // chance de a diferenca escapar para a resposta.
+            // The limiter already counted the attempt at reservation. In the
+            // audit trail the reason is generic: telling "no such e-mail" from
+            // "wrong password" would be harmless there, but a single path
+            // reduces the chance of the difference leaking into the response.
             auditService.record(AuditService.AuditEntry.loginFailure(clientIp, "INVALID_CREDENTIALS"));
             throw new InvalidCredentialsException();
         }
 
         AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
 
-        // Protecao contra fixacao de sessao: o id anterior ao login deixa de
-        // ser valido, impedindo que um id previamente plantado pelo atacante
-        // passe a representar a sessao autenticada.
+        // Session fixation protection: the pre-login id stops being valid,
+        // which prevents an id planted earlier by an attacker from coming to
+        // represent the authenticated session.
         HttpSession existingSession = httpRequest.getSession(false);
         if (existingSession != null) {
             existingSession.invalidate();
         }
         httpRequest.getSession(true);
 
-        // O hash de senha nao e guardado na sessao.
+        // The password hash is never kept in the session.
         storeInSession(user.forSession(clock.instant()), httpRequest, httpResponse);
 
         loginAttemptLimiter.recordSuccess(email, clientIp);
@@ -122,11 +121,13 @@ public class AuthController {
     }
 
     /**
-     * Troca da propria senha (D28). Unica rota, alem de {@code /auth/me} e
-     * logout, aberta a quem tem senha temporaria.
+     * Changing your own password (D28). The only route, besides
+     * {@code /auth/me} and logout, open to someone holding a temporary
+     * password.
      *
-     * <p>Usa o mesmo limitador do login: a senha atual e conferida aqui, e sem
-     * limite esta rota viraria um oraculo de senha para quem rouba a sessao.
+     * <p>It uses the same limiter as login: the current password is checked
+     * here, and without a limit this route would become a password oracle for
+     * whoever steals the session.
      */
     @PostMapping("/password")
     public AuthenticatedUserResponse changePassword(
@@ -144,8 +145,8 @@ public class AuthController {
                 user, request.currentPassword(), request.newPassword(), clientIp);
         loginAttemptLimiter.recordSuccess(user.email(), clientIp);
 
-        // Novo id de sessao, como no login, e o principal com o instante da
-        // troca: as outras sessoes deste usuario caem, esta continua.
+        // A new session id, as at login, and a principal carrying the instant
+        // of the change: this user's other sessions drop, this one survives.
         httpRequest.changeSessionId();
         AuthenticatedUser updated = user.afterPasswordChange(changedAt);
         storeInSession(updated, httpRequest, httpResponse);
@@ -159,7 +160,7 @@ public class AuthController {
         securityContextRepository.saveContext(context, request, response);
     }
 
-    /** Usuario e organizacao ativa da sessao corrente. */
+    /** The current session's user and active organisation. */
     @GetMapping("/me")
     public AuthenticatedUserResponse me() {
         return AuthenticatedUserResponse.from(organizationContext.requireCurrentUser());
@@ -167,8 +168,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
-        // Le o usuario antes de invalidar a sessao: depois dela nao ha mais
-        // como saber quem encerrou.
+        // Read the user before invalidating the session: afterwards there is
+        // no way to know who ended it.
         organizationContext.currentUser().ifPresent(user -> auditService.record(new AuditService.AuditEntry(
                 user.organizationId(),
                 user.userId(),

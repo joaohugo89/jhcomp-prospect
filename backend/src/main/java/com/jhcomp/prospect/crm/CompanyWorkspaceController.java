@@ -29,10 +29,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Empresas como ferramenta de trabalho (doc 05 §4, D32): lista com lead e
- * atividade, ciclos comerciais, excluir o que entrou por engano, mesclar
- * duplicata e desfazer importacao. A organizacao vem da sessao; recurso de
- * outra organizacao responde 404.
+ * Companies as a working tool (doc 05 §4, D32): the list with lead and
+ * activity, the commercial cycles, deleting what was entered by mistake,
+ * merging a duplicate, and undoing an import. The organisation comes from the
+ * session; a resource from another organisation answers 404.
  */
 @RestController
 public class CompanyWorkspaceController {
@@ -87,7 +87,7 @@ public class CompanyWorkspaceController {
         return PageResponse.from(result, item -> item);
     }
 
-    /** Os campos de uma linha da lista, para a previa e o cabecalho do detalhe. */
+    /** The fields of one list row, for the preview and the detail header. */
     @GetMapping("/companies/{companyId}/summary")
     public CompanyWorklistQuery.Item summary(@PathVariable UUID companyId) {
         var criteria = new CompanyWorklistQuery.Criteria(companyId, null, null, false, null, null, null, null, false);
@@ -107,13 +107,13 @@ public class CompanyWorkspaceController {
         return PageResponse.from(worklist.leads(organizationId, companyId, page(page, size)), cycle -> cycle);
     }
 
-    /** Se quem pergunta pode excluir a empresa agora, e por que nao. */
+    /** Whether the caller may delete the company right now, and why not. */
     @GetMapping("/companies/{companyId}/removal")
     public CompanyRemovalService.Eligibility removal(@PathVariable UUID companyId) {
         return removal.eligibility(companyId);
     }
 
-    /** O nome digitado confirma a intencao, como no dialogo da tela. */
+    /** The typed name confirms the intent, as in the dialog on screen. */
     public record DeleteCompanyRequest(@NotBlank @Size(max = 200) String confirmationName) {}
 
     @DeleteMapping("/companies/{companyId}")
@@ -126,7 +126,7 @@ public class CompanyWorkspaceController {
 
     public record MergeResponse(CompanyResponse company, List<String> filledFields, int movedLeads) {}
 
-    /** A empresa do pedido absorve {@code sourceCompanyId}, que fica arquivada. */
+    /** The company in the path absorbs {@code sourceCompanyId}, which ends up archived. */
     @PostMapping("/companies/{companyId}/merge")
     public MergeResponse merge(@PathVariable UUID companyId, @Valid @RequestBody MergeRequest request) {
         var result = merge.merge(companyId, request.sourceCompanyId());

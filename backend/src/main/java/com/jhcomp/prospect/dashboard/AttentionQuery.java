@@ -13,21 +13,22 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * "Precisa de atencao": o que o operador deve fazer agora (doc 08 §4).
+ * "Needs attention": what the operator should do now (doc 08 §4).
  *
- * <p>Quatro secoes, cada uma com o total e os {@code limit} mais urgentes; o
- * resto se acha pelo lead. Situacao de agora, sem periodo: tarefa atrasada nao
- * deixa de estar atrasada porque o filtro e dos ultimos 7 dias. Lead em
- * {@code DO_NOT_CONTACT} fica de fora de todas: o painel nunca empurra uma
- * abordagem a quem pediu para nao ser contatado (regra 4).
+ * <p>Four sections, each with the total and the {@code limit} most urgent
+ * items; the rest is found through the lead. The situation now, with no
+ * period: an overdue task does not stop being overdue because the filter
+ * covers the last 7 days. A lead in {@code DO_NOT_CONTACT} is excluded from
+ * all of them: the panel never pushes an approach at someone who asked not to
+ * be contacted (rule 4).
  */
 @Repository
 public class AttentionQuery {
 
-    /** Dias numa etapa em andamento a partir dos quais o lead esta parado (o mesmo do Kanban). */
+    /** Days in an in-progress stage after which the lead counts as stalled (the Kanban's threshold). */
     static final int STALE_DAYS = 7;
 
-    /** Dias sem toque numa proposta: o dinheiro mais perto de esfriar. */
+    /** Days without a touch on a proposal: the money closest to going cold. */
     static final int QUIET_PROPOSAL_DAYS = 7;
 
     static final int MAX_LIMIT = 20;
@@ -38,7 +39,7 @@ public class AttentionQuery {
 
     public record Attention(Section tasks, Section staleLeads, Section quietProposals, Section withoutTask) {}
 
-    /** Ultima mudanca de status de cada lead, pela ordem de gravacao: a entrada na etapa atual. */
+    /** Each lead's last status change, by recording order: the entry into the current stage. */
     private static final String LATEST_CHANGE = """
             latest as (
                 select distinct on (s.lead_id) s.lead_id, s.changed_at
@@ -47,7 +48,7 @@ public class AttentionQuery {
                  order by s.lead_id, s.recorded_seq desc
             )""";
 
-    /** Etapas em andamento; {@code NEW} e triagem, ainda sem compromisso de proximo passo. */
+    /** The stages in progress; {@code NEW} is triage, with no next step committed yet. */
     private static final String IN_PROGRESS =
             "l.status in ('QUALIFIED', 'CONTACT_APPROVED', 'CONTACTED', 'IN_CONVERSATION', 'PROPOSAL_SENT')";
 
@@ -58,8 +59,8 @@ public class AttentionQuery {
     }
 
     /**
-     * @param endOfToday fim do dia de hoje no fuso do operador: tarefa que vence
-     *     hoje entra junto com as atrasadas
+     * @param endOfToday the end of today in the operator's time zone, so a task
+     *     due today appears alongside the overdue ones
      */
     @Transactional(readOnly = true)
     public Attention attention(DashboardSql.Filters filters, Instant now, Instant endOfToday, int limit) {
@@ -92,7 +93,7 @@ public class AttentionQuery {
                  limit :limit
                 """.formatted(LATEST_CHANGE, IN_PROGRESS, DashboardSql.LEAD_FILTER), params);
 
-        // Ultimo toque: a interacao mais recente ou, sem ela, a chegada na proposta.
+        // Last touch: the most recent interaction or, failing that, the arrival at the proposal.
         Section quiet = section("""
                 with %s
                 select l.id as lead_id, c.name as company_name, l.status, touch.at, null as detail,

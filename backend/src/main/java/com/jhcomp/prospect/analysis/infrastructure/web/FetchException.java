@@ -1,11 +1,11 @@
 package com.jhcomp.prospect.analysis.infrastructure.web;
 
 /**
- * Requisicao que nao obteve resposta HTTP.
+ * A request that obtained no HTTP response.
  *
- * <p>{@code code} e um motivo curto ({@code DNS}, {@code BLOCKED_ADDRESS},
- * {@code TIMEOUT}...) que vira evidencia; a mensagem da biblioteca nao e
- * guardada, porque pode citar detalhe interno.
+ * <p>{@code code} is a short reason ({@code DNS}, {@code BLOCKED_ADDRESS},
+ * {@code TIMEOUT}, …) that becomes evidence; the library's message is not
+ * kept, because it can cite internal detail.
  */
 public class FetchException extends Exception {
 

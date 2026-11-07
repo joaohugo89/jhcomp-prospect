@@ -5,23 +5,25 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Regras de um robots.txt (RFC 9309), so o necessario para decidir se um
- * caminho pode ser lido (doc 06 §6).
+ * The rules of a robots.txt (RFC 9309), only as much as is needed to decide
+ * whether a path may be read (doc 06 §6).
  *
- * <p>Usa o grupo do nosso agente, se houver, senao o grupo {@code *}. Entre
- * as regras que casam, vence a mais longa; empate favorece {@code Allow}.
+ * <p>It uses our agent's group when there is one, otherwise the {@code *}
+ * group. Among the matching rules the longest wins; a tie favours
+ * {@code Allow}.
  */
 public final class RobotsRules {
 
-    /** Token do agente procurado no robots.txt. */
+    /** The agent token looked for in robots.txt. */
     public static final String AGENT_TOKEN = "jhcomp-prospect";
 
     private static final RobotsRules ALLOW_ALL = new RobotsRules(List.of());
     private static final RobotsRules DISALLOW_ALL = new RobotsRules(List.of(new Rule(false, "/")));
 
     /**
-     * Limites para conteudo externo. robots.txt e escrito por terceiros: sem
-     * teto, milhares de regras longas cheias de curinga ocupariam o worker.
+     * Limits for external content. robots.txt is written by third parties:
+     * without a ceiling, thousands of long rules full of wildcards would
+     * occupy the worker.
      */
     static final int MAX_RULES = 500;
     static final int MAX_RULE_LENGTH = 512;
@@ -35,12 +37,12 @@ public final class RobotsRules {
         this.rules = rules;
     }
 
-    /** robots.txt inexistente (4xx): tudo permitido (RFC 9309 §2.3.1.3). */
+    /** No robots.txt (4xx): everything is allowed (RFC 9309 §2.3.1.3). */
     public static RobotsRules allowAll() {
         return ALLOW_ALL;
     }
 
-    /** robots.txt inacessivel por erro do servidor (5xx): nada permitido (RFC 9309 §2.3.1.4). */
+    /** robots.txt unreachable through a server error (5xx): nothing is allowed (RFC 9309 §2.3.1.4). */
     public static RobotsRules disallowAll() {
         return DISALLOW_ALL;
     }
@@ -74,7 +76,7 @@ public final class RobotsRules {
             if (!key.equals("allow") && !key.equals("disallow")) {
                 continue;
             }
-            // Disallow vazio nao proibe nada.
+            // An empty Disallow forbids nothing.
             if (value.isEmpty()) {
                 continue;
             }
@@ -94,7 +96,7 @@ public final class RobotsRules {
     }
 
     public boolean allows(String path) {
-        // Caminho alem do limite nao e comparado: sem decisao segura, nao le.
+        // A path beyond the limit is not matched: with no safe decision, it does not read.
         if (path.length() > MAX_PATH_LENGTH) {
             return false;
         }
@@ -118,14 +120,15 @@ public final class RobotsRules {
     }
 
     /**
-     * Curinga do robots.txt: {@code *} casa qualquer sequencia e {@code $} no
-     * fim ancora o final; sem {@code $}, a regra casa como prefixo.
+     * robots.txt wildcards: {@code *} matches any sequence and a trailing
+     * {@code $} anchors the end; without {@code $}, a rule matches as a
+     * prefix.
      *
-     * <p>Sem expressao regular de proposito. Regras vem de terceiros, e uma
-     * regex com varios {@code .*} pode levar tempo exponencial com backtracking
-     * (ReDoS). Este comparador guarda so o ultimo curinga e volta no maximo
-     * ate ele, como o parser de robots.txt do Google: tempo limitado por
-     * tamanho da regra vezes tamanho do caminho, ambos com teto.
+     * <p>Deliberately without regular expressions. The rules come from third
+     * parties, and a regex with several {@code .*} can take exponential time
+     * through backtracking (ReDoS). This matcher remembers only the last
+     * wildcard and backtracks at most to it, like Google's robots.txt parser:
+     * time is bounded by rule length times path length, both capped.
      */
     static boolean matches(String rule, String path) {
         boolean anchored = rule.endsWith("$");

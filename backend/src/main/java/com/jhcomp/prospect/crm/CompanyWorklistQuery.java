@@ -24,22 +24,23 @@ import com.jhcomp.prospect.shared.persistence.LikePatterns;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
- * Lista de empresas como ferramenta (doc 08 §5, D32): cada linha diz se a
- * empresa tem lead, como contata-la, de onde veio, quando houve atividade e se
- * parece duplicata.
+ * The company list as a tool (doc 08 §5, D32): each row says whether the
+ * company has a lead, how to reach it, where it came from, when there was
+ * activity, and whether it looks like a duplicate.
  *
- * <p>No modulo de CRM pela mesma razao da fila de leads: os campos vem de
- * lead, interacao e historico, e o modulo de empresa nao depende deles.
+ * <p>In the CRM module for the same reason as the lead queue: the fields come
+ * from lead, interaction and history, and the company module does not depend
+ * on them.
  */
 @Repository
 public class CompanyWorklistQuery {
 
-    /** Recortes de um clique. Sem {@code ARCHIVED}, so as ativas aparecem. */
+    /** One-click slices. Without {@code ARCHIVED}, only active ones appear. */
     public enum Focus { WITHOUT_LEAD, WITHOUT_CONTACT, DUPLICATE, ARCHIVED }
 
     public enum SortField { NAME, CITY, CREATED, LAST_ACTIVITY }
 
-    /** Criterios; nulos nao filtram. {@code companyId} uma empresa so (resumo). */
+    /** Criteria; nulls filter nothing. {@code companyId} narrows to one company (the summary). */
     public record Criteria(
             UUID companyId,
             String search,
@@ -51,7 +52,7 @@ public class CompanyWorklistQuery {
             SortField sort,
             boolean ascending) {}
 
-    /** Lead mais relevante da empresa: o aberto, ou o ultimo encerrado. */
+    /** The company's most relevant lead: the open one, or the last closed one. */
     public record CurrentLead(UUID leadId, String status, boolean open, String assigneeName) {}
 
     public record Item(
@@ -73,7 +74,7 @@ public class CompanyWorklistQuery {
             boolean archived,
             Instant createdAt) {}
 
-    /** Um ciclo comercial da empresa, do mais recente ao mais antigo. */
+    /** One commercial cycle of the company, newest first. */
     public record LeadCycle(
             UUID leadId,
             String status,
@@ -91,9 +92,9 @@ public class CompanyWorklistQuery {
             SortField.LAST_ACTIVITY, "act.at");
 
     /**
-     * Outra empresa ativa com o mesmo dominio, telefone, ou nome na mesma
-     * cidade e estado: os sinais do RF-014. Arquivada nao conta, senao a
-     * origem de uma mesclagem marcaria o destino para sempre.
+     * Another active company with the same domain, phone, or name in the same
+     * city and state: the signals of RF-014. An archived one does not count,
+     * or the source of a merge would flag the target forever.
      */
     private static final String POSSIBLE_DUPLICATE = """
             exists (select 1 from company o
@@ -174,7 +175,7 @@ public class CompanyWorklistQuery {
                 case WITHOUT_CONTACT -> where.add(WITHOUT_CONTACT);
                 case DUPLICATE -> where.add(POSSIBLE_DUPLICATE);
                 case ARCHIVED -> {
-                    // Ja aplicado acima.
+                    // Already applied above.
                 }
             }
         }
@@ -235,7 +236,7 @@ public class CompanyWorklistQuery {
         return new PageImpl<>(items, pageable, total[0]);
     }
 
-    /** Ciclos comerciais da empresa, do mais recente ao mais antigo. */
+    /** The company's commercial cycles, newest first. */
     @Transactional(readOnly = true)
     public Page<LeadCycle> leads(UUID organizationId, UUID companyId, Pageable pageable) {
         MapSqlParameterSource params = new MapSqlParameterSource("organizationId", organizationId)

@@ -23,16 +23,17 @@ import com.jhcomp.prospect.shared.web.PageRequests;
 import com.jhcomp.prospect.shared.web.PageResponse;
 
 /**
- * Dashboard (RF-070, RF-071, doc 05 §3).
+ * The dashboard (RF-070, RF-071, doc 05 §3).
  *
- * <p>O periodo e em datas do calendario de Brasilia, onde o operador trabalha:
- * "hoje" para ele e o dia local. Os instantes continuam gravados em UTC
- * (RNF-009); so a fronteira do periodo usa o fuso. Sem periodo, os ultimos 30
- * dias, contando hoje. Todas as rotas aceitam os mesmos filtros
- * ({@link DashboardParams}), para os numeros de uma secao baterem com os da outra.
+ * <p>The period is in Brasília calendar dates, where the operator works:
+ * "today" for them is the local day. Instants stay stored in UTC (RNF-009);
+ * only the period's boundary uses the time zone. With no period, the last 30
+ * days counting today. Every route accepts the same filters
+ * ({@link DashboardParams}), so the numbers of one section match another's.
  *
- * <p>{@code assignee} filtra pelo responsavel do lead. Um id de outra
- * organizacao so devolve zero: toda consulta ja e escopada pela sessao.
+ * <p>{@code assignee} filters by the lead's owner. An id from another
+ * organisation simply returns zero: every query is already scoped by the
+ * session.
  */
 @RestController
 @RequestMapping("/dashboard")
@@ -60,7 +61,7 @@ public class DashboardController {
         this.clock = clock;
     }
 
-    /** Filtros comuns, lidos da query string. Campos ausentes nao filtram. */
+    /** The shared filters, read from the query string. Absent fields filter nothing. */
     public record DashboardParams(
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -84,7 +85,7 @@ public class DashboardController {
         return PageResponse.from(query.activity(filters(period(params), params), pageable), item -> item);
     }
 
-    /** Conversao por origem e segmento dos leads abertos no periodo (RF-071). */
+    /** Conversion by origin and segment for the leads opened in the period (RF-071). */
     @GetMapping("/conversion")
     public ConversionResponse conversion(@ModelAttribute DashboardParams params) {
         Period period = period(params);
@@ -92,8 +93,9 @@ public class DashboardController {
     }
 
     /**
-     * Metricas do periodo em intervalos (RF-070). Sem {@code granularity}, a
-     * escolha segue o tamanho do periodo, para o grafico nao ter barras demais.
+     * The period's metrics in intervals (RF-070). Without {@code granularity},
+     * the choice follows the period's length, so the chart does not end up
+     * with too many bars.
      */
     @GetMapping("/timeline")
     public TimelineResponse timeline(
@@ -106,9 +108,9 @@ public class DashboardController {
     }
 
     /**
-     * O que pede acao agora: tarefas atrasadas ou de hoje, leads parados,
-     * propostas sem contato e leads sem proxima tarefa. Sem periodo: e a
-     * situacao do momento; os demais filtros valem.
+     * What needs action now: overdue tasks or tasks due today, stalled leads,
+     * proposals with no contact, and leads with no next task. No period: this
+     * is the situation of the moment; the other filters still apply.
      */
     @GetMapping("/attention")
     public AttentionQuery.Attention attention(
@@ -118,14 +120,14 @@ public class DashboardController {
         return attentionQuery.attention(filters(period(params), params), now, endOfToday, limit);
     }
 
-    /** Alcance de cada etapa e tempo medio nela, para os leads abertos no periodo (RF-071). */
+    /** Each stage's reach and the average time in it, for the leads opened in the period (RF-071). */
     @GetMapping("/funnel")
     public FunnelResponse funnel(@ModelAttribute DashboardParams params) {
         Period period = period(params);
         return new FunnelResponse(period.from(), period.to(), funnelQuery.funnel(filters(period, params)));
     }
 
-    /** Ate 31 dias por dia, ate 120 por semana, alem disso por mes. */
+    /** Up to 31 days daily, up to 120 weekly, beyond that monthly. */
     static DashboardQuery.Granularity defaultGranularity(Period period) {
         long days = ChronoUnit.DAYS.between(period.from(), period.to()) + 1;
         if (days <= 31) {
@@ -134,10 +136,10 @@ public class DashboardController {
         return days <= 120 ? DashboardQuery.Granularity.WEEK : DashboardQuery.Granularity.MONTH;
     }
 
-    /** Periodo efetivo, inclusivo nas duas pontas, como o operador escolheu. */
+    /** The effective period, inclusive at both ends, as the operator chose it. */
     public record Period(LocalDate from, LocalDate to) {}
 
-    /** O periodo usado volta na resposta: o denominador fica explicito (RF-071). */
+    /** The period used comes back in the response: the denominator stays explicit (RF-071). */
     public record SummaryResponse(LocalDate from, LocalDate to, DashboardQuery.Summary summary) {}
 
     public record TimelineResponse(

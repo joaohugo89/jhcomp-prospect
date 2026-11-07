@@ -11,10 +11,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 /**
- * Dados comerciais do fechamento (D2): servico, valor e motivo de perda.
+ * The commercial facts of a closing (D2): service, value and loss reason.
  *
- * <p>Nao guarda etapa nem resultado: ganho ou perdido e o status do lead.
- * Guardar o resultado aqui recriaria duas fontes de estado, o que a D2 elimina.
+ * <p>It stores neither stage nor outcome: won or lost is the lead's status.
+ * Storing the outcome here would recreate the two sources of state that D2
+ * eliminates.
  */
 @Entity
 @Table(name = "deal")
@@ -44,7 +45,7 @@ public class DealEntity extends AssignedIdEntity {
     private Instant updatedAt;
 
     protected DealEntity() {
-        // Exigido pelo JPA.
+        // Required by JPA.
     }
 
     DealEntity(UUID organizationId, UUID leadId, Instant now) {
@@ -63,7 +64,7 @@ public class DealEntity extends AssignedIdEntity {
         this.updatedAt = now;
     }
 
-    /** Motivo informado ao marcar como perdido, se o deal ainda nao tiver um. */
+    /** The reason given when marking it lost, if the deal has none yet. */
     void recordLossReasonIfAbsent(String reason, Instant now) {
         if (lossReason == null && reason != null) {
             this.lossReason = reason;

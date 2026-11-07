@@ -3,11 +3,11 @@ package com.jhcomp.prospect.analysis.domain;
 import java.util.Map;
 
 /**
- * Score deterministico (RF-032, doc 06 §7).
+ * The deterministic score (RF-032, doc 06 §7).
  *
- * <p>Funcao pura dos estados dos achados: os mesmos estados dao sempre o mesmo
- * score, e a versao gravada junto permite reproduzir o calculo depois que a
- * formula mudar (D3).
+ * <p>A pure function of the findings' states: the same states always give the
+ * same score, and the version stored alongside allows the calculation to be
+ * reproduced after the formula changes (D3).
  */
 public final class ScoreFormula {
 
@@ -16,7 +16,7 @@ public final class ScoreFormula {
     private ScoreFormula() {
     }
 
-    /** Pontos de um criterio: todos se confirmado, nenhum caso contrario. */
+    /** A criterion's points: all of them when confirmed, none otherwise. */
     public static int pointsFor(Criterion criterion, FindingStatus status) {
         return status == FindingStatus.CONFIRMED ? criterion.maxPoints() : 0;
     }

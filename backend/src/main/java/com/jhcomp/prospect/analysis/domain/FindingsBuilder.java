@@ -7,15 +7,17 @@ import com.jhcomp.prospect.analysis.domain.FindingDraft.Evidence;
 import com.jhcomp.prospect.analysis.domain.WebsiteObservation.Outcome;
 
 /**
- * Transforma cadastro e observacao do site em um achado por criterio.
+ * Turns the company record and the website observation into one finding per
+ * criterion.
  *
- * <p>Regra central: so se afirma o que foi visto. Site fora do ar nao confirma
- * ausencia de site; pagina nao lida nao confirma falta de viewport. Nesses
- * casos o achado fica {@link FindingStatus#NOT_VERIFIED} e nao pontua
- * (regra 3 do produto, doc 06 §5).
+ * <p>The central rule: only what was seen is asserted. A site that is down
+ * does not confirm the absence of a site; a page that was not read does not
+ * confirm a missing viewport. In those cases the finding stays
+ * {@link FindingStatus#NOT_VERIFIED} and scores nothing (product rule 3,
+ * doc 06 §5).
  *
- * <p>Funcao pura, sem Spring nem rede: o mesmo par de entradas da sempre os
- * mesmos achados.
+ * <p>A pure function, with no Spring and no network: the same pair of inputs
+ * always yields the same findings.
  */
 public final class FindingsBuilder {
 
@@ -93,8 +95,9 @@ public final class FindingsBuilder {
             case PAGE_READ -> new FindingDraft(criterion,
                     signalPresent ? FindingStatus.CONTRADICTED : FindingStatus.CONFIRMED,
                     signalPresent ? present : absent,
-                    // Sinal de HTML pode estar em conteudo gerado por script, que
-                    // nao e executado: confianca media, a revisao decide.
+                    // An HTML signal can live in script-generated content, which
+                    // is not executed: medium confidence, and the review
+                    // decides.
                     Confidence.MEDIUM,
                     List.of(new Evidence(EvidenceType.HTML_SIGNAL, site.finalUrl(),
                             signalPresent ? "Sinal encontrado no HTML." : "Sinal ausente no HTML.",
@@ -168,7 +171,7 @@ public final class FindingsBuilder {
         return site.detail() == null ? text + "." : text + " (" + describe(site.detail()) + ").";
     }
 
-    /** Motivos tecnicos em texto para o operador. Codigo desconhecido aparece como veio. */
+    /** Technical reasons as text for the operator. An unknown code is shown as it came. */
     private static String describe(String detail) {
         if (detail == null) {
             return "motivo não identificado";

@@ -37,14 +37,15 @@ import com.jhcomp.prospect.shared.jobs.JobHandler;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Executa a analise de presenca digital em segundo plano (RF-030, D15).
+ * Runs the digital presence analysis in the background (RF-030, D15).
  *
- * <p>Tres passos, e so o primeiro e o ultimo em transacao: ler o cadastro,
- * verificar o site sem transacao aberta (chamada de rede, regra do projeto) e
- * gravar achados, score e status de uma vez.
+ * <p>Three steps, and only the first and the last are transactional: read the
+ * company record, verify the site with no transaction open (a network call, a
+ * project rule), and write findings, score and status in one go.
  *
- * <p>A organizacao vem do job, nunca do payload, que so carrega o id da
- * analise; a analise e buscada com essa organizacao.
+ * <p>The organisation comes from the job, never from the payload, which
+ * carries only the analysis id; the analysis is looked up under that
+ * organisation.
  */
 @Component
 public class AnalysisJobHandler implements JobHandler {
@@ -120,7 +121,7 @@ public class AnalysisJobHandler implements JobHandler {
                 .ifPresent(analysis -> analysis.fail("A verificação não pôde ser concluída.", clock.instant())));
     }
 
-    /** Marca o inicio e le o cadastro. Vazio se a analise ja terminou (job repetido). */
+    /** Marks the start and reads the record. Empty when the analysis already finished (a repeated job). */
     private Optional<Snapshot> start(UUID organizationId, UUID analysisId) {
         Optional<LeadAnalysisEntity> found = analysisRepository
                 .findByIdAndOrganizationId(analysisId, organizationId)

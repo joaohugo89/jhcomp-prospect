@@ -24,13 +24,14 @@ import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Mesclar duplicata (RF-014, D32): a empresa de origem passa a ser a de
- * destino. Leads, proveniencia e linhas de importacao mudam de empresa; os
- * campos vazios do destino sao completados com os da origem, sem sobrescrever
- * nada (RF-023); a origem e arquivada, nunca apagada.
+ * Merging a duplicate (RF-014, D32): the source company becomes the target
+ * one. Leads, provenance and import rows change company; the target's empty
+ * fields are filled from the source without overwriting anything (RF-023); the
+ * source is archived, never deleted.
  *
- * <p>Nao junta dois ciclos abertos: uma empresa so tem uma oportunidade aberta
- * por vez (doc 06 §3). Nesse caso o operador encerra um deles antes.
+ * <p>It does not join two open cycles: a company has only one open opportunity
+ * at a time (doc 06 §3). In that case the operator closes one of them
+ * first.
  */
 @Service
 public class CompanyMergeService {
@@ -65,18 +66,19 @@ public class CompanyMergeService {
         MapSqlParameterSource params = new MapSqlParameterSource("organizationId", user.organizationId())
                 .addValue("target", targetId)
                 .addValue("source", sourceId);
-        // Trava as duas linhas, sempre na mesma ordem, antes de ler o estado: duas mesclagens
-        // simultaneas (a mesma origem em dois destinos, ou A em B enquanto B vai para C) esperam
-        // uma pela outra em vez de decidir sobre um estado que a outra esta mudando.
+        // Locks both rows, always in the same order, before reading the state:
+        // two simultaneous merges (the same source into two targets, or A into
+        // B while B goes to C) wait for each other instead of deciding over a
+        // state the other one is changing.
         jdbc.query("""
                 select id from company
                  where organization_id = :organizationId and id in (:target, :source)
                  order by id for update
                 """, params, (row, rowNumber) -> row.getObject("id", UUID.class));
-        // Lidas depois da trava. As duas da organizacao da sessao: outra organizacao e 404.
+        // Read after the lock. Both from the session's organisation: another organisation is 404.
         CompanyEntity target = companyService.requireActive(targetId);
         CompanyEntity source = companyService.find(sourceId);
-        // Mesclada uma vez, fica: trocar o destino apagaria a marca que protege o primeiro destino.
+        // Merged once, it stays: changing the target would erase the mark that protects the first one.
         if (source.getMergedIntoCompanyId() != null || target.getMergedIntoCompanyId() != null) {
             throw new ConflictException("Company was already merged");
         }
@@ -97,8 +99,9 @@ public class CompanyMergeService {
                 update lead_source set company_id = :target
                  where organization_id = :organizationId and company_id = :source
                 """, params);
-        // A linha que criou a origem passa a apontar para uma empresa que ela nao criou: vira MERGED.
-        // Sem isso, desfazer aquela importacao apagaria o destino, que existia antes dela.
+        // The row that created the source now points at a company it did not
+        // create, so it becomes MERGED. Without that, undoing that import would
+        // delete the target, which existed before it.
         jdbc.update("""
                 update import_row
                    set company_id = :target, status = case when status = 'IMPORTED' then 'MERGED' else status end
@@ -122,7 +125,7 @@ public class CompanyMergeService {
                 source.getBusinessEmail(),
                 source.getAddress(),
                 source.getNotes()), now);
-        // So marca se ninguem marcou antes: a trava ja garante, a condicao deixa isso explicito.
+        // Only marks when nobody marked it before: the lock already guarantees it, the condition makes it explicit.
         int marked = jdbc.update("""
                 update company
                    set merged_into_company_id = :target, archived_at = coalesce(archived_at, :now), updated_at = :now

@@ -3,10 +3,10 @@ package com.jhcomp.prospect.analysis.application;
 import com.jhcomp.prospect.analysis.domain.WebsiteObservation;
 
 /**
- * Verificacao do site de uma empresa (doc 06 §6).
+ * Verification of a company's website (doc 06 §6).
  *
- * <p>Porta de saida: o caso de uso nao conhece HTTP nem a biblioteca usada.
- * Nunca lanca por falha de rede; falta de resposta vira
+ * <p>An outbound port: the use case knows nothing of HTTP or of the library
+ * behind it. It never throws on a network failure; no answer becomes
  * {@link WebsiteObservation.Outcome#UNREACHABLE}.
  */
 public interface WebsiteChecker {
