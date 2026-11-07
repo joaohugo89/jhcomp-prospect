@@ -1,377 +1,281 @@
-# 04 — Modelo de dados
+# 04 — Data model
 
-## 1. Convenções
+This document describes the schema **as built**, column by column, against the
+Flyway migrations in `backend/src/main/resources/db/migration`. Where the
+original design and the implementation diverged, the implementation wins and
+the divergence is stated.
 
-- Chaves primárias UUID.
-- `created_at` e `updated_at` em entidades mutáveis.
-- Timestamps persistidos em UTC.
-- `organization_id` obrigatório em dados privados de organização.
-- Índices para filtros frequentes.
-- Soft delete apenas quando houver necessidade de negócio e política de retenção definida; não usar como substituto de exclusão legalmente necessária.
-- Valores monetários em `NUMERIC`, nunca `FLOAT`.
-- Enums persistidos como strings ou tabelas de domínio, com migrações controladas.
+## 1. Conventions
 
-## 2. Entidades
+- UUID primary keys, assigned by the application rather than the database —
+  which is also what lets Hibernate batch inserts.
+- `created_at` and `updated_at` on mutable entities.
+- Timestamps persisted in UTC (RNF-009).
+- `organization_id` mandatory on anything private to an organisation.
+- Indexes for the filters that are actually used.
+- Soft delete only where the business needs it and a retention policy exists;
+  never as a substitute for a legally required deletion.
+- Money in `NUMERIC`, never `FLOAT`.
+- Enums persisted as strings, with controlled migrations.
+- `varchar`, never `char(n)`: `char(n)` becomes `bpchar` and fails Hibernate's
+  schema validation, which expects `varchar(n)` for a `String` field.
 
-### Organization
-- `id`
-- `name`
-- `slug`
-- `status`
-- `created_at`
-- `updated_at`
+## 2. Entities
 
-### User
-- `id`
-- `email`
-- `password_hash`
-- `display_name`
-- `status`
-- `created_at`
-- `updated_at`
+### `organization`
 
-### OrganizationMember
-- `id`
-- `organization_id`
-- `user_id`
-- `role`
-- `status`
-- `created_at`
+`id`, `name`, `slug`, `status`, `created_at`, `updated_at`
 
-Restrição única: `(organization_id, user_id)`.
+### `app_user`
 
-### Company
-- `id`
-- `organization_id`
-- `name`
-- `normalized_name` (D4: persistido, para a deduplicação usar índice)
-- `trade_name` nullable
-- `segment` nullable
-- `city`
-- `state`
-- `website_url` nullable
-- `instagram_url` nullable
-- `normalized_domain` nullable (D10)
-- `phone` nullable
-- `normalized_phone` nullable, E.164 (D10)
-- `business_email` nullable
-- `address` nullable
-- `notes` nullable
-- `archived_at` nullable
-- `created_at`
-- `updated_at`
+`id`, `email`, `password_hash`, `display_name`, `status`, `created_at`,
+`updated_at`, `password_change_required`, `credentials_changed_at`
 
-As colunas normalizadas são preenchidas pelo componente único de normalização (D10), o mesmo usado pela lista de não contato.
-Não há verificação por campo em `Company`: o estado de verificação vive na análise e em `LeadSource` (D12).
+`password_change_required` drives the forced change after an admin issues a
+temporary password; `credentials_changed_at` is read during membership
+revalidation to end the user's other sessions when the password changes (D28).
 
-Índices sugeridos:
-- `(organization_id, normalized_name, city, state)`
-- `(organization_id, segment)`
-- `(organization_id, city, state)`
+### `organization_member`
 
-`normalized_name` é persistido (D4) e nunca substitui nem é exibido no lugar do nome original.
+`id`, `organization_id`, `user_id`, `role`, `status`, `created_at`
 
-### Lead
-- `id`
-- `organization_id`
-- `company_id`
-- `status`
-- `priority`
-- `score` nullable
-- `score_version` nullable
-- `assigned_user_id` nullable
-- `created_at`
-- `updated_at`
-- `closed_at` nullable
+Unique on `(organization_id, user_id)`.
 
-Um lead representa uma oportunidade comercial, não necessariamente uma empresa única. A política para múltiplas oportunidades ativas da mesma empresa deve ser definida pelo produto.
+### `company`
 
-### LeadSource
-- `id`
-- `organization_id`
-- `lead_id` nullable
-- `company_id` obrigatório (D6)
-- `source_type`
-- `source_name`
-- `source_reference` nullable
-- `source_url` nullable
-- `collected_at`
-- `collected_by_user_id` nullable
-- `terms_or_dataset_note` nullable
+`id`, `organization_id`, `name`, `normalized_name`, `trade_name`, `segment`,
+`city`, `state`, `website_url`, `normalized_domain`, `instagram_url`, `phone`,
+`normalized_phone`, `business_email`, `address`, `notes`, `archived_at`,
+`created_at`, `updated_at`, `created_by_user_id`, `merged_into_company_id`
 
-Registrar a origem sem copiar conteúdo protegido ou dados além do necessário.
+The normalised columns are filled by the single normalisation component (D10),
+the same one the do-not-contact list uses — two implementations would mean a
+phone blocked in one place and reachable in the other. `normalized_name` is
+persisted so deduplication can use an index (D4); it never replaces the
+original name and is never displayed in its place.
 
-### CompanyContact
+`created_by_user_id` supports the deletion rule (D32): whoever registered a
+company may delete it within 7 days if it has no commercial activity.
+`merged_into_company_id` points at the surviving company after a merge.
 
-**Fora do MVP (D5).** O contato principal fica em `Company`. Reintroduzir quando houver necessidade real de vários contatos por empresa.
+There is no per-field verification state on `company`: verification lives in
+the analysis and in `lead_source` (D12).
 
-- `id`
-- `organization_id`
-- `company_id`
-- `contact_type`
-- `value`
-- `label` nullable
-- `is_public_business_contact`
-- `source_id` nullable
-- `verified_at` nullable
-- `created_at`
+Indexes: `(organization_id, normalized_name, city, state)`,
+`(organization_id, segment)`, `(organization_id, city, state)`.
 
-Acesso e retenção devem considerar se o contato identifica pessoa natural.
+### `lead`
 
-### LeadAnalysis
-- `id`
-- `organization_id`
-- `lead_id`
-- `analysis_type`
-- `status`
-- `score` nullable
-- `confidence` nullable
-- `summary` nullable
-- `provider` nullable
-- `model` nullable
-- `prompt_version` nullable
-- `started_at`
-- `completed_at` nullable
-- `created_at`
+`id`, `organization_id`, `company_id`, `status`, `priority`, `score`,
+`score_version`, `assigned_user_id`, `created_at`, `updated_at`, `closed_at`
 
-### AnalysisFinding
-- `id`
-- `organization_id`
-- `analysis_id`
-- `criterion`
-- `finding_status`
-- `description`
-- `confidence` nullable
-- `points_awarded` default 0
-- `review_status`
-- `reviewed_by_user_id` nullable
-- `reviewed_at` nullable
+`status` is the single source of commercial state (D2). `score` holds the score
+of the most recently completed analysis (D3).
 
-Estados de achado sugeridos:
-- `CONFIRMED`
-- `NOT_FOUND`
-- `NOT_VERIFIED`
-- `NOT_APPLICABLE`
-- `CONTRADICTED`
+### `lead_status_change`
 
-### AnalysisEvidence
-- `id`
-- `organization_id`
-- `finding_id`
-- `evidence_type`
-- `reference_url` nullable
-- `description`
-- `observed_at`
-- `captured_by`
-- `content_hash` nullable
+`id`, `organization_id`, `lead_id`, `from_status`, `to_status`, `reason`,
+`changed_by_user_id`, `changed_at`, `recorded_seq`
 
-Evitar armazenar cópias integrais de páginas ou dados pessoais desnecessários. Uma URL e uma descrição concisa podem ser suficientes.
+`recorded_seq` exists because the JVM clock on Windows has a resolution of up
+to ~16 ms: two consecutive changes can receive the same instant, and ordering
+by timestamp alone becomes arbitrary. The sequence breaks the tie
+deterministically.
 
-### Pipeline
-- `id`
-- `organization_id`
-- `name`
-- `is_default`
-- `created_at`
+### `lead_source`
 
-### PipelineStage
-- `id`
-- `organization_id`
-- `pipeline_id`
-- `name`
-- `stage_key`
-- `position`
-- `is_terminal`
-- `created_at`
+`id`, `organization_id`, `company_id`, `lead_id`, `source_type`, `source_name`,
+`source_reference`, `source_url`, `collected_at`, `collected_by_user_id`,
+`terms_or_dataset_note`, `created_at`, `recorded_seq`
 
-### Deal
-- `id`
-- `organization_id`
-- `lead_id`
-- `pipeline_id`
-- `stage_id`
-- `title`
-- `estimated_value` nullable
-- `currency` default `BRL`
-- `outcome` nullable
-- `loss_reason` nullable
-- `created_at`
-- `updated_at`
-- `closed_at` nullable
+`company_id` is mandatory and `lead_id` optional (D6): provenance belongs to
+the company, which outlives any individual opportunity. The first record is
+what the dashboard reports as the company's origin (D29).
 
-### Interaction
-- `id`
-- `organization_id`
-- `lead_id`
-- `deal_id` nullable
-- `interaction_type`
-- `channel` nullable
-- `direction` nullable
-- `occurred_at`
-- `summary`
-- `created_by_user_id`
-- `created_at`
+Record where data came from without copying protected content or more data
+than necessary.
 
-### Task
-- `id`
-- `organization_id`
-- `lead_id` nullable
-- `deal_id` nullable
-- `title`
-- `description` nullable
-- `due_at` nullable
-- `status`
-- `assigned_user_id` nullable
-- `created_at`
-- `updated_at`
+### `lead_view`
 
-### OutreachMessage
-- `id`
-- `organization_id`
-- `lead_id`
-- `channel`
-- `content`
-- `status`
-- `generated_by` nullable
-- `prompt_version` nullable
-- `approved_by_user_id` nullable
-- `approved_at` nullable
-- `sent_at` nullable
-- `provider_message_id` nullable
-- `created_at`
-- `updated_at`
+`id`, `organization_id`, `user_id`, `name`, `query`, `created_at`, `shared`
 
-Status sugeridos:
-- `DRAFT`
-- `NEEDS_REVIEW`
-- `APPROVED`
-- `SENT`
-- `FAILED`
-- `CANCELLED`
+Saved views for the lead work queue (D31). A shared view is published or
+deleted only by an admin.
 
-`SENT` só deve ser aplicado quando o envio tiver sido realizado e confirmado, não apenas quando o usuário abrir um aplicativo de mensagens.
+### `lead_analysis`
 
-### SuppressionEntry
-- `id`
-- `organization_id`
-- `contact_identifier_normalized`
-- `channel` nullable
-- `reason`
-- `requested_at`
-- `created_at`
+`id`, `organization_id`, `lead_id`, `analysis_type`, `status`, `score`,
+`score_version`, `failure_reason`, `requested_by_user_id`, `created_at`,
+`started_at`, `completed_at`
 
-Armazenar o mínimo necessário para impedir novos contatos. Definir controles de acesso e retenção para essa lista.
+### `analysis_finding`
 
-### WebsiteTemplate
-- `id`
-- `template_key`
-- `name`
-- `segment` nullable
-- `version`
-- `is_active`
-- `configuration_schema`
-- `created_at`
+`id`, `organization_id`, `analysis_id`, `criterion`, `finding_status`,
+`original_status`, `description`, `confidence`, `points_awarded`, `max_points`,
+`review_status`, `reviewed_by_user_id`, `reviewed_at`, `review_note`
 
-Templates globais devem ser explicitamente separados dos templates privados de uma organização, se estes forem adicionados futuramente.
+Finding states: `CONFIRMED`, `NOT_FOUND`, `NOT_VERIFIED`, `NOT_APPLICABLE`,
+`CONTRADICTED`.
 
-### WebsiteProject
-- `id`
-- `organization_id`
-- `lead_id` nullable
-- `company_id` nullable
-- `template_id`
-- `name`
-- `project_type`
-- `status`
-- `configuration`
-- `authorization_status`
-- `created_at`
-- `updated_at`
+`original_status` keeps what the automated analysis concluded before a human
+review changed it, so a reviewed finding still shows what the machine thought.
+`max_points` is stored alongside `points_awarded` so a past score stays
+explainable after the formula changes.
 
-### WebsiteDeployment
-- `id`
-- `organization_id`
-- `website_project_id`
-- `environment`
-- `deployment_url`
-- `status`
-- `deployed_at` nullable
+### `analysis_evidence`
 
-### ImportBatch (D23)
-- `id`
-- `organization_id`
-- `file_name`
-- `file_sha256` (identifica reenvio do mesmo arquivo)
-- `source_name`
-- `dataset_note` nullable
-- `column_mapping`, `ignored_columns`
-- `status` (`ANALYZED`, `IMPORTING`, `COMPLETED`, `DISCARDED`)
-- totais: `total_rows`, `valid_rows`, `rejected_rows`, `duplicate_rows`, `imported_rows`, `merged_rows`, `leads_created`
-- `created_by_user_id`
-- `created_at`
-- `completed_at` nullable
+`id`, `organization_id`, `finding_id`, `evidence_type`, `reference_url`,
+`description`, `observed_at`, `captured_by`, `content_hash`
 
-### ImportRow (D23)
-- `id`
-- `organization_id`
-- `import_id`
-- `row_number`
-- `status` (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`)
-- campos mapeados da empresa (nulos após descarte)
-- `errors` nullable
-- `duplicate_of_company_id`, `duplicate_of_row_number`, `duplicate_signals` nullable
-- `merged_fields` nullable
-- `company_id`, `lead_id` nullable
+Do not store whole copies of pages or unnecessary personal data. A URL and a
+concise description are usually enough; `content_hash` proves what was seen
+without keeping it.
 
-Não guarda a linha bruta do arquivo nem colunas que não viram campo.
+### `deal`
 
-## 3. Relacionamentos
+`id`, `organization_id`, `lead_id`, `service`, `estimated_value`, `currency`,
+`loss_reason`, `created_at`, `updated_at`
 
-- Organization 1:N OrganizationMember.
-- User 1:N OrganizationMember.
-- Organization 1:N Company.
-- Company 1:N Lead.
-- Company 1:N CompanyContact (fora do MVP, D5).
-- Company/Lead 1:N LeadSource.
-- ImportBatch 1:N ImportRow (D23).
-- Lead 1:N LeadAnalysis.
-- LeadAnalysis 1:N AnalysisFinding.
-- AnalysisFinding 1:N AnalysisEvidence.
-- Lead 1:N Interaction.
-- Lead 1:N OutreachMessage.
-- Lead 1:N Task.
-- Lead 1:N Deal, conforme regra comercial adotada.
-- Pipeline 1:N PipelineStage.
-- Deal N:1 PipelineStage.
-- WebsiteTemplate 1:N WebsiteProject.
-- WebsiteProject 1:N WebsiteDeployment.
+Narrower than the original design, by D2: no `pipeline_id`, no `stage_id`, no
+`outcome`, no `title`. The state is `Lead.status`; a deal holds only the
+commercial facts.
 
-## 4. Integridade e isolamento
+### `interaction`
 
-- Chaves estrangeiras explícitas.
-- Unicidade de associação de membro.
-- Validar que entidades relacionadas pertencem à mesma organização.
-- Não confiar em UUID enviado pelo frontend como prova de autorização.
-- Consultas devem sempre incluir escopo da organização.
-- Testar acesso cruzado entre organizações.
-- Chaves estrangeiras compostas com `organization_id` impedem associações entre tenants diferentes (V4); toda tabela nova segue o mesmo padrão.
+`id`, `organization_id`, `lead_id`, `interaction_type`, `channel`, `direction`,
+`occurred_at`, `outcome`, `notes`, `created_by_user_id`, `created_at`,
+`recorded_seq`
 
-## 5. Deduplicação
+### `task`
 
-A deduplicação deve usar uma combinação de:
-- identificador empresarial público, quando legitimamente disponível e necessário;
-- nome normalizado;
-- cidade e estado;
-- domínio do site;
-- telefone comercial normalizado.
+`id`, `organization_id`, `lead_id`, `title`, `due_at`, `status`,
+`assigned_user_id`, `created_by_user_id`, `created_at`, `updated_at`,
+`completed_at`
 
-Não mesclar automaticamente apenas por similaridade de nome. O sistema deve apresentar candidatos e permitir confirmação humana.
+### `outreach_message`
 
-## 6. Migrações
+`id`, `organization_id`, `lead_id`, `channel`, `subject`, `body`,
+`unverified_claims`, `status`, `generated_by`, `prompt_version`,
+`created_by_user_id`, `approved_by_user_id`, `approved_at`, `sent_at`,
+`send_recorded_by_user_id`, `created_at`, `updated_at`
 
-Usar Flyway:
-- migrations versionadas e imutáveis após aplicadas;
-- índices criados considerando consultas reais;
-- dados iniciais mínimos para pipeline e papéis;
-- nenhuma alteração manual em produção fora do processo de migração;
-- testar migrações em banco PostgreSQL real via Testcontainers.
+Statuses: `DRAFT`, `NEEDS_REVIEW`, `APPROVED`, `SENT`, `FAILED`, `CANCELLED`.
+
+`unverified_claims` records the statements the generated text makes that no
+confirmed finding supports — the reviewer sees exactly what to check instead
+of re-reading the whole message.
+
+`SENT` is applied only when a send was performed and confirmed. Opening a
+messaging application is not a send, and `send_recorded_by_user_id` records who
+confirmed it.
+
+### `suppression_entry`
+
+`id`, `organization_id`, `identifier_type`, `identifier`, `channel`, `reason`,
+`requested_at`, `created_by_user_id`, `created_at`
+
+`identifier` is stored normalised, by the same component as `company`, so a
+request made with one phone format blocks every format of that number. Store
+the minimum needed to prevent further contact. There is no removal in the MVP
+(D26).
+
+### `import_batch`
+
+`id`, `organization_id`, `file_name`, `file_sha256`, `source_name`,
+`dataset_note`, `column_mapping`, `ignored_columns`, `status`, `total_rows`,
+`valid_rows`, `rejected_rows`, `duplicate_rows`, `imported_rows`,
+`merged_rows`, `leads_created`, `created_by_user_id`, `created_at`,
+`completed_at`, `undone_at`
+
+Status: `ANALYZED`, `IMPORTING`, `COMPLETED`, `DISCARDED`. `file_sha256`
+identifies a resend of the same file; `undone_at` marks an import reverted
+under D32.
+
+### `import_row`
+
+`id`, `organization_id`, `import_id`, `row_number`, `status`, the mapped
+company fields, `errors`, `duplicate_of_company_id`, `duplicate_of_row_number`,
+`duplicate_signals`, `merged_fields`, `company_id`, `lead_id`
+
+Status: `VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`,
+`REMOVED`.
+
+It does not keep the raw file line, nor any column that did not map to a field.
+
+### `job`
+
+`id`, `organization_id`, `job_type`, `payload`, `status`, `attempts`,
+`max_attempts`, `run_after`, `locked_at`, `last_error`, `idempotency_key`,
+`created_at`, `updated_at`, `completed_at`
+
+The persistent job table from D15. A table rather than `@Async` because the
+work has to survive a restart.
+
+### `audit_event`
+
+`id`, `organization_id`, `actor_user_id`, `action`, `outcome`,
+`resource_type`, `resource_id`, `ip_address`, `detail`, `occurred_at`
+
+`ip_address` is `inet`. The JDBC driver will not bind a parameter to `inet`
+directly — it arrives as `varchar` with no implicit conversion — so the cast is
+explicit in the query (D18).
+
+### Entities that are specified but do not exist
+
+- **`company_contact`** — deferred by D5. The primary contact lives on
+  `company`. Reintroduce it when several contacts per company are genuinely
+  needed, taking into account that a contact may identify a natural person.
+- **`pipeline` and `pipeline_stage`** — there is no table. The board columns
+  are the constant `PipelineStages.DEFAULT` in the `crm` module, mapping one
+  to one onto `Lead.status` (D2). A table would have allowed the columns and
+  the lead status to drift apart, which is the bug the decision prevents.
+- **`website_template`, `website_project`, `website_deployment`** — removed
+  with the Website Studio (D13). Not to be created.
+
+## 3. Relationships
+
+- `organization` 1:N `organization_member`, `app_user` 1:N
+  `organization_member`.
+- `organization` 1:N `company`; `company` 1:N `lead`.
+- `company` 1:N `lead_source`, optionally tied to a lead.
+- `import_batch` 1:N `import_row`.
+- `lead` 1:N `lead_analysis` 1:N `analysis_finding` 1:N `analysis_evidence`.
+- `lead` 1:N `interaction`, `outreach_message`, `task`, `lead_status_change`.
+- `lead` 1:1 `deal`, created when the opportunity acquires commercial facts.
+
+## 4. Integrity and isolation
+
+- Explicit foreign keys.
+- Unique membership per organisation and user.
+- Related entities are validated to belong to the same organisation.
+- A UUID sent by the frontend is never proof of authorisation.
+- Every query carries the organisation scope.
+- Cross-organisation access is tested negatively.
+- **Composite foreign keys including `organization_id`** (migration V4) make a
+  cross-tenant association impossible at the database level, not merely
+  unlikely at the application level. Every new table follows the same pattern.
+
+## 5. Deduplication
+
+Deduplication combines a public business identifier where legitimately
+available, the normalised name, city and state, the website domain, and the
+normalised business phone.
+
+Nothing is merged automatically on name similarity alone. The system presents
+candidates and a human confirms (D32 governs what happens to the leads and
+sources of the merged company).
+
+## 6. Migrations
+
+Flyway, with `spring-boot-starter-flyway` — declaring only `flyway-core`, as
+one would on Boot 3, puts the library on the classpath without enabling the
+autoconfiguration, and **no migration is applied, silently**. Always confirm
+the `Successfully applied N migrations` line.
+
+- Applied migrations are immutable. Never edit one; add the next version.
+- Indexes follow real queries.
+- Minimal seed data for roles.
+- No manual change in production outside the migration process.
+- Migrations are tested against a real PostgreSQL through Testcontainers.
+- `flyway_schema_history.version` is text, so `max(version)` returns `9` when
+  V10 is applied. Order by `installed_rank`.

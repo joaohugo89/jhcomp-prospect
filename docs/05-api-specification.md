@@ -1,17 +1,26 @@
-# 05 — Especificação inicial da API
+# 05 — API specification
 
-## 1. Convenções
+This document describes the endpoints that exist. The live contract is served
+by OpenAPI at `/api/v1/openapi`, with Swagger UI at `/api/v1/docs` — both
+disabled in the `prod` profile.
+
+## 1. Conventions
 
 - Base path: `/api/v1`.
-- JSON UTF-8.
-- UUID em identificadores.
-- Datas em ISO 8601.
-- Paginação com `page`, `size` e `sort`.
-- Erros em formato consistente.
-- Autenticação via sessão/token seguro conforme implementação.
-- Organização resolvida no contexto autenticado, nunca confiada ao corpo da requisição.
+- JSON, UTF-8.
+- UUIDs for identifiers, ISO 8601 for dates, UTC for instants.
+- Pagination with `page`, `size` and `sort`; every listing is paginated
+  (RNF-002) and `size` is capped at 100.
+- One error format everywhere.
+- Session authentication by cookie (D1).
+- The organisation is resolved from the authenticated context and is **never**
+  taken from the request body.
+- A null field is omitted from the response (`default-property-inclusion:
+  non_null`). In a MockMvc test that means `jsonPath(...).doesNotExist()`, not
+  `.value(nullValue())`; in the frontend the type is optional (`?:`), not
+  `| null`.
 
-Exemplo de erro:
+Error shape:
 
 ```json
 {
@@ -21,106 +30,108 @@ Exemplo de erro:
   "detail": "One or more fields are invalid",
   "instance": "/api/v1/companies",
   "errors": [
-    {
-      "field": "name",
-      "message": "must not be blank"
-    }
+    { "field": "name", "message": "must not be blank" }
   ]
 }
 ```
 
-## 2. Autenticação
+A resource belonging to another organisation answers **404, never 403**.
+Routes that do not exist also answer 401 for anonymous callers rather than
+404, so the API does not disclose which routes exist.
 
-| Método | Endpoint | Descrição |
+## 2. Authentication
+
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/auth/login` | Autenticar |
-| POST | `/auth/logout` | Encerrar sessão, se aplicável |
-| POST | `/auth/refresh` | Renovar credencial, se adotado |
-| GET | `/auth/me` | Usuário e organização ativa |
-| POST | `/auth/password` | Trocar a própria senha (D28) |
+| POST | `/auth/login` | Authenticate |
+| POST | `/auth/logout` | End the session |
+| GET | `/auth/me` | Current user and active organisation |
+| POST | `/auth/password` | Change your own password (D28) |
 
-Gestão de membros (D28), somente `ADMIN`:
+There is no `/auth/refresh` and no JWT: the session is a cookie (`JHSESSION`,
+`HttpOnly`, `SameSite=Lax`, `Secure` in production), with a CSRF token in a
+JavaScript-readable cookie (`JH_XSRF`) echoed in the `X-JH-XSRF` header (D1,
+D22).
 
-| Método | Endpoint | Descrição |
+While a temporary password is pending, the session reaches only `/auth/me`,
+`/auth/logout` and `/auth/password`; everything else answers `403
+PASSWORD_CHANGE_REQUIRED`. A wrong current password answers `400
+INVALID_CREDENTIALS`, not 401, because the session is still valid.
+
+Member management (D28), `ADMIN` only:
+
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/organizations/members?includeRevoked=&status=&search=` | Listar membros; `status` (`ACTIVE`, `REVOKED`) prevalece sobre `includeRevoked`; `search` no nome ou e-mail. Cada item traz `passwordChangeRequired` e `lastLoginAt` (último login, da auditoria) |
-| GET | `/organizations/members/summary` | Visão da equipe: `active`, `admins`, `revoked`, `awaitingFirstAccess` |
-| GET | `/organizations/members/{memberId}` | Detalhar membro |
-| POST | `/organizations/members` | Cadastrar; resposta traz a senha temporária, só nesta vez |
-| PATCH | `/organizations/members/{memberId}` | Mudar papel e/ou acesso (`role`, `status`) |
-| POST | `/organizations/members/{memberId}/reset-password` | Nova senha temporária |
+| GET | `/organizations/members?includeRevoked=&status=&search=` | List members. `status` (`ACTIVE`, `REVOKED`) overrides `includeRevoked`; `search` matches name or e-mail. Each item carries `passwordChangeRequired` and `lastLoginAt`, taken from the audit trail |
+| GET | `/organizations/members/summary` | `active`, `admins`, `revoked`, `awaitingFirstAccess` |
+| GET | `/organizations/members/{memberId}` | Member detail |
+| POST | `/organizations/members` | Register. The response carries the temporary password, once and only once |
+| PATCH | `/organizations/members/{memberId}` | Change `role` and/or `status` |
+| POST | `/organizations/members/{memberId}/reset-password` | Issue a new temporary password |
 
-`/auth/refresh` não existe (D1). Com senha temporária, a sessão só acessa
-`/auth/me`, `/auth/logout` e `/auth/password`; o resto responde `403
-PASSWORD_CHANGE_REQUIRED`. Senha atual errada responde `400
-INVALID_CREDENTIALS`, e não 401, porque a sessão continua válida.
-
-Não armazenar tokens de longa duração em `localStorage` sem avaliação de risco. Definir estratégia de refresh, cookies `HttpOnly`, `Secure`, `SameSite` e proteção CSRF conforme arquitetura de autenticação escolhida.
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/team` | Active members, `userId` and `displayName` only — enough to assign a lead and filter by owner. E-mail and role stay in `/organizations/members`, which is admin-only (D30) |
 
 ## 3. Dashboard
 
-| Método | Endpoint | Descrição |
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/dashboard/summary` | Indicadores gerais |
-| GET | `/dashboard/pipeline` | Contagem por etapa |
-| GET | `/dashboard/activity` | Atividades recentes |
-| GET | `/dashboard/conversion` | Conversão por origem e segmento (RF-071) |
-| GET | `/dashboard/timeline` | Métricas do período por dia, semana ou mês |
-| GET | `/dashboard/attention` | O que pede ação agora (D30) |
-| GET | `/dashboard/funnel` | Alcance por etapa e tempo médio nela (D30) |
+| GET | `/dashboard/summary` | Headline indicators |
+| GET | `/dashboard/activity` | Recent activity, paginated |
+| GET | `/dashboard/conversion` | Conversion by origin and segment (RF-071) |
+| GET | `/dashboard/timeline` | Period metrics by day, week or month |
+| GET | `/dashboard/attention` | What needs action now (D30) |
+| GET | `/dashboard/funnel` | Reach per stage and average time in it (D30) |
 
-Parâmetros opcionais, iguais em todas as rotas: `from`, `to`, `segment`,
-`city`, `source` (`MANUAL`, `CSV_IMPORT`, `INTEGRATION`; origem da empresa,
-D29) e `assignee` (id do responsável do lead, D30).
+Optional parameters, identical on every route: `from`, `to`, `segment`,
+`city`, `source` (`MANUAL`, `CSV_IMPORT`, `INTEGRATION` — the company's origin,
+D29) and `assignee` (the lead owner's id, D30).
 
-Implementado na Etapa 7 (D25): `summary` traz `leadsByStatus` (foto atual),
-`activeLeads`, `companiesAdded`, `contactsRegistered`, `openProposals`,
-`dealsWon`, `wonValue`, `openTasks` e `overdueTasks`, com o período efetivo
-(`from`/`to`, datas de Brasília, padrão últimos 30 dias). `activity` é paginada.
-A contagem por etapa (`/dashboard/pipeline`) está dentro de `summary`.
+- **`summary`** returns `leadsByStatus` (a snapshot of now), `activeLeads`,
+  `companiesAdded`, `contactsRegistered`, `openProposals`, `dealsWon`,
+  `wonValue`, `openTasks`, `overdueTasks` and `companiesWithoutSegment`,
+  together with the effective period (`from`/`to`, Brasília dates, last 30 days
+  by default). The per-stage count lives here; there is no separate
+  `/dashboard/pipeline` route.
+- **`conversion`** (D29) returns, for leads opened in the period, `bySource`
+  and `bySegment` (up to 10 segments) with `leads`, `contacted`, `won` and
+  `sufficientSample`, plus `minimumSample`. Below the minimum the screen shows
+  no percentage at all.
+- **`timeline`** (D29) also accepts `granularity` (`DAY`, `WEEK`, `MONTH`;
+  without it, up to 31 days is daily, up to 120 weekly, beyond that monthly)
+  and returns `points` with `start`, `companiesAdded`, `contactsRegistered`,
+  `dealsWon` and `wonValue` for **every** interval in the period, including the
+  empty ones.
+- **`attention`** (D30; `limit` 1–20, default 5) returns `tasks`,
+  `staleLeads`, `quietProposals` and `withoutTask`, each with `total` and
+  `items` (`leadId`, `companyName`, `status`, `at`, `detail`, `overdue`). It is
+  the situation now, with no period.
+- **`funnel`** returns `cohort`, `minimumSample` and `stages` (`status`,
+  `reached`, `exits`, `avgDays`, `sufficientSample`).
 
-`conversion` (D29) traz, para os leads abertos no período, `bySource` e
-`bySegment` (até 10 segmentos) com `leads`, `contacted`, `won` e
-`sufficientSample`, além de `minimumSample`. Sem amostra suficiente a tela não
-mostra percentual.
+## 4. Companies
 
-`timeline` (D29) aceita também `granularity` (`DAY`, `WEEK`, `MONTH`; sem ele,
-até 31 dias é por dia, até 120 por semana e acima disso por mês) e devolve
-`points` com `start`, `companiesAdded`, `contactsRegistered`, `dealsWon` e
-`wonValue` para **todo** intervalo do período, inclusive os vazios.
-
-`summary` traz também `companiesWithoutSegment` (empresas ativas sem segmento).
-`attention` (D30; `limit` de 1 a 20, padrão 5) traz `tasks`, `staleLeads`,
-`quietProposals` e `withoutTask`, cada um com `total` e `items`
-(`leadId`, `companyName`, `status`, `at`, `detail`, `overdue`); é a situação de
-agora, sem período. `funnel` traz `cohort`, `minimumSample` e `stages`
-(`status`, `reached`, `exits`, `avgDays`, `sufficientSample`).
-
-`GET /team` (qualquer membro): membros ativos só com `userId` e `displayName`,
-para atribuir lead (`PATCH /leads/{id}` com `assignedUserId`) e filtrar por
-responsável. E-mail e papel ficam em `/organizations/members`, do administrador.
-
-## 4. Empresas
-
-| Método | Endpoint | Descrição |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/companies` | Criar empresa |
-| GET | `/companies` | Listar e filtrar |
-| GET | `/companies/{companyId}` | Detalhar |
-| PATCH | `/companies/{companyId}` | Atualizar |
-| POST | `/companies/{companyId}/archive` | Arquivar |
-| GET | `/companies/{companyId}/sources` | Histórico de origem (RF-022), paginado |
-| GET | `/companies/{companyId}/duplicates` | Possíveis duplicatas (RF-014) |
-| GET | `/companies/worklist` | Lista como ferramenta: lead atual, contato, origem, atividade, duplicata (D32) |
-| GET | `/companies/{companyId}/summary` | Uma linha da lista, para prévia e cabeçalho do detalhe |
-| GET | `/companies/{companyId}/leads` | Ciclos comerciais da empresa, paginado |
-| POST | `/companies/duplicate-check` | Possíveis duplicatas enquanto o cadastro é digitado |
-| POST | `/companies/bulk` | Segmento ou cidade/UF em até 100 empresas |
-| POST | `/companies/{companyId}/merge` | Mesclar duplicata nesta empresa (D32) |
-| GET | `/companies/{companyId}/removal` | Se a exclusão seria aceita agora (D32) |
-| DELETE | `/companies/{companyId}` | Excluir empresa sem atividade (D32) |
+| POST | `/companies` | Create |
+| GET | `/companies` | List and filter |
+| GET | `/companies/{companyId}` | Detail |
+| PATCH | `/companies/{companyId}` | Update |
+| POST | `/companies/{companyId}/archive` | Archive |
+| DELETE | `/companies/{companyId}` | Delete a company with no activity (D32) |
+| GET | `/companies/{companyId}/removal` | Whether deletion would be accepted right now (D32) |
+| GET | `/companies/{companyId}/sources` | Provenance history (RF-022), paginated |
+| GET | `/companies/{companyId}/duplicates` | Possible duplicates (RF-014) |
+| GET | `/companies/{companyId}/summary` | One work-queue row, for previews and the detail header |
+| GET | `/companies/{companyId}/leads` | Commercial cycles of the company, paginated |
+| GET | `/companies/worklist` | The list as a working tool (D32) |
+| GET | `/companies/segments` | Segments in use, with company counts and how many have none |
+| POST | `/companies/duplicate-check` | Possible duplicates while the form is being typed |
+| POST | `/companies/bulk` | Segment or city/state on up to 100 companies |
+| POST | `/companies/{companyId}/merge` | Merge a duplicate into this company (D32) |
 
-Exemplo de criação:
+Creation example:
 
 ```json
 {
@@ -129,314 +140,283 @@ Exemplo de criação:
   "segment": "BARBERSHOP",
   "city": "Poços de Caldas",
   "state": "MG",
-  "websiteUrl": null,
-  "instagramUrl": null,
-  "phone": null,
   "source": {
-    "name": "Pesquisa no mapa",
+    "name": "Map search",
     "url": "https://exemplo.test/local",
-    "reference": null,
-    "collectedAt": "2026-11-05T12:00:00Z",
-    "note": null
+    "collectedAt": "2026-11-05T12:00:00Z"
   }
 }
 ```
 
-Contrato implementado na Etapa 4:
+- **Provenance.** `source` is optional; without it the system records "manual
+  entry" with the current date. On this route the type is always `MANUAL`: the
+  client cannot choose the type, so hand-typed data can never be recorded as an
+  import. A `collectedAt` in the future is rejected.
+- **URLs** (`websiteUrl`, `instagramUrl`, `source.url`) accept `http`, `https`
+  or no scheme. Any other scheme (`javascript:`, `data:`, …) is rejected with
+  `VALIDATION_ERROR`, because the URL becomes a link in the interface.
+  Validation parses with `java.net.URI` rather than matching a regular
+  expression — the first regex-based version accepted
+  `javascript:1,alert(1)`.
+- **Partial PATCH.** An absent field keeps its value; an empty string clears an
+  optional one. `name`, `city` and `state` cannot be cleared. An archived
+  company answers `409 CONFLICT`.
+- **Listing.** Filters `search` (name, accent- and case-insensitive),
+  `segment`, `city`, `state`, `includeArchived` (default `false`). Sorting
+  `sort=field,asc|desc` over `name`, `city`, `createdAt`, `updatedAt`; any
+  other field answers `400`.
+- **Duplicates.** Signals `DOMAIN`, `PHONE` and `NAME_CITY_STATE` (identical
+  normalised name in the same city and state), at most ten per signal, always
+  within the organisation. It is a suggestion for review: nothing is merged.
+- The response never exposes `organizationId` or the normalised columns.
 
-- **Origem.** `source` é opcional; ausente, registra-se "Cadastro manual" com
-  a data atual. Por esta rota o tipo é sempre `MANUAL`: o cliente não informa
-  tipo, para não registrar como importação um dado digitado à mão.
-  `collectedAt` no futuro é recusado.
-- **URLs** (`websiteUrl`, `instagramUrl`, `source.url`) aceitam `http`, `https`
-  ou nenhum esquema. Qualquer outro esquema (`javascript:`, `data:`…) é
-  recusado com `VALIDATION_ERROR`, porque a URL vira link na interface.
-- **PATCH parcial.** Campo ausente mantém o valor; texto vazio limpa um campo
-  opcional. `name`, `city` e `state` não podem ser limpos. Empresa arquivada
-  responde `409 CONFLICT`.
-- **Listagem.** Filtros `search` (nome, ignorando acento e caixa), `segment`,
-  `city`, `state`, `includeArchived` (padrão `false`). Ordenação `sort=campo,asc|desc`
-  com `name`, `city`, `createdAt`, `updatedAt`; outro campo responde `400`.
-  `size` máximo 100.
-- **Duplicatas.** Sinais `DOMAIN`, `PHONE` e `NAME_CITY_STATE` (nome
-  normalizado idêntico na mesma cidade e estado), no máximo dez por sinal,
-  sempre da mesma organização. É sugestão para revisão: nada é mesclado.
-- A resposta nunca expõe `organizationId` nem as colunas normalizadas.
+Company tooling (D32):
 
-Contrato das ferramentas de empresa (D32):
-
-- **Lista** (`/companies/worklist`). Filtros `search`, `segment` ou
-  `noSegment=true`, `city`, `source` (`MANUAL`, `CSV_IMPORT`, `INTEGRATION`:
-  a primeira proveniência, D29) e `focus`: `WITHOUT_LEAD` (sem lead aberto),
-  `WITHOUT_CONTACT` (sem telefone, e-mail, site nem Instagram), `DUPLICATE`
-  (outra empresa **ativa** com o mesmo domínio, telefone, ou nome na mesma
-  cidade e UF) e `ARCHIVED`; sem `ARCHIVED`, só ativas. `sort` `NAME`, `CITY`,
-  `CREATED` (padrão) ou `LAST_ACTIVITY`, `direction` `asc|desc`, nulos por
-  último. Cada item traz `currentLead` (o aberto; sem ele, o mais recente,
-  com `open: false`), `hasPhone`/`hasEmail`/`hasWebsite`/`hasInstagram`,
-  `origin`, `leadCount`, `lastActivityAt` (última interação ou mudança de
-  etapa em qualquer ciclo) e `possibleDuplicate`.
-- **Duplicata ao digitar** (`POST`, para telefone e site não irem à URL):
-  `{name, city, state, websiteUrl, phone, excludeCompanyId}`, todos opcionais.
-  Nome só conta com cidade e UF. Mesmos sinais e limites de `/duplicates`.
-- **Lote:** `{"companyIds": [...], "segment": "..."}` ou com `"city"` e
-  `"state"` juntos. Segmento na grafia já existente (D31). Arquivadas não
-  mudam e voltam em `skippedArchived`; um id de outra organização responde
-  `404` e nada muda.
-- **Mesclar:** `{"sourceCompanyId": "..."}`. Leads, proveniência e linhas de
-  importação passam para a empresa da rota; campos vazios dela são
-  completados com os da origem, sem sobrescrever; a origem é arquivada.
-  Resposta `{company, filledFields, movedLeads}`. Mesma empresa: `400`.
-  Destino arquivado ou as duas com lead aberto: `409`. Auditado
-  (`COMPANY_MERGE`).
-- **Excluir:** corpo `{"confirmationName": "..."}`, o nome da empresa (sem
-  caixa nem espaço nas pontas), senão `400`. Com atividade comercial: `409`.
-  Sem permissão (não cadastrou, ou passou o prazo, e não é administrador):
-  `403`. Sucesso: `204`; a empresa, o lead aberto com ela e a proveniência
-  são apagados, e a auditoria (`COMPANY_DELETE`) guarda só o id.
-  `/removal` responde `{allowed, blocker: HAS_ACTIVITY|NOT_ALLOWED,
-  allowedUntil}`.
+- **Work queue** (`/companies/worklist`). Filters `search`, `segment` or
+  `noSegment=true`, `city`, `source`, and `focus`: `WITHOUT_LEAD`,
+  `WITHOUT_CONTACT` (no phone, e-mail, website or Instagram), `DUPLICATE`
+  (another **active** company with the same domain, phone, or name in the same
+  city and state) and `ARCHIVED`; without `ARCHIVED`, only active ones. `sort`
+  is `NAME`, `CITY`, `CREATED` (default) or `LAST_ACTIVITY`, `direction` is
+  `asc|desc`, nulls last. Each item carries `currentLead` (the open one, or the
+  most recent with `open: false`), `hasPhone`/`hasEmail`/`hasWebsite`/
+  `hasInstagram`, `origin`, `leadCount`, `lastActivityAt` and
+  `possibleDuplicate`.
+- **Duplicate while typing** is a `POST` so the phone and the website never
+  reach the URL: `{name, city, state, websiteUrl, phone, excludeCompanyId}`,
+  all optional. A name only counts together with city and state.
+- **Bulk:** `{"companyIds": [...], "segment": "..."}`, or `"city"` and
+  `"state"` together. The segment is stored in the spelling that already
+  exists (D31). Archived companies are untouched and come back in
+  `skippedArchived`; an id from another organisation answers `404` and nothing
+  changes.
+- **Merge:** `{"sourceCompanyId": "..."}`. Leads, provenance and import rows
+  move to the company in the path; its empty fields are filled from the source
+  without overwriting anything; the source is archived. Response `{company,
+  filledFields, movedLeads}`. Same company: `400`. Archived target, or both
+  sides with an open lead: `409`. Audited as `COMPANY_MERGE`.
+- **Delete:** body `{"confirmationName": "..."}`, the company name, compared
+  without case or surrounding whitespace, otherwise `400`. With commercial
+  activity: `409`. Without permission — not the creator, or past the 7-day
+  window, and not an admin: `403`. Success: `204`; the company, the open lead
+  with it and the provenance are erased, and the audit record
+  (`COMPANY_DELETE`) keeps only the id. `/removal` answers `{allowed, blocker:
+  HAS_ACTIVITY|NOT_ALLOWED, allowedUntil}`.
 
 ## 5. Leads
 
-`/leads/worklist` aceita `search`, `status`, `priority`, `city`, `segment`
-(sem distinguir caixa), `noSegment`, `source` (origem da empresa, D29),
-`assignee`, `unassigned`, `scoreMin`, `scoreMax`, `focus` (`OVERDUE`,
-`STALE`, `WITHOUT_TASK`), `sort` (`COMPANY`, `SCORE`, `CREATED`, `UPDATED`,
-`STAGE`, `VALUE`, `NEXT_TASK`), `direction` (`asc`, `desc`), `page` e `size`
-(até 100). Nulos sempre por último na ordenação.
-
-| Método | Endpoint | Descrição |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/leads` | Criar lead |
-| GET | `/leads` | Listar e filtrar |
-| GET | `/leads/worklist` | Fila de trabalho: lista com responsável, valor, próxima tarefa e tempo na etapa (D31) |
-| GET | `/leads/{leadId}/summary` | Os mesmos campos de uma linha da fila, para um lead |
-| POST | `/leads/bulk` | Responsável ou prioridade de até 100 leads, tudo ou nada (D31) |
-| GET | `/leads/views` | Visões próprias e as compartilhadas com a equipe (`shared`, `canDelete`) |
-| POST | `/leads/views` | Salvar visão (`name`, `query`, `shared`; compartilhar só administrador) |
-| DELETE | `/leads/views/{viewId}` | Apagar visão própria; compartilhada só administrador |
-| GET | `/companies/segments` | Segmentos em uso, com quantas empresas, e quantas estão sem segmento |
-| GET | `/leads/{leadId}` | Detalhar |
-| PATCH | `/leads/{leadId}` | Atualizar dados permitidos |
-| PATCH | `/leads/{leadId}/status` | Alterar status |
-| PATCH | `/leads/{leadId}/priority` | Alterar prioridade |
-| GET | `/leads/{leadId}/timeline` | Histórico consolidado |
+| POST | `/leads` | Create |
+| GET | `/leads` | List and filter |
+| GET | `/leads/{leadId}` | Detail |
+| PATCH | `/leads/{leadId}` | Update the permitted fields |
+| PATCH | `/leads/{leadId}/status` | Change status |
+| PATCH | `/leads/{leadId}/priority` | Change priority |
+| GET | `/leads/{leadId}/timeline` | Consolidated history |
+| GET | `/leads/worklist` | Work queue: owner, value, next task, time in stage (D31) |
+| GET | `/leads/{leadId}/summary` | The same fields as one work-queue row |
+| POST | `/leads/bulk` | Owner or priority on up to 100 leads, all or nothing (D31) |
+| GET | `/leads/views` | Own views plus those shared with the team (`shared`, `canDelete`) |
+| POST | `/leads/views` | Save a view (`name`, `query`, `shared`; only an admin shares) |
+| DELETE | `/leads/views/{viewId}` | Delete an own view; a shared one, admin only |
 
-Filtros sugeridos: `status`, `priority`, `segment`, `city`, `scoreMin`, `scoreMax`, `source`, `search`.
+`/leads/worklist` accepts `search`, `status`, `priority`, `city`, `segment`
+(case-insensitive), `noSegment`, `source`, `assignee`, `unassigned`,
+`scoreMin`, `scoreMax`, `focus` (`OVERDUE`, `STALE`, `WITHOUT_TASK`), `sort`
+(`COMPANY`, `SCORE`, `CREATED`, `UPDATED`, `STAGE`, `VALUE`, `NEXT_TASK`),
+`direction`, `page` and `size`. Nulls always sort last.
 
-Contrato implementado na Etapa 4:
+- **Creation:** `{"companyId": "...", "priority": "HIGH", "source": {...}}`.
+  An absent `priority` becomes `MEDIUM`; `source` follows the company rule. The
+  lead starts as `NEW`, with the first history event. A company from another
+  organisation answers `404`; an archived one, or one with an open
+  opportunity, `409`.
+- **Status:** `{"status": "QUALIFIED", "reason": "...", "contactConfirmed":
+  false}`. A transition outside `LeadStatusTransitions` answers `409`. Moving
+  to `CONTACTED` requires `contactConfirmed: true` (document 06 §2); without
+  it, `400`. Re-sending the current status produces no event. `WON` and `LOST`
+  fill `closedAt`.
+- **PATCH `/leads/{id}`:** `{"assignedUserId": "..."}`; `null` clears the
+  owner. A user who is not an active member answers `404`.
+- **Response:** includes a summarised `company` and `allowedTransitions`,
+  which guides the interface while the rule itself stays on the server. An
+  absent `score` means no analysis, never zero (D7).
+- **Timeline:** `STATUS_CHANGE` and `SOURCE` events, newest first, paginated
+  in a single order.
+- **Listing:** `scoreMin`/`scoreMax` exclude leads with no score;
+  `scoreMin > scoreMax` answers `400`.
 
-- **Criação:** `{"companyId": "...", "priority": "HIGH", "source": {...}}`.
-  `priority` ausente vira `MEDIUM`; `source` segue a mesma regra de empresas.
-  O lead nasce `NEW`, com o primeiro evento no histórico. Empresa de outra
-  organização responde `404`; arquivada, ou com oportunidade aberta, `409`.
-- **Status:** `{"status": "QUALIFIED", "reason": "...", "contactConfirmed": false}`.
-  Transição fora de `LeadStatusTransitions` responde `409`. Ir para
-  `CONTACTED` exige `contactConfirmed: true` (doc 06 §2); sem isso, `400`.
-  Reenviar o status atual não gera evento. `WON`/`LOST` preenchem `closedAt`.
-- **PATCH `/leads/{id}`:** `{"assignedUserId": "..."}`; `null` remove o
-  responsável. Usuário que não é membro ativo da organização responde `404`.
-- **Resposta:** inclui `company` resumida e `allowedTransitions`, que orienta a
-  interface; a regra continua no servidor. `score` ausente significa sem
-  análise, nunca zero (D7).
-- **Timeline:** eventos `STATUS_CHANGE` e `SOURCE`, do mais recente ao mais
-  antigo, paginados numa única ordem.
-- **Listagem:** `scoreMin`/`scoreMax` não incluem lead sem score;
-  `scoreMin > scoreMax` responde `400`. Ordenação por `createdAt`, `updatedAt`,
-  `score` ou `companyName`.
+## 6. Import
 
-## 6. Importação
-
-| Método | Endpoint | Descrição |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/imports/csv` | Enviar CSV e analisar (não cria empresa) |
-| GET | `/imports` | Listar importações, paginado; filtro `status` (`ANALYZED`, `COMPLETED`, `DISCARDED`) |
-| GET | `/imports/summary` | Visão geral: `pendingReview`, `completed`, `undone`, `discarded`, `companiesImported` |
-| GET | `/imports/{importId}` | Consultar status e totais |
-| GET | `/imports/{importId}/report` | Resultado por linha, paginado, filtro `status` |
-| POST | `/imports/{importId}/confirm` | Importar as linhas aceitas |
-| POST | `/imports/{importId}/discard` | Desistir sem importar |
-| GET | `/imports/{importId}/undo` | Prévia de desfazer: o que sai e o que fica |
-| POST | `/imports/{importId}/undo` | Desfazer importação concluída (D32) |
+| POST | `/imports/csv` | Upload and analyse a CSV. Creates nothing |
+| GET | `/imports` | List imports, paginated; `status` filter |
+| GET | `/imports/summary` | `pendingReview`, `completed`, `undone`, `discarded`, `companiesImported` |
+| GET | `/imports/{importId}` | Status and totals |
+| GET | `/imports/{importId}/report` | Per-row result, paginated, `status` filter |
+| POST | `/imports/{importId}/confirm` | Import the accepted rows |
+| POST | `/imports/{importId}/discard` | Give up without importing |
+| GET | `/imports/{importId}/undo` | Undo preview: what goes and what stays |
+| POST | `/imports/{importId}/undo` | Undo a completed import (D32) |
 
-Para arquivos grandes, usar processamento assíncrono. Validar tamanho, encoding, colunas e conteúdo. Não executar fórmulas de planilha; proteger exportações contra CSV injection.
+- **Upload:** `multipart/form-data` with `file` (`.csv` or `.txt`, UTF-8, up to
+  2 MB and 2,000 rows), optional `sourceName` and `datasetNote`, and an
+  optional `mapping`, a JSON object `{"name": "Column", "city": "Column", …}`
+  keyed by company field. Without `mapping`, headers are recognised by alias
+  (`Razão Social`, `Município`, `UF`, `Telefone`, …). `name`, `city` and
+  `state` need a column; otherwise `400`.
+  nginx caps the request body at 1 MB by default and would answer 413 before
+  the backend sees it, so `frontend/nginx.conf` raises the limit — a MockMvc
+  upload test cannot catch that.
+- **Analysis response:** `201` with status `ANALYZED`, totals (`totalRows =
+  validRows + rejectedRows + duplicateRows`), `columnMapping`,
+  `ignoredColumns`, and `previousImportId` when the same file was sent before.
+- **Report row:** `rowNumber` (the header is row 1), `status` (`VALID`,
+  `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`, and `REMOVED` once
+  the company has been deleted, D32), `values`, `errors` in the API's field
+  error format, and for duplicates `duplicateOfCompanyId` or
+  `duplicateOfRowNumber` with `duplicateSignals`.
+- **Confirmation:** `{"includeDuplicateRows": [7], "mergeDuplicateRows": [6],
+  "createLeads": true}`. `includeDuplicateRows` imports the duplicate as a new
+  company; `mergeDuplicateRows` fills the empty fields of the existing company
+  — only for a duplicate of a registered company — without overwriting
+  anything. A row that is not a possible duplicate, a `merge` of a duplicate of
+  another row in the file, or the same row in both lists answers `400`.
+  Confirming or discarding an import that is not `ANALYZED` answers `409`.
+- **Undo** (D32): only `COMPLETED`, and only once (`409` otherwise). It deletes
+  the companies the import created that still have no activity; those with
+  activity stay (`keptWithActivity`) and those it merely completed are
+  untouched (`mergedUntouched`). Whoever imported, within 7 days of
+  completion, or an admin; otherwise `403`. The import gains `undoneAt`.
+  Audited as `IMPORT_UNDO`.
+- Do not execute spreadsheet formulas; protect exports against CSV injection.
+- An import from another organisation answers `404` on every route.
 
-Contrato implementado na Etapa 5 (D14, D23):
+## 7. Analyses
 
-- **Envio:** `multipart/form-data` com `file` (`.csv` ou `.txt`, UTF-8, até
-  2 MB e 2.000 linhas), `sourceName` e `datasetNote` opcionais e `mapping`
-  opcional, um JSON `{"name": "Coluna", "city": "Coluna", ...}` com as chaves
-  do cadastro de empresa. Sem `mapping`, os cabeçalhos são reconhecidos por
-  apelido (`Razão Social`, `Município`, `UF`, `Telefone`…). `name`, `city` e
-  `state` precisam de coluna; sem elas, `400`.
-- **Resposta da análise:** `201` com status `ANALYZED`, totais
-  (`totalRows = validRows + rejectedRows + duplicateRows`), `columnMapping`,
-  `ignoredColumns` e `previousImportId` quando o mesmo arquivo já foi enviado.
-- **Linha do relatório:** `rowNumber` (cabeçalho é a linha 1), `status`
-  (`VALID`, `REJECTED`, `DUPLICATE`, `IMPORTED`, `MERGED`, `SKIPPED`, e
-  `REMOVED` quando a empresa foi excluída depois, D32), `values`,
-  `errors` no mesmo formato de erro de campo da API, e para duplicatas
-  `duplicateOfCompanyId` ou `duplicateOfRowNumber` com `duplicateSignals`.
-- **Confirmação:** `{"includeDuplicateRows": [7], "mergeDuplicateRows": [6],
-  "createLeads": true}`. `includeDuplicateRows` importa a duplicata como
-  empresa nova; `mergeDuplicateRows` completa os campos vazios da empresa
-  existente (só para duplicata de empresa cadastrada), sem sobrescrever nada.
-  Linha que não é possível duplicata, `merge` de duplicata de outra linha do
-  arquivo ou a mesma linha nas duas listas respondem `400`; confirmar ou
-  descartar importação que não está `ANALYZED` responde `409`.
-- `mergedRows` conta as linhas que completaram empresa; a linha fica `MERGED`
-  com `companyId` da empresa existente e `mergedFields` com os campos
-  preenchidos.
-- **Desfazer** (D32): só `COMPLETED` e uma vez (`409` caso contrário). Exclui
-  as empresas que a importação criou e que continuam sem atividade; as com
-  atividade ficam (`keptWithActivity`), as que ela só completou não mudam
-  (`mergedUntouched`). Quem importou, até 7 dias depois da conclusão, ou o
-  administrador; senão `403`. A importação passa a ter `undoneAt`. Auditado
-  (`IMPORT_UNDO`).
-- Importação de outra organização responde `404` em todas as rotas.
-
-## 7. Discovery
-
-| Método | Endpoint | Descrição |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/discovery/searches` | Criar pesquisa |
-| GET | `/discovery/searches` | Listar pesquisas |
-| GET | `/discovery/searches/{searchId}` | Consultar resultado |
-| POST | `/discovery/searches/{searchId}/import` | Importar resultados selecionados |
+| POST | `/leads/{leadId}/analyses` | Request an analysis |
+| GET | `/leads/{leadId}/analyses` | List analyses |
+| GET | `/analyses/{analysisId}` | Analysis detail |
+| PATCH | `/findings/{findingId}/review` | Review a finding |
 
-Exemplo de critérios:
+- **Request:** answers `202` with the analysis `PENDING`. If one is already
+  `PENDING` or `PROCESSING`, that one is returned. A `DO_NOT_CONTACT` lead
+  answers `409`; a lead from another organisation, `404`.
+- **Status:** `PENDING`, `PROCESSING`, `COMPLETED` or `FAILED`, with
+  `createdAt`, `startedAt`, `completedAt` and a summarised `failureReason`.
+  `score` and `scoreVersion` exist only once completed.
+- **Detail:** `analysis` plus `findings`, one per criterion, with `status`,
+  `originalStatus`, `description`, `confidence`, `pointsAwarded`, `maxPoints`,
+  the review, and `evidence` (type, reference URL, description, date, author,
+  content hash).
+- **Review:** `{"status": "CONFIRMED", "note": "..."}`, answering the
+  recalculated detail. An unfinished analysis answers `409`; a finding from
+  another organisation, `404`.
 
-```json
-{
-  "city": "Poços de Caldas",
-  "state": "MG",
-  "segment": "BARBERSHOP",
-  "limit": 20,
-  "source": "MANUAL"
-}
-```
+## 8. CRM
 
-A API deve rejeitar fontes não configuradas ou não autorizadas. O limite é um limite de interface/consulta, não autorização para coleta ilimitada.
-
-## 8. Análises
-
-| Método | Endpoint | Descrição |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/leads/{leadId}/analyses` | Solicitar análise |
-| GET | `/leads/{leadId}/analyses` | Listar análises |
-| GET | `/analyses/{analysisId}` | Detalhar análise |
-| PATCH | `/findings/{findingId}/review` | Revisar achado |
+| GET | `/pipeline-stages` | List stages (a code constant, 1:1 with `Lead.status`) |
+| GET | `/pipeline/board` | Kanban board: up to 50 cards and the total per stage |
+| GET | `/leads/{leadId}/deal` | Read the deal (404 before the proposal) |
+| PUT | `/leads/{leadId}/deal` | Update service, value and loss reason |
+| POST | `/leads/{leadId}/interactions` | Record an interaction |
+| GET | `/leads/{leadId}/interactions` | List interactions |
+| POST | `/tasks` | Create a task |
+| PATCH | `/tasks/{taskId}` | Update a task (full state) |
+| GET | `/leads/{leadId}/tasks` | List tasks, open ones first |
 
-Solicitações demoradas devem retornar `202 Accepted` com identificador de job ou análise.
-
-Contrato implementado na Etapa 6 (D24):
-
-- **Pedido:** `POST /leads/{leadId}/analyses` responde `202` com a análise
-  `PENDING`. Com análise `PENDING` ou `PROCESSING`, devolve a mesma. Lead
-  `DO_NOT_CONTACT` responde `409`; lead de outra organização, `404`.
-- **Status:** `PENDING`, `PROCESSING`, `COMPLETED` ou `FAILED`, com
-  `createdAt`, `startedAt`, `completedAt` e `failureReason` resumido.
-  `score` e `scoreVersion` só existem com a análise concluída.
-- **Detalhe:** `GET /analyses/{id}` devolve `analysis` e `findings`, um por
-  critério, com `status`, `originalStatus`, `description`, `confidence`,
-  `pointsAwarded`, `maxPoints`, revisão e `evidence` (tipo, URL de
-  referência, descrição, data, autor e hash do conteúdo).
-- **Revisão:** `PATCH /findings/{id}/review` com
-  `{"status": "CONFIRMED", "note": "..."}`. Responde o detalhe recalculado.
-  Análise não concluída responde `409`; achado de outra organização, `404`.
-
-## 9. CRM
-
-| Método | Endpoint | Descrição |
-|---|---|---|
-| GET | `/pipeline-stages` | Listar etapas (D25: no código, 1:1 com `Lead.status`) |
-| GET | `/pipeline/board` | Quadro Kanban: até 50 cards e o total por etapa |
-| GET | `/leads/{leadId}/deal` | Consultar deal (404 antes da proposta) |
-| PUT | `/leads/{leadId}/deal` | Atualizar serviço, valor e motivo de perda |
-| POST | `/leads/{leadId}/interactions` | Registrar interação |
-| GET | `/leads/{leadId}/interactions` | Listar interações |
-| POST | `/tasks` | Criar tarefa |
-| PATCH | `/tasks/{taskId}` | Atualizar tarefa (estado completo) |
-| GET | `/leads/{leadId}/tasks` | Listar tarefas, abertas primeiro |
-
-Contrato implementado na Etapa 7 (D2, D25):
-
-- Mover card é `PATCH /leads/{leadId}/status`. Não existem `/pipelines`,
-  `POST /deals` nem `PATCH /deals/{id}/stage`: o deal nasce sozinho na
-  proposta, e a etapa é o status do lead.
-- **Deal:** `{"service": "...", "estimatedValue": 1500.50, "lossReason": "..."}`,
-  valor com no máximo duas casas e não negativo. `outcome` (`OPEN`, `WON`,
-  `LOST`) vem do status do lead. Antes da proposta, `PUT` responde `409`.
-- **Interação:** `type` (`CONTACT`, `REPLY`, `MEETING`, `PROPOSAL`,
+- Moving a card is `PATCH /leads/{leadId}/status`. There is no `/pipelines`,
+  no `POST /deals` and no `PATCH /deals/{id}/stage`: the deal appears on its
+  own at the proposal, and the stage is the lead's status (D2).
+- **Deal:** `{"service": "...", "estimatedValue": 1500.50, "lossReason":
+  "..."}`, with at most two decimal places and no negative value. `outcome`
+  (`OPEN`, `WON`, `LOST`) is derived from the lead status. Before the proposal,
+  `PUT` answers `409`.
+- **Interaction:** `type` (`CONTACT`, `REPLY`, `MEETING`, `PROPOSAL`,
   `DO_NOT_CONTACT_REQUEST`, `NOTE`), `channel`, `direction` (`OUTBOUND`,
-  `INBOUND`, `INTERNAL`), `occurredAt` (não no futuro), `outcome`, `notes`.
-  Abordagem de saída a lead `DO_NOT_CONTACT` responde `409`.
-- **Tarefa:** `{"leadId", "title", "dueAt", "assignedUserId"}`; o responsável
-  precisa ser membro ativo (outro, `404`). O `PATCH` recebe o estado completo
-  com `status` `OPEN` ou `DONE`.
-- **Quadro** (`/pipeline/board`, filtros `search`, `segment`, `city`): cada
-  coluna traz `total` e `totalValue` (soma do valor dos negócios da etapa
-  inteira, não só dos cards mostrados, em BRL). `Ganho` e `Perdido` trazem só
-  os encerrados nos últimos 30 dias e `recentDays: 30`; os mais antigos seguem
-  em `/leads`. Cada card traz `estimatedValue` e `stageEnteredAt`, o instante
-  da última mudança de status pela ordem de gravação, base do "dias na etapa".
+  `INBOUND`, `INTERNAL`), `occurredAt` (not in the future), `outcome`, `notes`.
+  An outbound approach to a `DO_NOT_CONTACT` lead answers `409`.
+- **Task:** `{"leadId", "title", "dueAt", "assignedUserId"}`; the owner must be
+  an active member (otherwise `404`). `PATCH` takes the full state with
+  `status` `OPEN` or `DONE`.
+- **Board** (filters `search`, `segment`, `city`): each column carries `total`
+  and `totalValue` — the sum over the whole stage in BRL, not only the cards
+  shown. `Won` and `Lost` carry only those closed in the last 30 days, with
+  `recentDays: 30`; older ones remain in `/leads`. Each card carries
+  `estimatedValue` and `stageEnteredAt`, the instant of the last status change
+  by recording order, which is the basis of "days in stage".
 
-## 10. Outreach
+## 9. Outreach
 
-| Método | Endpoint | Descrição |
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/leads/{leadId}/outreach-context` | Remetente, contexto da IA e destinatário/bloqueio por canal |
-| POST | `/leads/{leadId}/messages/generate` | Gerar rascunho |
-| GET | `/leads/{leadId}/messages` | Listar mensagens |
-| PATCH | `/messages/{messageId}` | Editar rascunho |
-| POST | `/messages/{messageId}/approve` | Aprovar |
-| POST | `/messages/{messageId}/record-send` | Registrar envio confirmado |
-| POST | `/messages/{messageId}/cancel` | Cancelar |
-| POST | `/suppression-entries` | Registrar não contato |
-| GET | `/suppression-entries` | Consultar bloqueios (`ADMIN`); filtros `identifierType` e `search` |
-| GET | `/suppression-entries/summary` | Totais por tipo (`ADMIN`) |
-| POST | `/suppression-entries/check` | Conferir um contato (qualquer membro) |
+| GET | `/leads/{leadId}/outreach-context` | Sender, AI context, and recipient or block per channel |
+| POST | `/leads/{leadId}/messages/generate` | Generate a draft |
+| GET | `/leads/{leadId}/messages` | List messages |
+| PATCH | `/messages/{messageId}` | Edit a draft |
+| POST | `/messages/{messageId}/approve` | Approve |
+| POST | `/messages/{messageId}/record-send` | Record a confirmed send |
+| POST | `/messages/{messageId}/cancel` | Cancel |
+| POST | `/suppression-entries` | Register a do-not-contact request |
+| GET | `/suppression-entries` | List blocks (`ADMIN`); filters `identifierType` and `search` |
+| GET | `/suppression-entries/summary` | Totals per type (`ADMIN`) |
+| POST | `/suppression-entries/check` | Check one contact (any member) |
 
-A ação `record-send` registra envio já realizado; não deve abrir uma integração de disparo oculto. Integrações oficiais futuras devem possuir endpoints e controles próprios.
+- **`generate`** takes `{channel}` (`WHATSAPP`, `EMAIL`, `INSTAGRAM`,
+  `PHONE_CALL`) and answers `201` with the message in `DRAFT` or
+  `NEEDS_REVIEW`. `409` when there is a block or the company has no valid
+  contact on that channel; `429` beyond 10 generations per user in 5 minutes;
+  `502 AI_PROVIDER_ERROR` when the provider fails or its output is rejected,
+  with no draft stored.
+- **`PATCH /messages/{id}`** takes `{subject?, body}`; a subject only for
+  e-mail; per-channel limits of 1,000, 4,000, 1,000 and 2,000 characters.
+- **`approve`** takes `{unverifiedClaimsReviewed}`, which must be `true` when
+  the message is `NEEDS_REVIEW`.
+- **`record-send`** takes `{result: SENT|FAILED, sentAt, notes?,
+  markLeadContacted?}`, and only from `APPROVED`. `SENT` creates a `CONTACT`
+  interaction in the timeline; the lead moves to `CONTACTED` only with
+  `markLeadContacted: true`. It records a send that already happened — it must
+  never become a hidden dispatch integration.
+- **Suppression.** `POST /suppression-entries` takes `{identifierType:
+  PHONE|EMAIL|INSTAGRAM, identifier, channel?, reason, requestedAt?}` from any
+  member, and is idempotent per identifier and channel. `GET` is `ADMIN` only;
+  `search` accepts a contact in any format and normalises it the same way the
+  registration did — a search that does not normalise finds nothing. `POST
+  /suppression-entries/check` takes `{identifierType, identifier}` from any
+  member and answers only `{recognized, blocked, allChannels, channels}`, with
+  no reason, date or author, and is a POST so the contact never reaches the
+  URL. There is no removal.
 
-Contratos da Etapa 8 (D26):
+## 10. Specified but not implemented
 
-- `generate` recebe `{channel}` (`WHATSAPP`, `EMAIL`, `INSTAGRAM`, `PHONE_CALL`) e responde `201` com a mensagem em `DRAFT` ou `NEEDS_REVIEW`. `409` quando há bloqueio ou a empresa não tem contato válido no canal; `429` acima de 10 gerações por usuário em 5 minutos; `502 AI_PROVIDER_ERROR` quando o provedor falha ou a saída é recusada, sem gravar rascunho.
-- `PATCH /messages/{id}` recebe `{subject?, body}`; assunto só em e-mail; limite por canal (1.000, 4.000, 1.000 e 2.000 caracteres).
-- `approve` recebe `{unverifiedClaimsReviewed}`, obrigatório como `true` em `NEEDS_REVIEW`.
-- `record-send` recebe `{result: SENT|FAILED, sentAt, notes?, markLeadContacted?}`; só de `APPROVED`. `SENT` cria interação `CONTACT` na timeline; o lead só vai a `CONTACTED` com `markLeadContacted: true`.
-- `POST /suppression-entries` recebe `{identifierType: PHONE|EMAIL|INSTAGRAM, identifier, channel?, reason, requestedAt?}`; qualquer membro; idempotente por identificador e canal. `GET` só para `ADMIN`; `search` é um contato em qualquer formato, normalizado como no registro (busca que não normaliza não acha nada). `POST /suppression-entries/check` recebe `{identifierType, identifier}` de qualquer membro e responde só `{recognized, blocked, allChannels, channels}`, sem motivo, data nem autor; por POST para o contato não ir à URL. Não há remoção.
+- **Discovery** (`/discovery/searches`, RF-021). No business source provider
+  has been selected, so the routes do not exist. When one is added, the API
+  must reject unconfigured or unauthorised sources, and the result limit is an
+  interface limit, not authorisation for unlimited collection.
+- **Website Studio** (`/website-templates`, `/website-projects`). Removed by
+  decision D13.
+- **Channel integrations** (RF-054). Future official integrations get their
+  own endpoints and controls.
 
-## 11. Website Studio
+## 11. Endpoint security
 
-| Método | Endpoint | Descrição |
-|---|---|---|
-| GET | `/website-templates` | Listar templates |
-| GET | `/website-templates/{templateId}` | Detalhar template |
-| POST | `/website-projects` | Criar projeto/prévia |
-| GET | `/website-projects/{projectId}` | Consultar projeto |
-| PATCH | `/website-projects/{projectId}` | Atualizar configuração |
-| POST | `/website-projects/{projectId}/preview` | Gerar prévia |
+- Authentication on every private route.
+- Authorisation by role and by organisation; ownership validated per resource.
+- Rate limits on login and on AI generation.
+- Payload and upload limits.
+- Timeouts on integrations.
+- No stack traces.
+- No tokens, passwords or unnecessary personal content in logs.
+- OpenAPI reflects the contracts that are actually implemented.
 
-## 12. Segurança dos endpoints
+## 12. Contracts and evolution
 
-- Autenticação em todas as rotas privadas.
-- Autorização por papel e organização.
-- Validar ownership em cada recurso.
-- Rate limit em login, pesquisa e geração de IA.
-- Limites de payload e upload.
-- Timeouts nas integrações.
-- Não retornar stack trace.
-- Não registrar tokens, senhas ou conteúdo pessoal desnecessário.
-- OpenAPI deve refletir os contratos reais implementados.
-
-## 13. Contratos e evolução
-
-Os exemplos deste documento são contratos iniciais. Antes de implementar cada módulo:
-1. Definir DTOs completos.
-2. Definir enums e erros.
-3. Definir regras de autorização.
-4. Atualizar OpenAPI.
-5. Escrever testes de contrato/integrados.
-6. Atualizar este documento se houver mudança relevante.
+Before implementing a module: define the DTOs, the enums and the errors,
+define the authorisation rules, update OpenAPI, write contract and integration
+tests, and update this document when something relevant changes.
