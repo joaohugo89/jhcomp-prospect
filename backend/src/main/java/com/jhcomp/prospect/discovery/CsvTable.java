@@ -19,14 +19,14 @@ import org.apache.commons.csv.CSVRecord;
 import com.jhcomp.prospect.shared.error.InvalidRequestException;
 
 /**
- * Conteudo de um CSV ja lido e validado na forma (D14).
+ * The contents of a CSV, already read and validated in shape (D14).
  *
- * <p>Os limites sao verificados antes de qualquer processamento por linha:
- * arquivo grande demais ou com linhas demais e recusado inteiro, com mensagem
- * clara, em vez de ser importado pela metade.
+ * <p>The limits are checked before any per-row processing: a file that is too
+ * large, or has too many rows, is refused whole with a clear message rather
+ * than imported halfway.
  *
- * @param headers cabecalhos na ordem do arquivo, sem espaco em volta
- * @param records linhas de dados; nenhuma totalmente vazia
+ * @param headers headers in file order, with surrounding whitespace removed
+ * @param records data rows; none of them entirely empty
  */
 record CsvTable(List<String> headers, List<Row> records) {
 
@@ -35,11 +35,11 @@ record CsvTable(List<String> headers, List<Row> records) {
     static final int MAX_COLUMNS = 50;
 
     /**
-     * Linha de dados.
+     * One data row.
      *
-     * @param rowNumber numero do registro, contando o cabecalho como 1
-     * @param cells celulas na ordem dos cabecalhos; ausentes viram texto vazio
-     * @param extraCells quantidade de celulas preenchidas alem do cabecalho
+     * @param rowNumber the record number, counting the header as 1
+     * @param cells cells in header order; missing ones become empty strings
+     * @param extraCells how many filled cells there are beyond the header
      */
     record Row(int rowNumber, List<String> cells, int extraCells) {
 
@@ -73,8 +73,9 @@ record CsvTable(List<String> headers, List<Row> records) {
                     continue;
                 }
                 if (isBlank(record)) {
-                    // Linhas vazias no fim da planilha sao comuns e nao sao
-                    // registros: contar como rejeitadas so confundiria o relatorio.
+                    // Empty rows at the end of a spreadsheet are common and are
+                    // not records: counting them as rejected would only confuse
+                    // the report.
                     continue;
                 }
                 if (rows.size() == MAX_ROWS) {
@@ -83,8 +84,8 @@ record CsvTable(List<String> headers, List<Row> records) {
                 rows.add(toRow(record, headers.size()));
             }
         } catch (IOException | UncheckedIOException exception) {
-            // Aspas sem fechamento e o caso tipico. A mensagem da biblioteca
-            // nao vai ao cliente: cita posicoes internas do parser.
+            // An unclosed quote is the typical case. The library's message
+            // does not reach the client: it cites internal parser positions.
             throw new InvalidRequestException("File is not a valid CSV");
         }
 
@@ -98,8 +99,9 @@ record CsvTable(List<String> headers, List<Row> records) {
     }
 
     /**
-     * Exige UTF-8. Decodificar com o charset errado nao falha: troca acentos
-     * por lixo em silencio, e o lixo seria gravado como nome de empresa.
+     * Requires UTF-8. Decoding in the wrong charset does not fail: it silently
+     * replaces accents with rubbish, and that rubbish would be stored as a
+     * company name.
      */
     private static String decodeUtf8(byte[] content) {
         try {
@@ -108,8 +110,8 @@ record CsvTable(List<String> headers, List<Row> records) {
                     .onUnmappableCharacter(CodingErrorAction.REPORT)
                     .decode(ByteBuffer.wrap(content))
                     .toString();
-            // BOM que o Excel grava em "CSV UTF-8": sem remover, o primeiro
-            // cabecalho nao seria reconhecido.
+            // The BOM Excel writes in "CSV UTF-8": without removing it, the
+            // first header would not be recognised.
             return text.startsWith("﻿") ? text.substring(1) : text;
         } catch (CharacterCodingException exception) {
             throw new InvalidRequestException("File must be UTF-8 encoded");
@@ -117,8 +119,8 @@ record CsvTable(List<String> headers, List<Row> records) {
     }
 
     /**
-     * Delimitador pelo cabecalho. O Excel em portugues exporta com ponto e
-     * virgula, porque a virgula e o separador decimal.
+     * The delimiter, detected from the header. Excel in Portuguese exports
+     * with semicolons, because the comma is the decimal separator.
      */
     static char detectDelimiter(String text) {
         int end = text.indexOf('\n');
@@ -165,10 +167,10 @@ record CsvTable(List<String> headers, List<Row> records) {
                 extra++;
             }
         }
-        // Numero do registro, com o cabecalho como 1. Nao se desloca com quebra
-        // de linha dentro de celula, ao contrario de uma contagem por linha de
-        // texto; coincide com a linha da planilha exportada, que nao tem linha
-        // de texto vazia no meio. Linha so com delimitadores conta normalmente.
+        // The record number, with the header as 1. It does not shift on a line
+        // break inside a cell, unlike a count of text lines; it matches the row
+        // of the exported spreadsheet, which has no blank text line in the
+        // middle. A row of delimiters alone still counts.
         return new Row((int) record.getRecordNumber(), List.copyOf(cells), extra);
     }
 

@@ -36,21 +36,22 @@ import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
 
 /**
- * Cliente HTTP protegido contra SSRF (docs/07 §6, regra 8 do produto).
+ * An HTTP client hardened against SSRF (docs/07 §6, product rule 8).
  *
- * <p>Protecoes:
+ * <p>Protections:
  *
  * <ul>
- *   <li>So {@code http}/{@code https}, nas portas padrao. Porta arbitraria
- *       serviria para sondar servicos internos ou de terceiros.
- *   <li>O endereco e validado pelo {@link DnsResolver} usado na propria
- *       conexao. Validar o nome antes e conectar depois abriria DNS rebinding:
- *       a segunda resolucao poderia devolver um IP interno.
- *   <li>Sem redirecionamento automatico: quem chama decide se segue, e cada
- *       destino passa pelas mesmas regras.
- *   <li>Timeout de conexao e de leitura, prazo total por requisicao e limite
- *       de bytes lidos: um servidor lento ou enorme nao prende o worker.
- *   <li>Sem cookies, sem autenticacao, sem proxy do sistema.
+ *   <li>{@code http}/{@code https} only, on the standard ports. An arbitrary
+ *       port would serve to probe internal or third-party services.
+ *   <li>The address is validated by the {@link DnsResolver} used by the
+ *       connection itself. Validating the name first and connecting afterwards
+ *       would open DNS rebinding: the second resolution could return an
+ *       internal IP.
+ *   <li>No automatic redirects: the caller decides whether to follow, and
+ *       every destination goes through the same rules.
+ *   <li>Connection and read timeouts, a total deadline per request, and a cap
+ *       on bytes read: a slow or enormous server cannot hold the worker.
+ *   <li>No cookies, no authentication, no system proxy.
  * </ul>
  */
 public class SafeHttpFetcher implements AutoCloseable {
@@ -58,13 +59,13 @@ public class SafeHttpFetcher implements AutoCloseable {
     public static final String USER_AGENT = "JHCOMP-Prospect/1.0 (verificacao de presenca digital)";
 
 
-    /** Cabecalho muito longo ou numeroso e recusado, sem consumir memoria. */
+    /** A header that is too long, or too numerous, is refused without consuming memory. */
     private static final Http1Config HTTP1_LIMITS = Http1Config.custom()
             .setMaxLineLength(8 * 1024)
             .setMaxHeaderCount(100)
             .build();
 
-    /** Cancela requisicoes que passam do prazo total. Uma thread daemon basta. */
+    /** Cancels requests that exceed the total deadline. One daemon thread is enough. */
     private static final ScheduledExecutorService WATCHDOG = Executors.newSingleThreadScheduledExecutor(runnable -> {
         Thread thread = new Thread(runnable, "safe-http-fetcher-watchdog");
         thread.setDaemon(true);
@@ -73,10 +74,10 @@ public class SafeHttpFetcher implements AutoCloseable {
 
     private final CloseableHttpClient client;
     private final Set<Integer> allowedPorts;
-    /** Prazo total por requisicao: tres vezes o timeout de conexao (15 s em producao). */
+    /** Total deadline per request: three times the connection timeout (15 s in production). */
     private final Duration deadline;
 
-    /** Resposta HTTP. {@code body} vazio quando o conteudo nao e texto. */
+    /** An HTTP response. {@code body} is empty when the content is not text. */
     public record Response(int status, String location, String contentType, byte[] body, Charset charset) {
 
         public boolean isRedirect() {
@@ -92,7 +93,7 @@ public class SafeHttpFetcher implements AutoCloseable {
         }
     }
 
-    /** Endereco bloqueado pela politica; distinto de nome inexistente. */
+    /** An address blocked by policy; distinct from a name that does not resolve. */
     private static final class BlockedAddressException extends UnknownHostException {
         private static final long serialVersionUID = 1L;
     }
@@ -102,9 +103,9 @@ public class SafeHttpFetcher implements AutoCloseable {
     }
 
     /**
-     * Somente para teste: libera, alem de 80 e 443, a porta do servidor local
-     * e encurta a espera de conexao, que contra um servidor so HTTP faria cada
-     * tentativa HTTPS esperar o timeout inteiro.
+     * For tests only: besides 80 and 443 it allows the local server's port,
+     * and shortens the connection wait, which against an HTTP-only server
+     * would make every HTTPS attempt wait out the full timeout.
      */
     SafeHttpFetcher(AddressPolicy policy, Set<Integer> extraPorts, Duration connectTimeout) {
         this.allowedPorts = extraPorts.isEmpty() ? Set.of(80, 443) : union(extraPorts);
@@ -113,8 +114,8 @@ public class SafeHttpFetcher implements AutoCloseable {
             @Override
             public InetAddress[] resolve(String host) throws UnknownHostException {
                 InetAddress[] addresses = SystemDefaultDnsResolver.INSTANCE.resolve(host);
-                // Um unico endereco bloqueado recusa o host inteiro: escolher o
-                // "bom" deixaria a tentativa seguinte cair no ruim.
+                // A single blocked address refuses the whole host: picking the
+                // "good" one would let the next attempt land on the bad one.
                 for (InetAddress address : addresses) {
                     if (policy.isBlocked(address)) {
                         throw new BlockedAddressException();
@@ -154,22 +155,23 @@ public class SafeHttpFetcher implements AutoCloseable {
     }
 
     /**
-     * GET sem seguir redirecionamento.
+     * A GET that does not follow redirects.
      *
-     * @param maxBytes teto de bytes lidos do corpo; o excedente e descartado
-     * @throws FetchException quando nao ha resposta HTTP
+     * @param maxBytes cap on bytes read from the body; the excess is discarded
+     * @throws FetchException when there is no HTTP response
      */
     public Response get(URI uri, int maxBytes) throws FetchException {
         validate(uri);
         long deadlineNanos = System.nanoTime() + deadline.toNanos();
-        // Fechar a resposta drena o restante do corpo, e um servidor que manda
-        // mais que o limite e continua pingando bytes nunca estoura o timeout
-        // de leitura: prenderia o worker. Cancelar a requisicao antes de fechar
-        // aborta a conexao em vez de drenar (oversizedBodyIsCutShort).
+        // Closing the response drains the rest of the body, and a server that
+        // sends more than the limit and keeps dripping bytes never trips the
+        // read timeout: it would hold the worker. Cancelling the request before
+        // closing aborts the connection instead of draining it
+        // (oversizedBodyIsCutShort).
         HttpGet request = new HttpGet(uri);
-        // Prazo total da troca inteira, cabecalhos incluidos: o timeout de
-        // leitura reinicia a cada byte, e um servidor que manda cabecalhos um
-        // byte por vez escaparia dele.
+        // A deadline for the whole exchange, headers included: the read
+        // timeout restarts on every byte, and a server sending headers one byte
+        // at a time would slip past it.
         ScheduledFuture<?> watchdog = WATCHDOG.schedule(request::cancel, deadline.toMillis(), TimeUnit.MILLISECONDS);
         try {
             ClassicHttpResponse response = client.executeOpen(null, request, null);
@@ -184,7 +186,7 @@ public class SafeHttpFetcher implements AutoCloseable {
         } catch (UnknownHostException exception) {
             throw new FetchException("DNS");
         } catch (IOException exception) {
-            // Cancelada pelo prazo total ou estouro de timeout de leitura.
+            // Cancelled by the total deadline, or the read timeout expired.
             if (exception instanceof InterruptedIOException || watchdog.isDone()) {
                 throw new FetchException("TIMEOUT");
             }
@@ -210,15 +212,16 @@ public class SafeHttpFetcher implements AutoCloseable {
     }
 
     /**
-     * Fecha a resposta de uma requisicao ja cancelada. O erro de fechar a
-     * conexao abortada de proposito nao e falha da verificacao: propaga-lo
-     * substituiria a resposta ja lida por uma falha de conexao.
+     * Closes the response of an already cancelled request. The error from
+     * closing a deliberately aborted connection is not a verification failure:
+     * propagating it would replace the response already read with a connection
+     * error.
      */
     private static void closeDiscarding(ClassicHttpResponse response) {
         try {
             response.close();
         } catch (IOException exception) {
-            // Conexao abortada pelo cancel(); a resposta ja foi lida.
+            // The connection was aborted by cancel(); the response is already read.
         }
     }
 
@@ -241,15 +244,15 @@ public class SafeHttpFetcher implements AutoCloseable {
         return Set.copyOf(ports);
     }
 
-    /** Le ate {@code maxBytes}, abortando se o prazo total esgotar. */
+    /** Reads up to {@code maxBytes}, aborting if the total deadline runs out. */
     private static byte[] readLimited(InputStream input, int maxBytes, long deadline) throws IOException {
         byte[] buffer = new byte[Math.min(maxBytes, 64 * 1024)];
         var output = new ByteArrayOutputStream();
         int read;
         while (output.size() < maxBytes && (read = input.read(buffer, 0, Math.min(buffer.length, maxBytes - output.size()))) != -1) {
             output.write(buffer, 0, read);
-            // Servidor que manda um byte por vez nunca dispara o timeout de
-            // leitura; o prazo total cobre esse caso.
+            // A server sending one byte at a time never trips the read
+            // timeout; the total deadline covers that case.
             if (System.nanoTime() > deadline) {
                 throw new InterruptedIOException("deadline");
             }

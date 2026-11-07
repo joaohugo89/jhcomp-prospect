@@ -12,13 +12,13 @@ import org.springframework.data.repository.query.Param;
 import com.jhcomp.prospect.identity.domain.MemberStatus;
 
 /**
- * Consultas de membros.
+ * Member queries.
  *
- * <p>Toda consulta que retorna dado privado recebe {@code organizationId}
- * obrigatoriamente (RNF-001, doc 04 §4). Nao existe aqui um
- * {@code findById(UUID)} de uso livre: buscar por id sem escopo de organizacao
- * e exatamente o que permite acesso cruzado entre organizacoes, mesmo quando o
- * chamador tem um UUID valido.
+ * <p>Every query that returns private data takes {@code organizationId}, and
+ * takes it mandatorily (RNF-001, doc 04 §4). There is deliberately no free
+ * {@code findById(UUID)} here: looking something up by id without an
+ * organisation scope is exactly what allows cross-organisation access, even
+ * when the caller holds a valid UUID.
  */
 public interface OrganizationMemberRepository extends JpaRepository<OrganizationMemberEntity, UUID> {
 
@@ -34,7 +34,7 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
             @Param("status") MemberStatus status,
             Pageable pageable);
 
-    /** Busca escopada: um id de outra organizacao resulta em vazio, nao em acesso. */
+    /** A scoped lookup: an id from another organisation yields empty, not access. */
     @Query("""
             select m from OrganizationMemberEntity m
             join fetch m.user u
@@ -46,10 +46,10 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
             @Param("organizationId") UUID organizationId);
 
     /**
-     * Associacao ativa usada para resolver a organizacao no login.
+     * The active membership used to resolve the organisation at login.
      *
-     * <p>Exige organizacao ativa: membro ativo de organizacao suspensa nao
-     * autentica.
+     * <p>It requires an active organisation: an active member of a suspended
+     * organisation does not authenticate.
      */
     @Query("""
             select m from OrganizationMemberEntity m
@@ -62,15 +62,15 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
     java.util.List<OrganizationMemberEntity> findActiveMembershipsByEmail(@Param("email") String email);
 
     /**
-     * Associacao ativa de um usuario, usada para revalidar a sessao.
+     * A user's active membership, used to revalidate the session.
      *
-     * <p>Exige usuario ativo, associacao ativa e organizacao ativa. Se
-     * qualquer um dos tres deixar de valer, a consulta retorna vazio e a
-     * sessao deve ser encerrada.
+     * <p>It requires an active user, an active membership and an active
+     * organisation. If any of the three stops holding, the query returns empty
+     * and the session must be ended.
      *
-     * <p>Retorna lista, e nao Optional: duas associacoes ativas tornariam a
-     * organizacao ambigua, e o chamador precisa poder recusar esse caso em vez
-     * de receber uma excecao.
+     * <p>It returns a list rather than an Optional: two active memberships
+     * would make the organisation ambiguous, and the caller needs to be able
+     * to refuse that case instead of receiving an exception.
      */
     @Query("""
             select m from OrganizationMemberEntity m
@@ -84,10 +84,11 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
     java.util.List<OrganizationMemberEntity> findActiveMembershipsByUserId(@Param("userId") UUID userId);
 
     /**
-     * Usuario e membro ativo da organizacao, com conta ativa.
+     * The user is an active member of the organisation, with an active
+     * account.
      *
-     * <p>Usado para validar atribuicao: um UUID de usuario vindo do cliente nao
-     * prova que ele pertence a organizacao de quem pede (doc 04 §4).
+     * <p>Used to validate assignment: a user UUID coming from the client is no
+     * proof that they belong to the caller's organisation (doc 04 §4).
      */
     @Query("""
             select count(m) > 0 from OrganizationMemberEntity m
@@ -99,8 +100,9 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
     boolean existsActiveMember(@Param("organizationId") UUID organizationId, @Param("userId") UUID userId);
 
     /**
-     * Membros para a tela de administracao: nos estados pedidos e, com
-     * {@code search} (padrao LIKE ja em minusculas), por nome ou e-mail.
+     * Members for the administration screen: in the requested states and, with
+     * {@code search} (a LIKE pattern already lower-cased), by name or
+     * e-mail.
      */
     @Query("""
             select m from OrganizationMemberEntity m
@@ -116,7 +118,7 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
             @Param("search") String search,
             Pageable pageable);
 
-    /** Visao geral da equipe numa consulta: ativos, administradores, removidos e senha temporaria pendente. */
+    /** The team overview in one query: active, administrators, revoked, and temporary password pending. */
     @Query("""
             select count(case when m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE then 1 end),
                    count(case when m.status = com.jhcomp.prospect.identity.domain.MemberStatus.ACTIVE
@@ -129,7 +131,7 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
             """)
     java.util.List<Object[]> summarize(@Param("organizationId") UUID organizationId);
 
-    /** Administradores ativos da organizacao, com conta ativa. */
+    /** Active administrators of the organisation, with active accounts. */
     @Query("""
             select count(m) from OrganizationMemberEntity m
             where m.organization.id = :organizationId
@@ -139,7 +141,7 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
             """)
     long countActiveAdmins(@Param("organizationId") UUID organizationId);
 
-    /** Associacoes do usuario em organizacoes diferentes da informada, em qualquer estado. */
+    /** The user's memberships in organisations other than the one given, in any state. */
     @Query("""
             select count(m) > 0 from OrganizationMemberEntity m
             where m.user.id = :userId and m.organization.id <> :organizationId

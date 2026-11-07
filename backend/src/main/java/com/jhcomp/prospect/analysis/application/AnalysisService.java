@@ -36,10 +36,10 @@ import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Pedido, consulta e revisao de analises (RF-030 a RF-033).
+ * Requesting, reading and reviewing analyses (RF-030 to RF-033).
  *
- * <p>A execucao fica no {@link AnalysisJobHandler}, em segundo plano: o
- * pedido so grava a analise e o job, na mesma transacao.
+ * <p>Execution lives in {@link AnalysisJobHandler}, in the background: the
+ * request only writes the analysis and the job, in the same transaction.
  */
 @Service
 public class AnalysisService {
@@ -73,19 +73,19 @@ public class AnalysisService {
         this.clock = clock;
     }
 
-    /** Analise com achados e evidencias, para exibir a decomposicao do score. */
+    /** An analysis with its findings and evidence, for showing the score breakdown. */
     public record AnalysisDetail(
             LeadAnalysisEntity analysis,
             List<AnalysisFindingEntity> findings,
             Map<UUID, List<AnalysisEvidenceEntity>> evidenceByFinding) {}
 
     /**
-     * Pede a analise do lead (RF-030).
+     * Requests the lead's analysis (RF-030).
      *
-     * <p>Idempotente: com analise em andamento, devolve a mesma em vez de
-     * enfileirar outra. Lead marcado como nao contatar nao e analisado: a
-     * analise so serve para preparar abordagem, e processar dados de quem pediu
-     * para nao ser contatado nao tem finalidade (doc 07 §2).
+     * <p>Idempotent: with one already running it returns that one rather than
+     * enqueuing another. A lead marked do-not-contact is not analysed: an
+     * analysis exists only to prepare an approach, and processing the data of
+     * someone who asked not to be contacted serves no purpose (doc 07 §2).
      */
     @Transactional
     public LeadAnalysisEntity request(UUID leadId) {
@@ -120,9 +120,9 @@ public class AnalysisService {
     }
 
     /**
-     * Criterios confirmados da ultima analise concluida (D3), em ordem fixa.
-     * Vazio sem analise: o que nao foi confirmado nao pode ser afirmado
-     * numa mensagem (doc 06 §8).
+     * The confirmed criteria of the latest completed analysis (D3), in a fixed
+     * order. Empty when there is no analysis: what has not been confirmed
+     * cannot be asserted in a message (doc 06 §8).
      */
     @Transactional(readOnly = true)
     public List<Criterion> confirmedCriteria(UUID leadId) {
@@ -145,11 +145,11 @@ public class AnalysisService {
     }
 
     /**
-     * Revisa um achado (RF-033) e recalcula o score (D3).
+     * Reviews a finding (RF-033) and recomputes the score (D3).
      *
-     * <p>O achado e buscado pela organizacao da sessao. As chaves compostas
-     * da V8 garantem que achado, analise e lead sao da mesma organizacao, entao
-     * essa verificacao cobre a cadeia inteira (D8).
+     * <p>The finding is looked up by the session's organisation. The composite
+     * keys from V8 guarantee that finding, analysis and lead belong to the same
+     * organisation, so that one check covers the whole chain (D8).
      */
     @Transactional
     public AnalysisDetail review(UUID findingId, FindingStatus newStatus, String note) {
@@ -184,8 +184,8 @@ public class AnalysisService {
     }
 
     /**
-     * Recalcula a analise a partir dos estados atuais e, se ela for a ultima
-     * concluida do lead, propaga para o lead. Mesmos estados, mesmo score.
+     * Recomputes the analysis from the current states and, if it is the lead's
+     * latest completed one, propagates to the lead. Same states, same score.
      */
     private void rescore(LeadAnalysisEntity analysis) {
         Map<Criterion, FindingStatus> statuses = new EnumMap<>(Criterion.class);
@@ -214,7 +214,7 @@ public class AnalysisService {
         List<AnalysisFindingEntity> findings = findingRepository
                 .findByOrganizationIdAndAnalysisId(analysis.getOrganizationId(), analysis.getId())
                 .stream()
-                // Ordem da formula, que e a ordem da tabela do doc 06 §7.
+                // The formula's order, which is the order of the table in doc 06 §7.
                 .sorted(Comparator.comparing(AnalysisFindingEntity::getCriterion))
                 .toList();
         Map<UUID, List<AnalysisEvidenceEntity>> evidence = findings.isEmpty()

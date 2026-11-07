@@ -30,41 +30,41 @@ import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Excluir empresa cadastrada por engano e desfazer importacao (D32).
+ * Deleting a company registered by mistake, and undoing an import (D32).
  *
- * <p>Arquivar continua sendo o caminho normal (RF-010). Excluir so vale para
- * empresa <em>sem atividade comercial</em>: no maximo o lead aberto junto com
- * ela, ainda em {@code NEW}, sem interacao, tarefa, negocio, mensagem nem
- * analise. Quem pode: quem cadastrou, ate {@value #GRACE_DAYS} dias depois; o
- * administrador, a qualquer tempo.
+ * <p>Archiving remains the normal path (RF-010). Deleting applies only to a
+ * company <em>with no commercial activity</em>: at most the lead opened
+ * alongside it, still {@code NEW}, with no interaction, task, deal, message or
+ * analysis. Who may: whoever registered it, within {@value #GRACE_DAYS} days;
+ * an administrator, at any time.
  *
- * <p>Fica no modulo de CRM porque a regra de "sem atividade" olha para tabelas
- * de lead, CRM, outreach e analise. Bloqueios de contato nunca sao apagados
- * (regra 4): nao estao ligados a empresa, e sim ao identificador.
+ * <p>It lives in the CRM module because the "no activity" rule looks at lead,
+ * CRM, outreach and analysis tables. Contact blocks are never erased (rule 4):
+ * they are tied to the identifier, not to the company.
  */
 @Service
 public class CompanyRemovalService {
 
-    /** Prazo para quem cadastrou desfazer o proprio engano sem pedir ao administrador. */
+    /** The window in which the registrant can undo their own mistake without asking an admin. */
     static final int GRACE_DAYS = 7;
 
-    /** Por que a empresa nao pode ser excluida. */
+    /** Why the company cannot be deleted. */
     public enum Blocker {
-        /** Ja tem historico comercial: arquivar, nunca apagar. */
+        /** It already has commercial history: archive, never delete. */
         HAS_ACTIVITY,
-        /** Nao foi quem cadastrou, ou o prazo de {@value #GRACE_DAYS} dias passou. */
+        /** Not the registrant, or the {@value #GRACE_DAYS}-day window has passed. */
         NOT_ALLOWED
     }
 
-    /** Se a exclusao seria aceita, e ate quando para quem nao e administrador. */
+    /** Whether deletion would be accepted, and until when for a non-administrator. */
     public record Eligibility(boolean allowed, Blocker blocker, Instant allowedUntil) {}
 
-    /** O que desfazer a importacao faz (previa) ou fez. */
+    /** What undoing the import would do (preview), or did. */
     public record UndoResult(int removed, int keptWithActivity, int mergedUntouched, Instant undoneAt) {}
 
     /**
-     * Empresa com atividade comercial, sobre a empresa de alias {@code c}. Mais
-     * de um lead tambem conta: um ciclo encerrado ja e historia.
+     * A company with commercial activity, over the company aliased {@code c}.
+     * More than one lead counts too: a closed cycle is already history.
      */
     private static final String HAS_ACTIVITY = """
             ((select count(*) from lead l where l.organization_id = c.organization_id and l.company_id = c.id) > 1
@@ -109,10 +109,10 @@ public class CompanyRemovalService {
     }
 
     /**
-     * Exclui a empresa, o lead aberto com ela e a proveniencia. As linhas de
-     * importacao que a citavam ficam no lote, sem a empresa.
+     * Deletes the company, the lead opened with it and the provenance. The
+     * import rows that referenced it stay in the batch, without the company.
      *
-     * @param confirmationName o nome digitado pelo operador; precisa ser o da empresa
+     * @param confirmationName the name the operator typed; it must be the company's
      */
     @Transactional
     public void delete(UUID companyId, String confirmationName) {
@@ -129,12 +129,12 @@ public class CompanyRemovalService {
             throw new AccessDeniedException("Only the creator, within " + GRACE_DAYS + " days, or an administrator");
         }
         remove(user.organizationId(), List.of(companyId));
-        // So o id: o nome da empresa nao vai para a auditoria.
+        // The id only: the company's name does not reach the audit trail.
         auditService.record(new AuditEntry(user.organizationId(), user.userId(), AuditAction.COMPANY_DELETE,
                 AuditOutcome.SUCCESS, "company", companyId.toString(), null, null));
     }
 
-    /** O que {@link #undoImport} faria agora, sem mudar nada. */
+    /** What {@link #undoImport} would do right now, changing nothing. */
     @Transactional(readOnly = true)
     public UndoResult previewUndo(UUID importId) {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
@@ -144,9 +144,9 @@ public class CompanyRemovalService {
     }
 
     /**
-     * Exclui as empresas que a importacao criou e que continuam sem atividade.
-     * As que ja tem historico ficam; as que a importacao so completou
-     * (MERGED) nao sao tocadas, porque existiam antes dela.
+     * Deletes the companies the import created that still have no activity.
+     * Those with history stay; those the import merely completed (MERGED) are
+     * untouched, because they existed before it.
      */
     @Transactional
     public UndoResult undoImport(UUID importId) {
@@ -191,7 +191,7 @@ public class CompanyRemovalService {
 
     private record CompanyRow(String name, Instant createdAt, UUID createdBy, boolean hasActivity) {}
 
-    /** Quem cadastrou fica na empresa e nao muda com mesclagem (V15). Outra organizacao e 404. */
+    /** The registrant is stored on the company and does not change on a merge (V15). Another organisation is 404. */
     private CompanyRow load(UUID organizationId, UUID companyId) {
         return jdbc.query("""
                 select c.name, c.created_at, c.created_by_user_id as created_by, %s as has_activity
@@ -233,8 +233,8 @@ public class CompanyRemovalService {
     private UndoPlan plan(UUID organizationId, UUID importId) {
         MapSqlParameterSource params =
                 new MapSqlParameterSource("organizationId", organizationId).addValue("importId", importId);
-        // Linhas do mesmo lote podem apontar para a mesma empresa so se uma criou e outra completou;
-        // distinct por garantia.
+        // Rows of the same batch can point at the same company only when one
+        // created it and another completed it; distinct as a safeguard.
         List<CreatedCompany> created = jdbc.query("""
                 select distinct c.id, %s as has_activity from import_row r
                   join import_batch b on b.organization_id = r.organization_id and b.id = r.import_id
@@ -255,9 +255,10 @@ public class CompanyRemovalService {
     }
 
     /**
-     * Apaga as empresas e o que so existe por causa delas, na ordem das chaves
-     * estrangeiras. Uma interacao gravada em paralelo faz a chave recusar a
-     * exclusao do lead: vira conflito, nunca perda de historico.
+     * Deletes the companies and whatever exists only because of them, in
+     * foreign key order. An interaction written concurrently makes the key
+     * refuse the lead's deletion: it becomes a conflict, never a loss of
+     * history.
      */
     private void remove(UUID organizationId, List<UUID> companyIds) {
         if (companyIds.isEmpty()) {
@@ -266,7 +267,7 @@ public class CompanyRemovalService {
         MapSqlParameterSource params =
                 new MapSqlParameterSource("organizationId", organizationId).addValue("ids", Set.copyOf(companyIds));
         try {
-            // A linha do lote continua contando o que trouxe; so perde o vinculo.
+            // The batch row still reports what it brought; it only loses the link.
             jdbc.update("""
                     update import_row
                        set status = case when status in ('IMPORTED', 'MERGED') then 'REMOVED' else status end,

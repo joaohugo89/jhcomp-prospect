@@ -42,12 +42,12 @@ import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Lista de nao contato (RF-053, doc 06 §9, doc 07 §10, D26).
+ * The do-not-contact list (RF-053, doc 06 §9, doc 07 §10, D26).
  *
- * <p>O bloqueio vale pelo identificador, nao pelo lead: empresa reimportada
- * com o mesmo telefone continua bloqueada, e importacao nunca remove entrada.
- * A conferencia e conservadora: qualquer identificador da empresa bloqueado
- * no canal, ou em todos, bloqueia a abordagem.
+ * <p>A block applies to the identifier, not to the lead: a company re-imported
+ * with the same phone stays blocked, and an import never removes an entry. The
+ * check is conservative: any identifier of the company blocked on the channel,
+ * or on all of them, blocks the approach.
  */
 @Service
 public class SuppressionService implements ContactBlockCheck {
@@ -76,9 +76,9 @@ public class SuppressionService implements ContactBlockCheck {
     }
 
     /**
-     * Registra o pedido. Idempotente: o mesmo identificador no mesmo escopo
-     * devolve a entrada existente, sem duplicar. Sem {@code requestedAt},
-     * vale o instante do registro.
+     * Records the request. Idempotent: the same identifier in the same scope
+     * returns the existing entry rather than duplicating it. Without
+     * {@code requestedAt}, the moment of recording is used.
      */
     @Transactional
     public SuppressionEntryEntity register(
@@ -95,10 +95,11 @@ public class SuppressionService implements ContactBlockCheck {
     }
 
     /**
-     * Lista para o administrador. {@code type} restringe o tipo; {@code search}
-     * e um contato em qualquer formato, normalizado como no registro (D10):
-     * "(35) 9 8888-0001" acha "+5535988880001". Busca que nao normaliza em
-     * nenhum tipo nao acha nada, em vez de virar "sem filtro".
+     * The administrator's listing. {@code type} narrows by type;
+     * {@code search} is a contact in any format, normalised the same way as on
+     * registration (D10): "(35) 9 8888-0001" finds "+5535988880001". A search
+     * that normalises under no type finds nothing, rather than silently
+     * becoming "no filter".
      */
     @Transactional(readOnly = true)
     public Page<SuppressionEntryEntity> list(IdentifierType type, String search, Pageable pageable) {
@@ -147,13 +148,13 @@ public class SuppressionService implements ContactBlockCheck {
     }
 
     /**
-     * Resultado da conferencia: so se esta bloqueado e em quais canais. Nao
-     * devolve motivo, data nem quem registrou: quem confere precisa saber se
-     * pode abordar, nao o historico do pedido.
+     * The result of a check: only whether it is blocked, and on which
+     * channels. It returns no reason, date or author: whoever checks needs to
+     * know whether they may approach, not the history of the request.
      */
     public record CheckResult(boolean recognized, boolean blocked, boolean allChannels, Set<OutreachChannel> channels) {}
 
-    /** Qualquer membro confere um contato antes de abordar por fora do sistema (regra 4). */
+    /** Any member can check a contact before approaching from outside the system (rule 4). */
     @Transactional(readOnly = true)
     public CheckResult check(IdentifierType type, String rawIdentifier) {
         UUID organizationId = organizationContext.requireOrganizationId();
@@ -173,8 +174,9 @@ public class SuppressionService implements ContactBlockCheck {
     }
 
     /**
-     * Lead em {@code DO_NOT_CONTACT} ou com identificador bloqueado no canal.
-     * Canal nulo (abordagem sem canal de outreach) e conferido contra todos.
+     * A lead in {@code DO_NOT_CONTACT}, or with an identifier blocked on the
+     * channel. A null channel — an approach with no outreach channel — is
+     * checked against all of them.
      */
     @Transactional(readOnly = true)
     public boolean isBlocked(LeadEntity lead, OutreachChannel channel) {
@@ -183,8 +185,9 @@ public class SuppressionService implements ContactBlockCheck {
     }
 
     /**
-     * Canais bloqueados para a empresa do lead, numa unica consulta. Entrada
-     * sem canal, ou lead em {@code DO_NOT_CONTACT}, bloqueia todos.
+     * The channels blocked for the lead's company, in a single query. An entry
+     * with no channel, or a lead in {@code DO_NOT_CONTACT}, blocks all of
+     * them.
      */
     @Transactional(readOnly = true)
     public Set<OutreachChannel> blockedChannels(LeadEntity lead) {
@@ -209,7 +212,7 @@ public class SuppressionService implements ContactBlockCheck {
         return blocked;
     }
 
-    /** Canal do CRM sem equivalente (presencial, outro) e conferido contra todos. */
+    /** A CRM channel with no equivalent (in person, other) is checked against all of them. */
     @Override
     public boolean isBlocked(LeadEntity lead, InteractionChannel channel) {
         return isBlocked(lead, switch (channel) {
@@ -221,7 +224,7 @@ public class SuppressionService implements ContactBlockCheck {
         });
     }
 
-    /** Identificador do destinatario no canal, se a empresa tiver um valido. */
+    /** The recipient's identifier on the channel, when the company has a valid one. */
     public static Optional<ContactIdentifier> recipientOf(CompanyEntity company, OutreachChannel channel) {
         return identifiersOf(company).stream()
                 .filter(identifier -> identifier.type() == channel.recipientType())
@@ -237,8 +240,8 @@ public class SuppressionService implements ContactBlockCheck {
     }
 
     /**
-     * Pedido registrado no lead bloqueia todos os identificadores da empresa
-     * em todos os canais, na mesma transacao do pedido (doc 06 §9).
+     * A request recorded on the lead blocks every identifier of the company on
+     * every channel, in the same transaction as the request (doc 06 §9).
      */
     @EventListener
     void onDoNotContactRequested(DoNotContactRequested event) {
@@ -276,7 +279,7 @@ public class SuppressionService implements ContactBlockCheck {
         }
         SuppressionEntryEntity entry = repository.save(new SuppressionEntryEntity(
                 user.organizationId(), identifier, channel, reason, requestedAt, user.userId(), now));
-        // Sem o identificador no detalhe: a trilha nao precisa repetir o dado pessoal.
+        // No identifier in the detail: the trail does not need to repeat the personal data.
         auditService.record(new AuditEntry(user.organizationId(), user.userId(), AuditAction.SUPPRESSION_CREATE,
                 AuditOutcome.SUCCESS, "SuppressionEntry", entry.getId().toString(), null,
                 channel == null ? "ALL_CHANNELS" : channel.name()));

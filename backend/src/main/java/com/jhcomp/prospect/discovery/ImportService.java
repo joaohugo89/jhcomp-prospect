@@ -43,15 +43,17 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Importacao CSV em duas fases (RF-015, D14, D23).
+ * Two-phase CSV import (RF-015, D14, D23).
  *
- * <p>Analisar le, valida e classifica o arquivo, e grava o relatorio sem criar
- * nenhuma empresa. Confirmar cria as empresas das linhas validas e das
- * duplicatas que o operador escolheu. Assim nenhum registro e mesclado nem
- * descartado em silencio (RF-014), e o operador revisa antes de persistir.
+ * <p>Analysing reads, validates and classifies the file, and writes the report
+ * without creating a single company. Confirming creates the companies of the
+ * valid rows and of the duplicates the operator chose. That way no record is
+ * merged or discarded silently (RF-014), and the operator reviews before
+ * anything is persisted.
  *
- * <p>Importacao so cria empresas e leads novos: nunca altera registro
- * existente, e portanto nunca remove bloqueio de contato (doc 10 §6).
+ * <p>An import only creates new companies and leads: it never changes an
+ * existing record, and therefore can never remove a contact block
+ * (doc 10 §6).
  */
 @Service
 public class ImportService {
@@ -88,7 +90,7 @@ public class ImportService {
         this.clock = clock;
     }
 
-    /** Pedido de analise. {@code mapping} nulo usa o reconhecimento automatico de cabecalhos. */
+    /** An analysis request. A null {@code mapping} uses automatic header recognition. */
     public record AnalyzeCommand(
             String fileName, byte[] content, String sourceName, String datasetNote, Map<String, String> mapping) {}
 
@@ -137,15 +139,16 @@ public class ImportService {
     }
 
     /**
-     * Importa as linhas validas e as duplicatas escolhidas.
+     * Imports the valid rows and the chosen duplicates.
      *
-     * <p>Tudo numa transacao: ou o arquivo inteiro entra, ou nada entra, e a
-     * importacao volta a aguardar confirmacao. A transicao de status e
-     * atomica, entao duas confirmacoes simultaneas nao importam em dobro.
+     * <p>All in one transaction: either the whole file goes in or none of it
+     * does, and the import returns to awaiting confirmation. The status
+     * transition is atomic, so two simultaneous confirmations cannot import
+     * twice.
      *
-     * <p>As linhas validas sao reclassificadas contra a base antes de gravar:
-     * uma empresa cadastrada entre a analise e a confirmacao nao deve virar
-     * duplicata sem que o operador tenha visto.
+     * <p>The valid rows are reclassified against the database before writing:
+     * a company registered between the analysis and the confirmation must not
+     * become a duplicate without the operator having seen it.
      */
     @Transactional
     public ImportBatchEntity confirm(
@@ -157,8 +160,9 @@ public class ImportService {
                 user.organizationId(), importId);
         validateChosenRows(rows, includeDuplicateRows, mergeDuplicateRows);
 
-        // Depois da validacao acima: o conjunto incluido so contem duplicatas
-        // vistas na analise, nunca as que surgirem nesta reclassificacao.
+        // After the validation above: the included set holds only duplicates
+        // seen during the analysis, never ones appearing in this
+        // reclassification.
         int newlyDuplicated = DuplicateClassifier.classify(rows, companyService, false);
 
         ImportBatchEntity batch = find(importId);
@@ -205,10 +209,10 @@ public class ImportService {
     }
 
     /**
-     * Completa a empresa de que a linha e duplicata.
+     * Completes the company this row is a duplicate of.
      *
-     * @return {@code false} se a empresa foi arquivada depois da analise; ela
-     *     nao e alterada e a linha fica como nao importada
+     * @return {@code false} when the company was archived after the analysis;
+     *     it is left untouched and the row ends up as not imported
      */
     private boolean completeExisting(ImportBatchEntity batch, ImportRowEntity row, boolean createLead) {
         SourceData source = sourceFor(batch, row);
@@ -225,7 +229,7 @@ public class ImportService {
         return true;
     }
 
-    /** Descarta sem importar e apaga os valores das linhas (minimizacao, doc 07 §2). */
+    /** Discards without importing and erases the row values (minimisation, doc 07 §2). */
     @Transactional
     public ImportBatchEntity discard(UUID importId) {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
@@ -263,7 +267,7 @@ public class ImportService {
                 : batchRepository.findByOrganizationIdAndStatusOrderByCreatedAtDescIdAsc(organizationId, status, pageable);
     }
 
-    /** Quantas importacoes aguardam revisao, valem, foram desfeitas ou descartadas, e quantas empresas trouxeram. */
+    /** How many imports await review, still stand, were undone or discarded, and how many companies they brought. */
     public record Summary(long pendingReview, long completed, long undone, long discarded, long companiesImported) {}
 
     @Transactional(readOnly = true)
@@ -294,7 +298,7 @@ public class ImportService {
         return objectMapper.readValue(batch.getIgnoredColumns(), STRING_LIST_TYPE);
     }
 
-    /** Importacao anterior, nao descartada, do mesmo arquivo na mesma organizacao (doc 10 §4). */
+    /** An earlier, non-discarded import of the same file in the same organisation (doc 10 §4). */
     @Transactional(readOnly = true)
     public UUID previousImportOf(ImportBatchEntity batch) {
         return batchRepository
@@ -312,7 +316,7 @@ public class ImportService {
         return objectMapper.readValue(batch.getColumnMapping(), MAPPING_TYPE);
     }
 
-    /** Toma a importacao para confirmar ou descartar; 404 de outra organizacao, 409 se ja processada. */
+    /** Claims the import to confirm or discard it; 404 from another organisation, 409 if already processed. */
     private void claim(UUID importId, UUID organizationId) {
         find(importId);
         int claimed = batchRepository.transition(
@@ -323,12 +327,12 @@ public class ImportService {
     }
 
     /**
-     * Valida as escolhas do operador.
+     * Validates the operator's choices.
      *
-     * <p>Importar como nova vale para qualquer possivel duplicata; completar a
-     * existente, so para duplicata de empresa ja cadastrada, porque duplicata
-     * de outra linha do arquivo nao tem empresa a completar. A mesma linha nao
-     * pode receber as duas escolhas.
+     * <p>Importing as new applies to any possible duplicate; completing the
+     * existing one applies only to a duplicate of an already registered
+     * company, because a duplicate of another row in the file has no company
+     * to complete. The same row cannot receive both choices.
      */
     private static void validateChosenRows(List<ImportRowEntity> rows, Set<Integer> include, Set<Integer> merge) {
         Set<Integer> duplicates = new TreeSet<>();
@@ -364,8 +368,9 @@ public class ImportService {
     }
 
     /**
-     * Cabecalho por campo. Com mapeamento informado, ele e seguido como veio e
-     * validado; sem, cada cabecalho e reconhecido pelos apelidos do campo.
+     * The header for each field. With a mapping supplied it is followed as
+     * given and validated; without one, each header is recognised by the
+     * field's aliases.
      */
     private static Map<ImportField, Integer> resolveMapping(List<String> headers, Map<String, String> mapping) {
         Map<ImportField, Integer> columns = new EnumMap<>(ImportField.class);
@@ -439,7 +444,7 @@ public class ImportService {
         return name != null ? name : "Importacao CSV: " + cleanFileName(command.fileName());
     }
 
-    /** So o nome, sem caminho que alguns navegadores enviam. */
+    /** The name only, without the path some browsers send. */
     private static String cleanFileName(String fileName) {
         String name = Optional.ofNullable(fileName).orElse("arquivo.csv");
         name = name.substring(Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\')) + 1).strip();

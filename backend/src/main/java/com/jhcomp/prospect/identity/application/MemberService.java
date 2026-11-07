@@ -31,19 +31,20 @@ import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Administracao de membros da organizacao ativa (RF-003, D28).
+ * Administration of the active organisation's members (RF-003, D28).
  *
- * <p>Sem envio de convite: nao ha canal de e-mail no MVP. O sistema gera uma
- * senha temporaria, devolvida uma unica vez ao administrador, que a entrega
- * ao membro por fora; o membro e obrigado a troca-la no primeiro acesso.
+ * <p>No invitations: there is no e-mail channel in the MVP. The system
+ * generates a temporary password, returned exactly once to the administrator,
+ * who hands it to the member out of band; the member must change it on first
+ * access.
  *
- * <p>O administrador nao altera a propria associacao (papel, acesso ou
- * senha temporaria): e o que impede uma organizacao de ficar sem
- * administrador por engano. Uma trava consultiva do PostgreSQL por
- * organizacao serializa mudancas concorrentes de dois administradores. Nao
- * e {@code SELECT ... FOR UPDATE} na organizacao: a auditoria grava em
- * transacao propria, com chave estrangeira para a organizacao, e esperaria
- * para sempre pela trava da transacao que a chamou.
+ * <p>An administrator cannot change their own membership — role, access or
+ * temporary password — which is what stops an organisation from accidentally
+ * losing its last administrator. A PostgreSQL advisory lock per organisation
+ * serialises concurrent changes by two administrators. It is deliberately not
+ * {@code SELECT ... FOR UPDATE} on the organisation: auditing writes in its
+ * own transaction, with a foreign key to the organisation, and would wait
+ * forever for the lock held by the transaction that called it.
  */
 @Service
 public class MemberService {
@@ -76,13 +77,14 @@ public class MemberService {
         this.clock = clock;
     }
 
-    /** Membro criado e a senha temporaria em texto, que nao e guardada em lugar nenhum. */
+    /** The member created, and the temporary password in clear text, which is stored nowhere. */
     public record CreatedMember(OrganizationMemberEntity member, String temporaryPassword) {}
 
     /**
-     * Cadastra membro novo. E-mail ja cadastrado e recusado, em qualquer
-     * organizacao: anexar uma conta existente deixaria o administrador desta
-     * organizacao definir senha de alguem que tambem pertence a outra.
+     * Registers a new member. An e-mail already registered is refused, in any
+     * organisation: attaching an existing account would let this
+     * organisation's administrator set the password of someone who also
+     * belongs to another.
      */
     @Transactional
     public CreatedMember create(String rawEmail, String displayName, OrganizationRole role) {
@@ -105,7 +107,7 @@ public class MemberService {
         return new CreatedMember(member, temporaryPassword);
     }
 
-    /** Muda papel e/ou acesso. Campo nulo nao muda. */
+    /** Changes role and/or access. A null field changes nothing. */
     @Transactional
     public OrganizationMemberEntity update(UUID memberId, OrganizationRole role, MemberStatus status) {
         AuthenticatedUser admin = organizationContext.requireCurrentUser();
@@ -121,14 +123,15 @@ public class MemberService {
             member.changeStatus(status);
             changes.add("STATUS_" + status.name());
         }
-        // Defesa em profundidade: com a propria associacao intocavel o caso nao
-        // ocorre, mas a regra vale mais que o caminho que a garante hoje.
+        // Defence in depth: with one's own membership untouchable the case
+        // cannot arise, but the rule matters more than the path that enforces
+        // it today.
         memberRepository.flush();
         if (memberRepository.countActiveAdmins(admin.organizationId()) == 0) {
             throw new ConflictException("Organization must keep at least one active administrator");
         }
-        // Depois das regras: a auditoria grava em transacao propria e nao
-        // seria desfeita se a mudanca fosse recusada.
+        // After the rules: auditing writes in its own transaction and would
+        // not be rolled back if the change were refused.
         if (!changes.isEmpty()) {
             audit(admin, AuditAction.MEMBER_UPDATE, member, String.join(",", changes));
         }
@@ -136,8 +139,8 @@ public class MemberService {
     }
 
     /**
-     * Nova senha temporaria para o membro. As sessoes abertas dele sao
-     * encerradas na proxima requisicao (D28).
+     * A new temporary password for the member. Their open sessions end on the
+     * next request (D28).
      */
     @Transactional
     public CreatedMember resetPassword(UUID memberId) {
@@ -145,7 +148,7 @@ public class MemberService {
         lockOrganization(admin);
         OrganizationMemberEntity member = findOtherMember(admin, memberId);
         if (memberRepository.existsInOtherOrganization(member.getUser().getId(), admin.organizationId())) {
-            // Redefinir aqui mudaria o acesso dele em outra organizacao.
+            // Resetting here would change their access in another organisation.
             throw new ConflictException("Member also belongs to another organization");
         }
 
@@ -155,7 +158,7 @@ public class MemberService {
         return new CreatedMember(member, temporaryPassword);
     }
 
-    /** Trava consultiva ate o fim da transacao, por organizacao. */
+    /** An advisory lock until the end of the transaction, per organisation. */
     private OrganizationEntity lockOrganization(AuthenticatedUser admin) {
         jdbc.query("select pg_advisory_xact_lock(hashtextextended(?, 0))",
                 (ResultSetExtractor<Void>) resultSet -> null, "members:" + admin.organizationId());
@@ -163,7 +166,7 @@ public class MemberService {
                 .orElseThrow(() -> new ResourceNotFoundException("Organization"));
     }
 
-    /** Membro da organizacao da sessao (404 fora dela) e diferente de quem pede. */
+    /** A member of the session's organisation (404 outside it), and not the caller. */
     private OrganizationMemberEntity findOtherMember(AuthenticatedUser admin, UUID memberId) {
         OrganizationMemberEntity member = memberRepository.findByIdAndOrganization(memberId, admin.organizationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Member"));
@@ -173,7 +176,7 @@ public class MemberService {
         return member;
     }
 
-    /** Sem e-mail nem senha no detalhe: o id do membro basta para a trilha. */
+    /** No e-mail and no password in the detail: the member's id is enough for the trail. */
     private void audit(AuthenticatedUser admin, AuditAction action, OrganizationMemberEntity member, String detail) {
         auditService.record(new AuditEntry(admin.organizationId(), admin.userId(), action, AuditOutcome.SUCCESS,
                 "OrganizationMember", member.getId().toString(), null, detail));

@@ -35,15 +35,16 @@ import com.jhcomp.prospect.shared.security.OrganizationContext;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
- * Casos de uso de lead (RF-011, RF-012, RF-013; doc 06 §2).
+ * Lead use cases (RF-011, RF-012, RF-013; doc 06 §2).
  *
- * <p>{@code Lead.status} e a fonte unica do estado comercial (D2). Toda
- * mudanca de status grava ator, data e estado anterior na mesma transacao.
+ * <p>{@code Lead.status} is the single source of commercial state (D2). Every
+ * status change records the actor, the date and the previous state in the same
+ * transaction.
  */
 @Service
 public class LeadService {
 
-    /** Mais recentes primeiro; desempate por id para a paginacao ser estavel. */
+    /** Newest first, with the id as tiebreak so pagination is stable. */
     public static final Sort DEFAULT_SORT =
             Sort.by(Sort.Direction.DESC, LeadEntity::getCreatedAt).and(Sort.by(LeadEntity::getId));
 
@@ -76,11 +77,12 @@ public class LeadService {
     }
 
     /**
-     * Abre uma oportunidade para a empresa (RF-011).
+     * Opens an opportunity for the company (RF-011).
      *
-     * <p>Lead nasce com status, origem e data de criacao, como exige o aceite.
-     * A empresa precisa ser da organizacao ativa (senao 404) e nao estar
-     * arquivada; e uma oportunidade aberta por empresa (doc 06 §3).
+     * <p>A lead starts with a status, an origin and a creation date, as the
+     * acceptance criterion requires. The company has to belong to the active
+     * organisation (otherwise 404) and must not be archived; there is one open
+     * opportunity per company (doc 06 §3).
      */
     @Transactional
     public LeadEntity create(UUID companyId, LeadPriority priority, SourceData source) {
@@ -103,11 +105,11 @@ public class LeadService {
     }
 
     /**
-     * Abre um lead se a empresa nao tiver oportunidade aberta.
+     * Opens a lead when the company has no open opportunity.
      *
-     * <p>Para a importacao: uma empresa existente pode ja ter oportunidade em
-     * andamento, inclusive com bloqueio de contato. Nesse caso nada e criado,
-     * e a importacao segue, em vez de falhar inteira.
+     * <p>For the import: an existing company may already have an opportunity
+     * in progress, possibly a blocked one. In that case nothing is created and
+     * the import carries on, rather than failing as a whole.
      */
     @Transactional
     public Optional<LeadEntity> createIfNoneOpen(UUID companyId, LeadPriority priority, SourceData source) {
@@ -126,11 +128,12 @@ public class LeadService {
     }
 
     /**
-     * Lead com a empresa, por organizacao explicita.
+     * A lead with its company, under an explicit organisation.
      *
-     * <p>Uso interno de jobs, que rodam sem sessao: a organizacao vem do job,
-     * gravado a partir da sessao de quem pediu. Nunca chamar com organizacao
-     * recebida do cliente (regra 2 do produto).
+     * <p>For internal use by jobs, which run without a session: the
+     * organisation comes from the job, which was written from the session of
+     * whoever requested it. Never call this with an organisation received from
+     * the client (product rule 2).
      */
     @Transactional(readOnly = true)
     public Optional<LeadEntity> findInOrganization(UUID organizationId, UUID leadId) {
@@ -138,8 +141,8 @@ public class LeadService {
     }
 
     /**
-     * Aplica o score de uma analise (D3). Mesma restricao de uso interno de
-     * {@link #findInOrganization}.
+     * Applies the score of an analysis (D3). The same internal-use restriction
+     * as {@link #findInOrganization}.
      */
     @Transactional
     public void applyScore(UUID organizationId, UUID leadId, int score, String version) {
@@ -154,11 +157,11 @@ public class LeadService {
     }
 
     /**
-     * Muda o status (doc 06 §2).
+     * Changes the status (doc 06 §2).
      *
-     * <p>{@code CONTACTED} exige confirmacao explicita do operador de que o
-     * contato ocorreu: gerar ou aprovar mensagem nunca move o lead, e o campo
-     * existe para que a interface nao consiga fazer isso por engano.
+     * <p>{@code CONTACTED} requires the operator to confirm explicitly that
+     * the contact happened: generating or approving a message never moves the
+     * lead, and the field exists so the interface cannot do it by accident.
      */
     @Transactional
     public LeadEntity changeStatus(UUID leadId, LeadStatus newStatus, String reason, boolean contactConfirmed) {
@@ -182,16 +185,17 @@ public class LeadService {
         return lead;
     }
 
-    /** Teto de uma acao em lote: uma pagina larga da fila, nao a base inteira. */
+    /** The cap on a bulk action: a wide page of the queue, not the whole base. */
     public static final int MAX_BULK = 100;
 
     /**
-     * Mesma mudanca em varios leads, numa transacao: ou todos mudam, ou
-     * nenhum. Um id de outra organizacao responde 404 e desfaz o lote inteiro,
-     * sem dizer qual era. So responsavel e prioridade: mudar status exige
-     * confirmacao lead a lead (regra 6 e estados finais).
+     * The same change over several leads, in one transaction: either all of
+     * them change or none does. An id from another organisation answers 404
+     * and rolls the whole batch back, without saying which id it was. Owner
+     * and priority only: changing status requires confirmation lead by lead
+     * (rule 6, and the final states).
      *
-     * @param assignee responsavel quando {@code priority} e nulo; nulo remove
+     * @param assignee the owner when {@code priority} is null; null clears it
      */
     @Transactional
     public int bulkUpdate(List<UUID> leadIds, LeadPriority priority, UUID assignee) {
@@ -217,10 +221,11 @@ public class LeadService {
     }
 
     /**
-     * Define o responsavel, ou remove com {@code null}.
+     * Sets the owner, or clears it with {@code null}.
      *
-     * <p>O responsavel precisa ser membro ativo da mesma organizacao. Um id de
-     * outra organizacao responde como inexistente, sem confirmar que existe.
+     * <p>The owner has to be an active member of the same organisation. An id
+     * from another organisation answers as non-existent, without confirming
+     * that it exists.
      */
     @Transactional
     public LeadEntity assign(UUID leadId, UUID assignedUserId) {

@@ -39,28 +39,28 @@ import com.jhcomp.prospect.shared.security.OrganizationContext;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
- * Casos de uso de empresa (RF-010, RF-014, RF-020, RF-022).
+ * Company use cases (RF-010, RF-014, RF-020, RF-022).
  *
- * <p>A organizacao vem sempre do {@link OrganizationContext}; nenhum metodo
- * publico a recebe como parametro (RNF-001).
+ * <p>The organisation always comes from {@link OrganizationContext}; no public
+ * method takes it as a parameter (RNF-001).
  */
 @Service
 public class CompanyService {
 
-    /** Espaco repetido no meio do segmento vira um so: "Barbearia  Centro" e "Barbearia Centro". */
+    /** Repeated spaces inside a segment collapse to one: "Barbearia  Centro" is "Barbearia Centro". */
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
-    /** Mais recentes primeiro; desempate por id para a paginacao ser estavel. */
+    /** Newest first, with the id as tiebreak so pagination is stable. */
     public static final Sort DEFAULT_SORT =
             Sort.by(Sort.Direction.DESC, CompanyEntity::getCreatedAt).and(Sort.by(CompanyEntity::getId));
 
-    /** Teto de um lote, o mesmo da fila de leads. */
+    /** The cap on one batch, the same as the lead queue's. */
     public static final int MAX_BULK = 100;
 
-    /** Id que nenhuma empresa tem: o "excluir a propria" quando ainda nao ha propria. */
+    /** An id no company has: the "exclude self" when there is no self yet. */
     private static final UUID NO_COMPANY = new UUID(0L, 0L);
 
-    /** Origem atribuida quando o operador cadastra sem informar uma. */
+    /** The origin recorded when the operator creates a company without giving one. */
     static final String DEFAULT_SOURCE_NAME = "Cadastro manual";
 
     private final CompanyRepository companyRepository;
@@ -80,10 +80,10 @@ public class CompanyService {
     }
 
     /**
-     * Cadastra a empresa e registra de onde ela veio (RF-020).
+     * Registers the company and records where it came from (RF-020).
      *
-     * <p>Empresa e origem sao gravadas na mesma transacao: empresa sem
-     * proveniencia violaria o RF-022.
+     * <p>Company and origin are written in the same transaction: a company
+     * without provenance would violate RF-022.
      */
     @Transactional
     public CompanyEntity create(CompanyData data, SourceData source) {
@@ -109,7 +109,7 @@ public class CompanyService {
                 CompanySpecifications.matching(organizationContext.requireOrganizationId(), criteria), pageable);
     }
 
-    /** Atualizacao parcial: campo nulo mantem o valor, texto vazio limpa. */
+    /** Partial update: a null field keeps its value, an empty string clears it. */
     @Transactional
     public CompanyEntity update(UUID companyId, CompanyPatch patch) {
         CompanyEntity company = requireActive(companyId);
@@ -117,7 +117,7 @@ public class CompanyService {
         return company;
     }
 
-    /** Arquivar nao e excluir (RF-010). Repetir a operacao nao tem efeito. */
+    /** Archiving is not deleting (RF-010). Repeating it has no effect. */
     @Transactional
     public CompanyEntity archive(UUID companyId) {
         CompanyEntity company = find(companyId);
@@ -133,11 +133,11 @@ public class CompanyService {
     }
 
     /**
-     * Empresas da mesma organizacao que podem ser a mesma (RF-014).
+     * Companies in the same organisation that may be the same one (RF-014).
      *
-     * <p>So sugere: nada e mesclado nem descartado aqui. Nome parecido nao
-     * entra como sinal; so nome normalizado identico na mesma cidade e estado,
-     * e mesmo esse e o sinal mais fraco (doc 06 §4).
+     * <p>It only suggests: nothing is merged or discarded here. A similar name
+     * is not a signal; only an identical normalised name in the same city and
+     * state, and even that is the weakest signal (doc 06 §4).
      */
     @Transactional(readOnly = true)
     public List<DuplicateCandidate> duplicates(UUID companyId) {
@@ -147,9 +147,10 @@ public class CompanyService {
     }
 
     /**
-     * Possiveis duplicatas de uma empresa ainda sendo digitada, com os mesmos
-     * sinais de {@link #duplicates}. {@code excludedId} e a propria empresa, na
-     * edicao. Sem nome, cidade e estado so os sinais de contato valem.
+     * Possible duplicates of a company still being typed, using the same
+     * signals as {@link #duplicates}. {@code excludedId} is the company itself
+     * when editing. Without name, city and state, only the contact signals
+     * apply.
      */
     @Transactional(readOnly = true)
     public List<DuplicateCandidate> probeDuplicates(DuplicateProbe probe) {
@@ -166,7 +167,7 @@ public class CompanyService {
                 probe.excludedId() == null ? NO_COMPANY : probe.excludedId());
     }
 
-    /** O que o formulario ja tem para comparar. Nulos nao contam como sinal. */
+    /** What the form already has to compare with. Nulls do not count as a signal. */
     public record DuplicateProbe(
             String name, String city, String state, String websiteUrl, String phone, UUID excludedId) {}
 
@@ -196,12 +197,12 @@ public class CompanyService {
     }
 
     /**
-     * Mesmo segmento, ou mesma cidade e estado, em varias empresas de uma vez
-     * (qualidade de dado em lote). Tudo numa transacao; empresa arquivada nao
-     * muda e e contada a parte. Id de outra organizacao responde 404 para o
-     * lote inteiro, como se nao existisse.
+     * The same segment, or the same city and state, across several companies
+     * at once (bulk data quality). All in one transaction; an archived company
+     * is untouched and counted separately. An id from another organisation
+     * answers 404 for the whole batch, as if it did not exist.
      *
-     * @return quantas mudaram e quantas foram puladas por estarem arquivadas
+     * @return how many changed, and how many were skipped as archived
      */
     @Transactional
     public BulkResult bulkUpdate(List<UUID> companyIds, String segment, String city, String state) {
@@ -232,10 +233,10 @@ public class CompanyService {
     public record BulkResult(int updated, int skippedArchived) {}
 
     /**
-     * Empresa da organizacao ativa que aceita alteracao.
+     * A company of the active organisation that accepts changes.
      *
-     * <p>Usado tambem pelo modulo de lead, que nao pode abrir oportunidade
-     * para empresa arquivada.
+     * <p>Also used by the lead module, which cannot open an opportunity for an
+     * archived company.
      */
     @Transactional(readOnly = true)
     public CompanyEntity requireActive(UUID companyId) {
@@ -247,12 +248,12 @@ public class CompanyService {
     }
 
     /**
-     * Empresas da organizacao ativa com algum dos valores normalizados
-     * informados, inclusive arquivadas: uma empresa arquivada continua sendo a
-     * mesma empresa.
+     * Companies of the active organisation matching any of the normalised
+     * values given, archived ones included: an archived company is still the
+     * same company.
      *
-     * <p>Usado pela importacao para classificar o arquivo inteiro com tres
-     * consultas, em vez de tres por linha.
+     * <p>Used by the import to classify the whole file with three queries
+     * instead of three per row.
      */
     @Transactional(readOnly = true)
     public List<CompanyEntity> findByNormalizedValues(
@@ -272,13 +273,13 @@ public class CompanyService {
     }
 
     /**
-     * Completa uma empresa existente com dados importados (D23).
+     * Completes an existing company with imported data (D23).
      *
-     * <p>So preenche campos vazios; registra a origem mesmo sem preencher nada,
-     * porque a linha importada tambem confirma a empresa (RF-022). Empresa
-     * arquivada nao e alterada.
+     * <p>It only fills empty fields, and records the origin even when it fills
+     * nothing, because the imported row also confirms the company (RF-022). An
+     * archived company is not changed.
      *
-     * @return campos preenchidos, ou vazio se a empresa estiver arquivada
+     * @return the fields filled, or empty when the company is archived
      */
     @Transactional
     public Optional<List<String>> completeFromImport(UUID companyId, CompanyData data, SourceData source) {
@@ -294,10 +295,10 @@ public class CompanyService {
     }
 
     /**
-     * Segmento com a grafia que ja existe na organizacao (D31): "barbearia "
-     * vira "Barbearia" se esta ja e usada. Sem espaco nas pontas nem repetido;
-     * em branco e o mesmo que sem segmento. Um segmento novo fica como foi
-     * digitado.
+     * A segment in the spelling that already exists in the organisation (D31):
+     * "barbearia " becomes "Barbearia" when that form is already in use.
+     * Surrounding and repeated spaces are removed; blank is the same as no
+     * segment. A new segment is kept exactly as typed.
      */
     private CompanyData withCanonicalSegment(UUID organizationId, CompanyData data) {
         String cleaned = Texts.blankToNull(data.segment());
@@ -324,7 +325,7 @@ public class CompanyService {
                 data.notes());
     }
 
-    /** Registra uma origem ligada a uma oportunidade (RF-011: lead tem origem). */
+    /** Records an origin tied to an opportunity (RF-011: a lead has an origin). */
     @Transactional
     public void recordLeadSource(CompanyEntity company, UUID leadId, SourceData source) {
         saveSource(company, leadId, source, organizationContext.requireCurrentUser(), clock.instant());
@@ -365,14 +366,14 @@ public class CompanyService {
         }
     }
 
-    /** Empresa possivelmente igual e os sinais que a aproximaram. */
+    /** A possibly identical company, and the signals that brought it up. */
     public record DuplicateCandidate(CompanyEntity company, Set<DuplicateSignal> signals) {}
 
     /**
-     * Alteracao parcial de empresa.
+     * A partial change to a company.
      *
-     * <p>Nulo mantem o valor atual; texto vazio limpa um campo opcional. A
-     * validacao de entrada impede limpar os obrigatorios.
+     * <p>Null keeps the current value; an empty string clears an optional
+     * field. Input validation prevents clearing the required ones.
      */
     public record CompanyPatch(
             String name,

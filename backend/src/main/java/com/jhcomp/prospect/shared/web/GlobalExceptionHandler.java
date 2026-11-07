@@ -23,24 +23,24 @@ import com.jhcomp.prospect.shared.error.ApplicationException;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Tratamento global de erros (RNF-003, doc 05 §1).
+ * Global error handling (RNF-003, doc 05 §1).
  *
- * <p>Estende {@link ResponseEntityExceptionHandler} para que as excecoes do
- * proprio Spring MVC — rota inexistente, metodo nao suportado, corpo
- * malformado, falha de validacao — saiam no mesmo formato das excecoes da
- * aplicacao. Sem isso, a API responderia em dois formatos diferentes
- * dependendo de onde o erro nasceu.
+ * <p>It extends {@link ResponseEntityExceptionHandler} so that Spring MVC's
+ * own exceptions — unknown route, unsupported method, malformed body,
+ * validation failure — come out in the same shape as the application's. Without
+ * that, the API would answer in two different formats depending on where the
+ * error was born.
  *
- * <p>Nenhuma resposta carrega stack trace ou mensagem interna. Falhas
- * inesperadas sao registradas no log com um identificador que tambem vai na
- * resposta, para permitir investigar sem expor o detalhe ao cliente.
+ * <p>No response carries a stack trace or an internal message. Unexpected
+ * failures are logged with an identifier that also travels in the response, so
+ * they can be investigated without exposing the detail to the client.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /** Excecoes da aplicacao: tipo e status vem da propria excecao. */
+    /** Application exceptions: the type and status come from the exception itself. */
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<ApiErrorResponse> handleApplicationException(
             ApplicationException exception, HttpServletRequest request) {
@@ -51,13 +51,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(exception.status()).body(body);
     }
 
-    /** Autorizacao negada pela seguranca de metodo. */
+    /** Authorisation denied by method security. */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> handleAccessDenied(
             AccessDeniedException exception, HttpServletRequest request) {
 
-        // Nao registra a mensagem da excecao: ela pode citar a expressao de
-        // autorizacao, que e detalhe interno.
+        // The exception message is not logged: it can quote the authorisation
+        // expression, which is internal detail.
         log.info("Acesso negado em {}", request.getRequestURI());
 
         ApiErrorResponse body = ApiErrorResponse.of(
@@ -70,13 +70,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * Restricao do banco violada.
+     * A database constraint was violated.
      *
-     * <p>Os casos de uso verificam as regras antes de gravar, mas duas
-     * requisicoes simultaneas podem passar juntas pela verificacao; o banco e
-     * a ultima trava, e a corrida deve chegar ao cliente como conflito, nao
-     * como falha inesperada. A mensagem do banco nao e repassada: cita nomes de
-     * tabela e restricao.
+     * <p>The use cases check the rules before writing, but two concurrent
+     * requests can pass the check together; the database is the last lock, and
+     * that race must reach the client as a conflict rather than an unexpected
+     * failure. The database's message is not passed on: it names tables and
+     * constraints.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrity(
@@ -93,7 +93,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
-    /** Validacao de DTO: um item por campo invalido, como no exemplo do doc 05 §1. */
+    /** DTO validation: one item per invalid field, as in the example in doc 05 §1. */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException exception,
@@ -118,11 +118,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * Converte toda excecao tratada pelo Spring MVC para o formato da API.
+     * Converts every exception Spring MVC handles into the API's format.
      *
-     * <p>O {@code body} original e descartado de proposito: o
-     * {@code ProblemDetail} padrao traz textos como "No static resource ..."
-     * que expoem detalhe de implementacao.
+     * <p>The original {@code body} is discarded on purpose: the default
+     * {@code ProblemDetail} carries text such as "No static resource ..."
+     * which exposes implementation detail.
      */
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
@@ -141,12 +141,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(status).headers(headers).body(response);
     }
 
-    /** Rede de seguranca: nada deve escapar sem o formato padrao. */
+    /** A safety net: nothing should escape without the standard format. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
         String incidentId = UUID.randomUUID().toString();
 
-        // O detalhe fica no log do servidor, nao na resposta.
+        // The detail stays in the server log, not in the response.
         log.error("Falha inesperada [incidente={}] em {}", incidentId, request.getRequestURI(), exception);
 
         ApiErrorResponse body = ApiErrorResponse.of(
@@ -167,8 +167,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case UNAUTHORIZED -> ApiErrorType.AUTHENTICATION_REQUIRED;
             case CONFLICT -> ApiErrorType.CONFLICT;
             case TOO_MANY_REQUESTS -> ApiErrorType.TOO_MANY_REQUESTS;
-            // CONTENT_TOO_LARGE e o nome atual do 413; PAYLOAD_TOO_LARGE foi
-            // depreciado no Spring 7 para acompanhar a RFC 9110.
+            // CONTENT_TOO_LARGE is the current name for 413; PAYLOAD_TOO_LARGE
+            // was deprecated in Spring 7 to follow RFC 9110.
             case CONTENT_TOO_LARGE -> ApiErrorType.PAYLOAD_TOO_LARGE;
             default -> ApiErrorType.UNEXPECTED_ERROR;
         };

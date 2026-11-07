@@ -27,15 +27,15 @@ import com.jhcomp.prospect.lead.domain.LeadStatus;
 import com.jhcomp.prospect.shared.text.Texts;
 
 /**
- * Consultas agregadas do dashboard (RF-070, doc 08 §4).
+ * The dashboard's aggregate queries (RF-070, doc 08 §4).
  *
- * <p>SQL direto: sao contagens sobre varias tabelas, que entidade nenhuma
- * representa. Toda consulta filtra por organizacao; segmento, cidade e origem
- * filtram pela empresa do lead.
+ * <p>Plain SQL: these are counts across several tables that no entity
+ * represents. Every query filters by organisation; segment, city and origin
+ * filter through the lead's company.
  *
- * <p>Origem da empresa e o tipo da primeira proveniencia gravada: o caminho
- * pelo qual ela entrou no sistema. Uma importacao que depois completa a
- * empresa nao muda a origem nem conta a empresa duas vezes (D29).
+ * <p>A company's origin is the type of its first recorded provenance: the path
+ * by which it entered the system. An import that later completes the company
+ * changes neither the origin nor counts the company twice (D29).
  */
 @Repository
 public class DashboardQuery {
@@ -57,21 +57,22 @@ public class DashboardQuery {
             String toStatus, String interactionType, String channel) {}
 
     /**
-     * Conversao de um grupo (RF-071). Denominador: leads abertos no periodo.
-     * Contatado: com abordagem de saida registrada; ganho: hoje em {@code WON}.
-     * Abaixo de {@link #MINIMUM_SAMPLE} leads a taxa nao e apresentada.
+     * One group's conversion (RF-071). Denominator: leads opened in the
+     * period. Contacted: with a recorded outbound approach; won: currently in
+     * {@code WON}. Below {@link #MINIMUM_SAMPLE} leads the rate is not
+     * presented at all.
      */
     public record ConversionRow(String key, long leads, long contacted, long won, boolean sufficientSample) {}
 
     public record Conversion(int minimumSample, List<ConversionRow> bySource, List<ConversionRow> bySegment) {}
 
-    /** Abaixo disso, um unico lead move a taxa em mais de 10 pontos. */
+    /** Below this, a single lead moves the rate by more than 10 points. */
     static final int MINIMUM_SAMPLE = 10;
 
-    /** Segmento e texto livre; o painel mostra so os maiores grupos. */
+    /** The segment is free text; the panel shows only the largest groups. */
     static final int MAX_SEGMENTS = 10;
 
-    /** Tamanho do intervalo da serie temporal. */
+    /** The interval size of the time series. */
     public enum Granularity {
         DAY("day"),
         WEEK("week"),
@@ -85,13 +86,14 @@ public class DashboardQuery {
     }
 
     /**
-     * Um intervalo da serie. {@code start} e o primeiro dia do intervalo dentro
-     * do periodo: a primeira semana ou mes pode comecar depois do inicio natural.
+     * One interval of the series. {@code start} is the interval's first day
+     * inside the period: the first week or month may start later than its
+     * natural beginning.
      */
     public record TimelinePoint(
             LocalDate start, long companiesAdded, long contactsRegistered, long dealsWon, BigDecimal wonValue) {}
 
-    /** Fora do funil ativo: encerrados e bloqueados. */
+    /** Outside the active funnel: closed and blocked. */
     private static final EnumSet<LeadStatus> INACTIVE = EnumSet.of(LeadStatus.WON, LeadStatus.LOST, LeadStatus.DO_NOT_CONTACT);
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -126,7 +128,7 @@ public class DashboardQuery {
                    and c.created_at >= :from and c.created_at < :to and %s
                 """.formatted(DashboardSql.COMPANY_FILTER), params);
 
-        // Contato registrado: abordagem de saida que o operador confirmou ter feito.
+        // A recorded contact: an outbound approach the operator confirmed having made.
         long contacts = count("""
                 select count(*) from interaction i
                   join lead l on l.id = i.lead_id join company c on c.id = l.company_id
@@ -149,7 +151,7 @@ public class DashboardQuery {
                  where t.organization_id = :organizationId and t.status = 'OPEN' and %s
                 """.formatted(DashboardSql.LEAD_FILTER), params);
 
-        // Qualidade dos dados: sem segmento, a conversao por segmento perde sentido.
+        // Data quality: with no segment, conversion by segment stops meaning anything.
         long withoutSegment = count("""
                 select count(*) from company c
                  where c.organization_id = :organizationId and c.archived_at is null
@@ -169,7 +171,7 @@ public class DashboardQuery {
                 withoutSegment);
     }
 
-    /** Conversao dos leads abertos no periodo, por origem e por segmento (RF-071). */
+    /** Conversion of the leads opened in the period, by origin and by segment (RF-071). */
     @Transactional(readOnly = true)
     public Conversion conversion(DashboardSql.Filters filters) {
         MapSqlParameterSource params = DashboardSql.params(filters).addValue("maxSegments", MAX_SEGMENTS);
@@ -204,10 +206,10 @@ public class DashboardQuery {
     }
 
     /**
-     * As metricas do periodo do {@link #summary} em intervalos (dia, semana ou
-     * mes do calendario de {@code zone}), com as mesmas definicoes e filtros.
-     * Todo intervalo do periodo aparece, inclusive os vazios: lacuna no grafico
-     * seria lida como falta de dado, e nao como zero.
+     * The period metrics of {@link #summary} in intervals (day, week or
+     * calendar month in {@code zone}), under the same definitions and filters.
+     * Every interval of the period appears, the empty ones included: a gap in
+     * the chart would read as missing data rather than as zero.
      */
     @Transactional(readOnly = true)
     public List<TimelinePoint> timeline(
@@ -271,7 +273,7 @@ public class DashboardQuery {
                 row.getBigDecimal("won_value")));
     }
 
-    /** Atividade recente: mudancas de status e interacoes, da mais recente para a mais antiga. */
+    /** Recent activity: status changes and interactions, newest first. */
     @Transactional(readOnly = true)
     public Page<Activity> activity(DashboardSql.Filters filters, Pageable pageable) {
         String events = """

@@ -15,111 +15,110 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Limita tentativas de login (doc 07 §4, doc 05 §12, D20).
+ * Rate limits login attempts (doc 07 §4, doc 05 §12, D20).
  *
- * <p>Aplica tres limites independentes, nesta ordem:
+ * <p>Three independent limits apply, in this order:
  *
  * <ol>
- *   <li><b>Por site</b> ({@link #MAX_ATTEMPTS_PER_SITE} por janela): teto
- *       agregado do {@code /48} IPv6. Impede quem tem um bloco inteiro de
- *       multiplicar cotas trocando de {@code /64}.
- *   <li><b>Por assinante</b> ({@link #MAX_ATTEMPTS_PER_NETWORK} por janela):
- *       {@code /64} IPv6 ou IPv4 exato. Limita o volume de uma origem,
- *       qualquer que seja o e-mail, sem atingir os vizinhos do mesmo
- *       {@code /48}.
- *   <li><b>Por e-mail e assinante</b> ({@link #MAX_FAILURES} por janela):
- *       bloqueia a insistencia contra uma credencial especifica.
+ *   <li><b>Per site</b> ({@link #MAX_ATTEMPTS_PER_SITE} per window): the
+ *       aggregate ceiling of an IPv6 {@code /48}. It stops whoever holds a
+ *       whole block from multiplying quotas by rotating {@code /64}s.
+ *   <li><b>Per subscriber</b> ({@link #MAX_ATTEMPTS_PER_NETWORK} per window):
+ *       an IPv6 {@code /64}, or an exact IPv4 address. It caps one origin's
+ *       volume whatever the e-mail, without hitting the neighbours in the
+ *       same {@code /48}.
+ *   <li><b>Per e-mail and subscriber</b> ({@link #MAX_FAILURES} per window):
+ *       it stops someone hammering one specific credential.
  * </ol>
  *
- * <p>O limite por credencial sozinho nao basta: o e-mail faz parte da chave e e
- * escolhido por quem chama, de modo que uma origem unica poderia tentar
- * e-mails sempre diferentes sem nunca ser barrada, e ainda encher o
- * rastreamento. Os limites de rede fecham essa saida.
+ * <p>The credential limit alone is not enough: the e-mail is part of the key
+ * and is chosen by the caller, so a single origin could try a different e-mail
+ * every time, never be stopped, and fill the tracking maps as a bonus. The
+ * network limits close that way out.
  *
- * <p>A chave do limite por credencial combina e-mail e rede, e nao apenas
- * e-mail: bloquear so por e-mail permitiria a um atacante travar a conta de
- * um terceiro de proposito.
+ * <p>The credential key combines e-mail <em>and</em> network, not e-mail
+ * alone: blocking by e-mail only would let an attacker deliberately lock
+ * somebody else's account.
  *
- * <p><b>Reserva atomica.</b> A unica operacao de entrada e
- * {@link #tryAcquire(String, String)}, que verifica o limite e contabiliza a
- * tentativa no mesmo passo. Um par {@code isBlocked()}/{@code recordFailure()}
- * seria vulneravel: entre a verificacao e a contabilizacao, requisicoes
- * concorrentes passariam todas pelo teste antes de qualquer uma registrar
- * falha.
+ * <p><b>Atomic reservation.</b> The only entry point is
+ * {@link #tryAcquire(String, String)}, which checks the limit and records the
+ * attempt in the same step. An {@code isBlocked()}/{@code recordFailure()}
+ * pair would be vulnerable: between the check and the accounting, concurrent
+ * requests would all pass the test before any of them recorded a failure.
  *
- * <p><b>Memoria limitada sem abrir bypass.</b> Cada mapa tem teto. Ao atingi-lo,
- * removem-se primeiro as entradas expiradas e, depois, as mais antigas
- * <b>que nao estejam bloqueadas</b>. Descartar entrada bloqueada seria um
- * bypass direto: bastaria inundar o limitador para apagar o proprio bloqueio e
- * recomecar. Quando nao ha candidato descartavel, novas chaves sao recusadas em
- * vez de se abrir espaco removendo bloqueios ativos.
+ * <p><b>Bounded memory that opens no bypass.</b> Every map has a cap. On
+ * reaching it, expired entries go first and then the oldest ones <b>that are
+ * not blocked</b>. Evicting a blocked entry would be a direct bypass: flood
+ * the limiter, erase your own block, start over. With no evictable candidate,
+ * new keys are refused rather than making room by dropping active blocks.
  *
- * <p><b>Escopo.</b> Implementacao em memoria, valida por instancia, que e o
- * cenario do MVP. Se o backend passar a rodar replicado, estes contadores
- * precisam migrar para armazenamento compartilhado, porque cada instancia
- * contaria separadamente.
+ * <p><b>Scope.</b> An in-memory implementation, valid per instance, which is
+ * the MVP's scenario. If the backend is ever replicated these counters have to
+ * move to shared storage, because each instance would count separately.
  */
 @Component
 public class LoginAttemptLimiter {
 
     private static final Logger log = LoggerFactory.getLogger(LoginAttemptLimiter.class);
 
-    /** Tentativas por e-mail e assinante dentro da janela. */
+    /** Attempts per e-mail and subscriber within the window. */
     static final int MAX_FAILURES = 5;
 
     /**
-     * Tentativas por assinante ({@code /64} ou IPv4) dentro da janela,
-     * qualquer que seja o e-mail.
+     * Attempts per subscriber ({@code /64} or IPv4) within the window,
+     * whatever the e-mail.
      *
-     * <p>Dez vezes o limite por credencial: sobra folga para o operador errar a
-     * senha algumas vezes, e ainda assim uma origem nao consegue varrer
-     * e-mails nem encher o rastreamento.
+     * <p>Ten times the credential limit: enough slack for an operator to
+     * mistype a password a few times, while still stopping one origin from
+     * sweeping e-mails or filling the tracking maps.
      */
     static final int MAX_ATTEMPTS_PER_NETWORK = 50;
 
     /**
-     * Tentativas por site ({@code /48}) dentro da janela, somando todos os seus
-     * assinantes.
+     * Attempts per site ({@code /48}) within the window, across all of its
+     * subscribers.
      *
-     * <p>O dobro da cota de um assinante: um vizinho abusivo no mesmo
-     * {@code /48} nao trava os demais, e quem controla o bloco inteiro obtem so
-     * o dobro de uma origem comum, nao 65.536 vezes. Para IPv4 site e
-     * assinante coincidem, e vale a cota do assinante.
+     * <p>Twice a subscriber's quota: an abusive neighbour in the same
+     * {@code /48} does not lock out the rest, and whoever controls the whole
+     * block gets only twice a normal origin's allowance, not 65,536 times it.
+     * For IPv4 the site and the subscriber coincide, and the subscriber quota
+     * applies.
      */
     static final int MAX_ATTEMPTS_PER_SITE = 2 * MAX_ATTEMPTS_PER_NETWORK;
 
     static final Duration WINDOW = Duration.ofMinutes(15);
 
     /**
-     * Teto de sites rastreados.
+     * Cap on tracked sites.
      *
-     * <p>Mil blocos {@code /48} ou IPv4 distintos nao sao obtidos por rotacao
-     * de endereco: exigem redes de operadores diferentes.
+     * <p>A thousand distinct {@code /48} blocks or IPv4 addresses cannot be
+     * obtained by rotating addresses: they require networks from different
+     * operators.
      */
     static final int MAX_TRACKED_SITES = 1_000;
 
     /**
-     * Teto de assinantes e de chaves de credencial rastreados.
+     * Cap on tracked subscribers and credential keys.
      *
-     * <p>Dimensionado como {@link #MAX_TRACKED_SITES} x
-     * {@link #MAX_ATTEMPTS_PER_SITE}: cada tentativa cria no maximo uma entrada
-     * em cada mapa, e cada site so dispoe de {@link #MAX_ATTEMPTS_PER_SITE}
-     * tentativas, portanto nenhum destes mapas satura antes do mapa de sites.
-     * E esse dimensionamento que faz a recusa por saturacao ser um estado de
-     * ataque severo, e nao algo alcancavel por uma origem unica.
+     * <p>Sized as {@link #MAX_TRACKED_SITES} × {@link #MAX_ATTEMPTS_PER_SITE}:
+     * each attempt creates at most one entry per map, and each site only has
+     * {@link #MAX_ATTEMPTS_PER_SITE} attempts available, so neither of these
+     * maps saturates before the site map does. That sizing is what makes a
+     * refusal by saturation a sign of a severe distributed attack rather than
+     * something a single origin can reach.
      *
-     * <p>A memoria acompanha o total de tentativas, nao o de chaves: no pior
-     * caso, cem mil instantes por mapa.
+     * <p>Memory tracks the total number of attempts, not of keys: in the worst
+     * case, a hundred thousand instants per map.
      */
     static final int MAX_TRACKED_KEYS = MAX_TRACKED_SITES * MAX_ATTEMPTS_PER_SITE;
 
     /**
-     * Intervalo minimo entre limpezas de entradas expiradas.
+     * Minimum interval between sweeps of expired entries.
      *
-     * <p>Sem ele, acima do limiar cada tentativa varreria o mapa inteiro: sob
-     * ataque isso custa O(n) por requisicao, exatamente quando o servidor esta
-     * mais pressionado. O descarte por teto nao respeita este intervalo, porque
-     * nesse caso o limite de memoria precisa valer de imediato.
+     * <p>Without it, above the threshold every attempt would scan the whole
+     * map: under attack that costs O(n) per request, exactly when the server
+     * is under most pressure. Cap-driven eviction ignores this interval,
+     * because there the memory limit has to apply immediately.
      */
     static final Duration SWEEP_INTERVAL = Duration.ofSeconds(10);
 
@@ -138,18 +137,18 @@ public class LoginAttemptLimiter {
     }
 
     /**
-     * Reserva uma tentativa de login.
+     * Reserves one login attempt.
      *
-     * <p>A tentativa e contabilizada na reserva, e nao apenas quando falha:
-     * cobrar adiantado e o que torna a operacao atomica. Um login bem sucedido
-     * devolve a cota da credencial por meio de {@link #recordSuccess}.
+     * <p>The attempt is charged at reservation time, not only when it fails:
+     * charging up front is what makes the operation atomic. A successful login
+     * returns the credential's quota through {@link #recordSuccess}.
      *
-     * <p>Os limites sao avaliados do mais amplo ao mais estreito: e o mais
-     * amplo que impede uma origem de criar entradas nos seguintes. Uma recusa
-     * num nivel nao devolve o que ja foi cobrado nos anteriores, de proposito:
-     * a tentativa aconteceu e conta para o volume da origem.
+     * <p>The limits are evaluated from widest to narrowest: it is the widest
+     * one that stops an origin from creating entries in the others. A refusal
+     * at one level does not refund what the earlier ones already charged, on
+     * purpose: the attempt happened and counts towards the origin's volume.
      *
-     * @return {@code true} se a tentativa pode prosseguir
+     * @return {@code true} when the attempt may proceed
      */
     public boolean tryAcquire(String email, String clientIp) {
         Instant now = clock.instant();
@@ -161,10 +160,10 @@ public class LoginAttemptLimiter {
         }
 
         if (!bySubscriber.tryAcquire(network.subscriber(), now, cutoff)) {
-            // Estorna o site: um assinante ja bloqueado que continua insistindo
-            // nao pode drenar a cota compartilhada e travar os vizinhos. Trocar
-            // de /64 continua custando ao site, porque cada /64 novo passa por
-            // aqui com cota livre.
+            // Refund the site: an already blocked subscriber that keeps
+            // hammering must not drain the shared quota and lock out the
+            // neighbours. Rotating /64 still costs the site, because each new
+            // /64 arrives here with its quota free.
             bySite.refund(network.site(), now);
             return false;
         }
@@ -173,27 +172,27 @@ public class LoginAttemptLimiter {
     }
 
     /**
-     * Login bem-sucedido devolve a cota daquela credencial.
+     * A successful login returns that credential's quota.
      *
-     * <p>As cotas de rede nao sao devolvidas de proposito: elas medem o volume
-     * de tentativas da origem, e um acerto depois de muitas tentativas e
-     * justamente o padrao que se quer continuar limitando.
+     * <p>The network quotas are deliberately not returned: they measure the
+     * origin's attempt volume, and one success after many attempts is exactly
+     * the pattern worth continuing to limit.
      */
     public void recordSuccess(String email, String clientIp) {
         byCredential.release(key(email, ClientNetwork.of(clientIp)));
     }
 
-    /** Somente para teste. */
+    /** For tests only. */
     int trackedKeys() {
         return byCredential.size();
     }
 
-    /** Somente para teste. */
+    /** For tests only. */
     int trackedSubscribers() {
         return bySubscriber.size();
     }
 
-    /** Somente para teste. */
+    /** For tests only. */
     int trackedSites() {
         return bySite.size();
     }
@@ -203,11 +202,12 @@ public class LoginAttemptLimiter {
     }
 
     /**
-     * Tentativas de uma chave.
+     * The attempts recorded for one key.
      *
-     * <p>Imutavel de proposito: o valor e sempre substituido por inteiro dentro
-     * de {@code compute}, nunca mutado. Isso dispensa trava interna e permite
-     * que a contencao de tamanho leia os valores em paralelo com seguranca.
+     * <p>Immutable on purpose: the value is always replaced wholesale inside
+     * {@code compute}, never mutated. That removes the need for an internal
+     * lock and lets the size containment read values concurrently and
+     * safely.
      */
     private record Attempts(List<Instant> timestamps) {
 
@@ -221,8 +221,8 @@ public class LoginAttemptLimiter {
     }
 
     /**
-     * Um limite independente: mapa de chaves com teto de tentativas e de
-     * tamanho.
+     * One independent limit: a map of keys with a cap on attempts and on
+     * size.
      */
     private static final class Bucket {
 
@@ -247,25 +247,26 @@ public class LoginAttemptLimiter {
 
             boolean[] acquired = {false};
 
-            // compute executa de forma atomica para a chave: a verificacao do
-            // limite e a contabilizacao acontecem sob a mesma trava.
+            // compute runs atomically for the key: the limit check and the
+            // accounting happen under the same lock.
             entries.compute(key, (unusedKey, current) -> {
                 if (current == null && entries.size() >= maxKeys) {
-                    // No teto e sem espaco descartavel, a tentativa e recusada.
+                    // At the cap with nothing evictable, the attempt is
+                    // refused.
                     //
-                    // Permitir tentativa nao rastreada aqui seria bypass: a
-                    // partir da saturacao, o limite deixaria de valer para
-                    // chaves ainda nao vistas.
+                    // Allowing an untracked attempt here would be a bypass:
+                    // from saturation onwards the limit would stop applying to
+                    // keys not yet seen.
                     //
-                    // Recusar tem custo de disponibilidade, e por isso a
-                    // saturacao foi encarecida em vez de tolerada: os tetos sao
-                    // dimensionados para que chegar aqui exija
-                    // MAX_TRACKED_SITES redes distintas, de operadores
-                    // diferentes. Uma origem unica, mesmo com um /48 inteiro a
-                    // disposicao, e barrada muito antes pelo teto do site.
+                    // Refusing costs availability, which is why saturation was
+                    // made expensive rather than tolerated: the caps are sized
+                    // so that reaching this point requires MAX_TRACKED_SITES
+                    // distinct networks from different operators. A single
+                    // origin, even with a whole /48 at its disposal, is stopped
+                    // long before by the site cap.
                     //
-                    // Nesse estado, um limitador em memoria ja nao e a defesa
-                    // adequada: o caminho e filtragem na borda. Ver D20.
+                    // In that state an in-memory limiter is no longer the right
+                    // defence; edge filtering is. See D20.
                     reportSaturation(now);
                     acquired[0] = false;
                     return null;
@@ -277,8 +278,9 @@ public class LoginAttemptLimiter {
 
                 if (within.size() >= maxAttempts) {
                     acquired[0] = false;
-                    // Mantem a janela como esta: tentativa recusada nao estende
-                    // o bloqueio, senao quem insiste nunca sairia da punicao.
+                    // Keep the window as it is: a refused attempt does not
+                    // extend the block, or whoever keeps hammering would never
+                    // serve out the penalty.
                     return new Attempts(List.copyOf(within));
                 }
 
@@ -294,7 +296,7 @@ public class LoginAttemptLimiter {
             entries.remove(key);
         }
 
-        /** Desfaz uma tentativa cobrada em {@code at}, se ainda estiver la. */
+        /** Undoes an attempt charged at {@code at}, if it is still there. */
         void refund(String key, Instant at) {
             entries.computeIfPresent(key, (unusedKey, current) -> {
                 List<Instant> remaining = new ArrayList<>(current.timestamps());
@@ -304,11 +306,12 @@ public class LoginAttemptLimiter {
         }
 
         /**
-         * Registra a saturacao, no maximo uma vez por janela.
+         * Logs saturation, at most once per window.
          *
-         * <p>Saturacao significa ataque distribuido em curso e precisa ser
-         * visivel na operacao: sem registro, o sintoma observado seria apenas
-         * "ninguem consegue entrar", sem causa aparente.
+         * <p>Saturation means a distributed attack is under way and has to be
+         * visible to whoever operates the system: without the log, the observed
+         * symptom would simply be "nobody can log in", with no apparent
+         * cause.
          */
         private void reportSaturation(Instant now) {
             Instant last = lastSaturationLogAt;
@@ -330,13 +333,13 @@ public class LoginAttemptLimiter {
         }
 
         /**
-         * Mantem o mapa dentro do teto.
+         * Keeps the map within its cap.
          *
-         * <p>Remove primeiro o que expirou, que e o caso comum. Se ainda assim
-         * estiver no teto, descarta as entradas mais antigas <b>entre as nao
-         * bloqueadas</b>. Entradas bloqueadas nunca sao descartadas: sem essa
-         * restricao, inundar o limitador apagaria o proprio bloqueio e devolveria
-         * tentativas ao atacante.
+         * <p>Expired entries go first, which is the common case. If it is still
+         * at the cap, the oldest entries <b>among the unblocked ones</b> are
+         * evicted. A blocked entry is never evicted: without that restriction,
+         * flooding the limiter would erase the attacker's own block and hand
+         * their attempts back.
          */
         private void contain(Instant now, Instant cutoff) {
             int currentSize = entries.size();
@@ -347,14 +350,14 @@ public class LoginAttemptLimiter {
 
             boolean overCap = currentSize >= maxKeys;
 
-            // Fora do teto, a varredura e espacada no tempo. No teto ela ocorre
-            // de imediato: o limite de memoria nao pode esperar.
+            // Below the cap the sweep is spaced out over time. At the cap it
+            // runs immediately: the memory limit cannot wait.
             if (!overCap && lastSweepAt != null && lastSweepAt.isAfter(now.minus(SWEEP_INTERVAL))) {
                 return;
             }
 
-            // Uma limpeza por vez: varias threads varrendo o mapa ao mesmo
-            // tempo apenas desperdicariam CPU no pior momento possivel.
+            // One sweep at a time: several threads scanning the map at once
+            // would only waste CPU at the worst possible moment.
             if (!cleaning.compareAndSet(false, true)) {
                 return;
             }
@@ -367,7 +370,7 @@ public class LoginAttemptLimiter {
                     return;
                 }
 
-                // Reduz a 75% do teto para nao repetir o descarte a cada chamada.
+                // Drop to 75% of the cap so eviction does not repeat on every call.
                 int excess = entries.size() - (maxKeys * 3 / 4);
 
                 entries.entrySet().stream()

@@ -41,68 +41,68 @@ import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Configuracao de seguranca (decisao D1, doc 07 §4 e §5).
+ * Security configuration (decision D1, doc 07 §4 and §5).
  *
- * <p>Autenticacao por sessao com cookie {@code HttpOnly}, sem JWT e sem
- * refresh token. O cookie e configurado em {@code application.yml}
+ * <p>Session authentication with an {@code HttpOnly} cookie, no JWT and no
+ * refresh token. The cookie itself is configured in {@code application.yml}
  * ({@code server.servlet.session.cookie}).
  *
- * <p>CSRF fica habilitado. Com autenticacao por cookie, desabilitar CSRF
- * abriria a aplicacao a requisicoes forjadas a partir de outro site, que e
- * exatamente o risco que o token previne. O token vai em um cookie legivel por
- * JavaScript, para que o frontend o reenvie no cabecalho — essa leitura e
- * intencional e nao reduz a protecao, que depende de o atacante nao conseguir
- * ler cookies de outra origem.
+ * <p>CSRF stays enabled. With cookie authentication, disabling CSRF would open
+ * the application to requests forged from another site, which is exactly the
+ * risk the token prevents. The token travels in a cookie readable by
+ * JavaScript so the frontend can echo it in a header — that readability is
+ * intentional and does not weaken the protection, which rests on an attacker
+ * being unable to read cookies from another origin.
  */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
     /**
-     * Codificador delegante: grava com BCrypt prefixando {@code {bcrypt}} e
-     * consegue verificar hashes de outros algoritmos.
+     * A delegating encoder: it writes BCrypt prefixed with {@code {bcrypt}}
+     * and can verify hashes from other algorithms.
      *
-     * <p>O prefixo e o que permitira migrar para Argon2id depois sem invalidar
-     * as senhas existentes (doc 07 §4).
+     * <p>That prefix is what will allow a later migration to Argon2id without
+     * invalidating the existing passwords (doc 07 §4).
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
-    /** Cookie e cabecalho do token CSRF, com nomes proprios do projeto (D22). */
+    /** The CSRF token's cookie and header, under project-specific names (D22). */
     public static final String CSRF_COOKIE_NAME = "JH_XSRF";
     public static final String CSRF_HEADER_NAME = "X-JH-XSRF";
 
     /**
-     * Repositorio do token CSRF.
+     * The CSRF token repository.
      *
-     * <p>O cookie precisa ser legivel por JavaScript, ao contrario do de
-     * sessao: o frontend le o valor e o reenvia no cabecalho
-     * {@value #CSRF_HEADER_NAME}. A protecao continua valendo porque um site
-     * atacante nao consegue ler cookies de outra origem.
+     * <p>This cookie has to be readable by JavaScript, unlike the session one:
+     * the frontend reads the value and echoes it in the
+     * {@value #CSRF_HEADER_NAME} header. The protection still holds because an
+     * attacking site cannot read cookies from another origin.
      */
     @Bean
     public CsrfTokenRepository csrfTokenRepository() {
         CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
 
-        // Sem path "/", o cookie herda o context-path (/api/v1) e o JavaScript
-        // da pagina, servida em /, nao consegue le-lo: o POST sairia sem o
-        // cabecalho e seria recusado com 403 no navegador, ainda que os testes
-        // de API passassem.
+        // Without path "/", the cookie inherits the context path (/api/v1)
+        // and the JavaScript on the page served at / cannot read it: the POST
+        // would go out without the header and be refused with 403 in the
+        // browser, even though every API test passed.
         repository.setCookiePath("/");
 
-        // Nome proprio do projeto, e nao o padrao do Spring, por dois motivos
-        // concretos:
+        // A project-specific name rather than Spring's default, for two
+        // concrete reasons:
         //
-        // 1. Cookie nao e isolado por porta. Todos os servicos em localhost
-        //    compartilham o mesmo conjunto de cookies, portanto um nome
-        //    generico colide com qualquer outro projeto rodando na mesma
-        //    maquina, e o navegador passa a enviar dois cookies de mesmo nome.
-        // 2. O servidor le apenas o primeiro cookie com aquele nome. Havendo
-        //    duplicata — por colisao entre projetos ou por residuo de um path
-        //    anterior — ele compara o cabecalho contra o cookie errado e
-        //    recusa a requisicao com 403, sem mensagem util.
+        // 1. Cookies are not isolated by port. Every service on localhost
+        //    shares one cookie jar, so a generic name collides with any other
+        //    project running on the same machine, and the browser starts
+        //    sending two cookies with the same name.
+        // 2. The server reads only the first cookie with that name. With a
+        //    duplicate — from a collision between projects, or a leftover from
+        //    an earlier path — it compares the header against the wrong cookie
+        //    and refuses the request with 403 and no useful message.
         repository.setCookieName(CSRF_COOKIE_NAME);
         repository.setHeaderName(CSRF_HEADER_NAME);
 
@@ -120,8 +120,8 @@ public class SecurityConfig {
 
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
-        // Mantem a comparacao de hash mesmo quando o usuario nao existe, para
-        // que o tempo de resposta nao revele quais e-mails estao cadastrados.
+        // Keeps the hash comparison even when the user does not exist, so the
+        // response time does not reveal which e-mails are registered.
         provider.setHideUserNotFoundExceptions(true);
 
         return new ProviderManager(provider);
@@ -141,29 +141,31 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(csrfRequestHandler))
-                // Materializa o cookie do token: o Spring Security adia a
-                // geracao do token, de modo que sem este filtro o cookie so
-                // apareceria depois de alguem le-lo, e o frontend nao teria o
-                // que enviar no primeiro POST.
+                // Materialises the token cookie: Spring Security defers token
+                // generation, so without this filter the cookie would only
+                // appear after something read it, and the frontend would have
+                // nothing to send on the first POST.
                 .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
-                // Antes da autorizacao: o papel e a organizacao precisam estar
-                // atualizados quando as regras de acesso forem avaliadas, senao
-                // revogar permissao nao surtiria efeito enquanto a sessao durar.
+                // Before authorisation: the role and the organisation have to
+                // be current when the access rules are evaluated, otherwise
+                // revoking a permission would have no effect for as long as the
+                // session lasts.
                 .addFilterBefore(
                         new MembershipRevalidationFilter(memberRepository, securityContextRepository),
                         AuthorizationFilter.class)
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
-                // A protecao contra fixacao de sessao e feita no proprio
-                // endpoint de login, que troca o id da sessao apos autenticar.
+                // Session fixation protection is handled by the login
+                // endpoint itself, which rotates the session id after
+                // authenticating.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(requests -> requests
-                        // Rotas publicas: apenas o que precisa existir antes do login.
+                        // Public routes: only what has to exist before login.
                         .requestMatchers("/health", "/auth/login", "/openapi/**", "/docs/**", "/swagger-ui/**")
                         .permitAll()
-                        // Abertas a quem ainda precisa trocar a senha temporaria (D28).
+                        // Open to whoever still has to change a temporary password (D28).
                         .requestMatchers("/auth/me", "/auth/logout", "/auth/password").authenticated()
-                        // Todo o resto exige autenticacao (doc 05 §12) e senha definitiva.
+                        // Everything else requires authentication (doc 05 §12) and a permanent password.
                         .anyRequest().access(SecurityConfig::authenticatedWithFinalPassword))
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(unauthorizedEntryPoint(objectMapper))
@@ -182,9 +184,9 @@ public class SecurityConfig {
                                     "You do not have permission to perform this operation",
                                     request.getRequestURI());
                         }))
-                // Sem formLogin nem httpBasic: o login e o endpoint JSON
-                // /auth/login, e uma pagina de login HTML nao faz sentido numa
-                // API consumida por SPA.
+                // No formLogin and no httpBasic: login is the JSON endpoint
+                // /auth/login, and an HTML login page makes no sense in an API
+                // consumed by a single-page application.
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
@@ -196,8 +198,9 @@ public class SecurityConfig {
     }
 
     /**
-     * Autenticado e sem senha temporaria pendente. Anonimo continua recebendo
-     * 401 pelo ponto de entrada, e nao 403: a regra so nega quem ja entrou.
+     * Authenticated, with no temporary password pending. An anonymous caller
+     * still gets 401 from the entry point rather than 403: this rule only
+     * denies someone who is already signed in.
      */
     private static AuthorizationDecision authenticatedWithFinalPassword(
             Supplier<? extends Authentication> authentication, RequestAuthorizationContext context) {
@@ -213,10 +216,10 @@ public class SecurityConfig {
     }
 
     /**
-     * Responde 401 no formato da API quando falta autenticacao.
+     * Answers 401 in the API's error format when authentication is missing.
      *
-     * <p>Sem isso o Spring Security responderia com corpo proprio, e o
-     * frontend veria dois formatos de erro diferentes.
+     * <p>Without this, Spring Security would answer with a body of its own and
+     * the frontend would see two different error shapes.
      */
     private static AuthenticationEntryPoint unauthorizedEntryPoint(
             ObjectMapper objectMapper) {

@@ -53,12 +53,12 @@ import com.jhcomp.prospect.shared.security.AuthenticatedUser;
 import com.jhcomp.prospect.shared.security.OrganizationContext;
 
 /**
- * Mensagens de abordagem: gerar, revisar, aprovar e registrar envio
- * (RF-050 a RF-052, doc 06 §8, D26).
+ * Outreach messages: generate, review, approve and record a send (RF-050 to
+ * RF-052, doc 06 §8, D26).
  *
- * <p>Nenhum caminho daqui envia mensagem: {@code recordSend} registra um
- * envio que o operador ja fez (regras 1 e 5). O bloqueio de contato e
- * conferido ao gerar, ao aprovar e ao registrar envio (regra 4).
+ * <p>No path from here sends a message: {@code recordSend} records a send the
+ * operator has already made (rules 1 and 5). The contact block is checked when
+ * generating, when approving and when recording a send (rule 4).
  */
 @Service
 public class OutreachService {
@@ -68,9 +68,10 @@ public class OutreachService {
     private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(5);
 
     /**
-     * Descricoes fixas dos achados que sao oportunidade de servico. Criterios
-     * de qualificacao interna (segmento, area atendida, cadastro) nao sao
-     * assunto da mensagem e ficam fora do mapa.
+     * Fixed descriptions of the findings that represent a service
+     * opportunity. Internal qualification criteria — segment, area served,
+     * the company record — are not the message's business and stay out of the
+     * map.
      */
     private static final Map<Criterion, String> OPPORTUNITIES = new EnumMap<>(Map.of(
             Criterion.SITE_ABSENT, "a empresa não tem site",
@@ -128,10 +129,10 @@ public class OutreachService {
         this.clock = clock;
     }
 
-    /** Destinatario de um canal e se ele esta bloqueado. {@code recipient} nulo: a empresa nao tem contato valido. */
+    /** A channel's recipient and whether it is blocked. A null {@code recipient} means no valid contact. */
     public record ChannelOption(OutreachChannel channel, String recipient, boolean blocked) {}
 
-    /** O que a tela de composicao mostra antes de gerar (doc 08 §9). */
+    /** What the composer shows before generating (doc 08 §9). */
     public record ComposeContext(
             String senderOrganization,
             String senderName,
@@ -162,12 +163,12 @@ public class OutreachService {
     }
 
     /**
-     * Gera um rascunho (RF-050).
+     * Generates a draft (RF-050).
      *
-     * <p>Sem transacao durante a chamada ao provedor: o contexto e lido numa
-     * transacao curta, a IA responde fora dela e o rascunho e gravado em
-     * outra, depois de conferir de novo o bloqueio, que pode ter mudado
-     * durante a espera.
+     * <p>No transaction is held during the provider call: the context is read
+     * in a short transaction, the AI answers outside it, and the draft is
+     * written in another one after re-checking the block, which may have
+     * changed while waiting.
      */
     public OutreachMessageEntity generate(UUID leadId, OutreachChannel channel) {
         AuthenticatedUser user = organizationContext.requireCurrentUser();
@@ -195,7 +196,7 @@ public class OutreachService {
         }
         MessageDraft.Result parsed = outputParser.parse(channel, response.content());
         if (parsed.draft().isEmpty()) {
-            // So o motivo: o conteudo da resposta nao vai para log (doc 07 §6).
+            // The reason only: the response content never reaches the log (doc 07 §6).
             log.warn("AI output rejected for lead {}: {}", leadId, parsed.violation());
             throw new AIGenerationFailedException();
         }
@@ -216,7 +217,7 @@ public class OutreachService {
                 lead.getOrganizationId(), lead.getId(), pageable);
     }
 
-    /** Edicao do operador, com as mesmas regras da saida da IA (RF-051). */
+    /** The operator's edit, under the same rules as the AI's output (RF-051). */
     @Transactional
     public OutreachMessageEntity edit(UUID messageId, String subject, String body) {
         OutreachMessageEntity message = find(messageId);
@@ -229,8 +230,8 @@ public class OutreachService {
     }
 
     /**
-     * Aprova (RF-051). Rascunho com afirmacoes nao verificadas exige que o
-     * operador confirme ter revisado cada uma.
+     * Approves (RF-051). A draft with unverified claims requires the operator
+     * to confirm having reviewed each one.
      */
     @Transactional
     public OutreachMessageEntity approve(UUID messageId, boolean unverifiedClaimsReviewed) {
@@ -250,10 +251,12 @@ public class OutreachService {
     }
 
     /**
-     * Registra um envio que o operador ja fez fora do sistema (RF-052).
+     * Records a send the operator has already made outside the system
+     * (RF-052).
      *
-     * <p>Envio confirmado vira interacao na timeline. O lead so vai a
-     * {@code CONTACTED} quando o operador pede, nunca por padrao (regra 6).
+     * <p>A confirmed send becomes an interaction in the timeline. The lead
+     * moves to {@code CONTACTED} only when the operator asks, never by default
+     * (rule 6).
      */
     @Transactional
     public OutreachMessageEntity recordSend(
@@ -267,8 +270,9 @@ public class OutreachService {
         if (sentAt.isAfter(now.plus(FUTURE_TOLERANCE))) {
             throw new InvalidRequestException("sentAt must not be in the future");
         }
-        // Minuto da aprovacao, nao o instante: o campo de data da tela nao tem
-        // segundos, e envio registrado no mesmo minuto da aprovacao e legitimo.
+        // The minute of approval, not the instant: the screen's date field has
+        // no seconds, and a send recorded in the same minute as the approval is
+        // legitimate.
         if (sentAt.isBefore(message.getApprovedAt().truncatedTo(ChronoUnit.MINUTES))) {
             throw new InvalidRequestException("sentAt must not be before the approval");
         }
@@ -306,7 +310,7 @@ public class OutreachService {
                 .orElseThrow(() -> new ResourceNotFoundException("Message"));
     }
 
-    /** Bloqueio primeiro: dizer que falta o contato de quem pediu para nao ser contatado e irrelevante. */
+    /** The block comes first: saying a contact is missing for someone who asked not to be contacted is beside the point. */
     private void requireApproachable(LeadEntity lead, OutreachChannel channel) {
         if (suppressionService.isBlocked(lead, channel)) {
             throw new ConflictException("Contact is blocked by a do-not-contact request");

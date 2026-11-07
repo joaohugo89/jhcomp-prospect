@@ -7,27 +7,27 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Redes de origem de um endereco, em dois niveis, para fins de limite de
- * tentativas (D20).
+ * The origin networks of an address, at two levels, for rate limiting (D20).
  *
- * <p>Limitar por endereco exato nao funciona com IPv6: um assinante recebe um
- * bloco {@code /64} inteiro e troca de endereco dentro dele sem custo. Por
- * isso o IPv6 e agrupado em dois niveis:
+ * <p>Limiting by exact address does not work with IPv6: a subscriber receives
+ * a whole {@code /64} block and can change address inside it at no cost. IPv6
+ * is therefore grouped at two levels:
  *
  * <ul>
- *   <li>{@code subscriber}: o {@code /64}, que corresponde a um assinante. Leva
- *       a cota normal, de modo que um assinante abusivo nao atinge os
- *       vizinhos.
- *   <li>{@code site}: o {@code /48}, alocacao tipica de um site. Quem tem um
- *       {@code /48} dispoe de 65.536 blocos {@code /64}; o teto agregado impede
- *       que ele multiplique cotas e entradas de rastreamento trocando de bloco.
+ *   <li>{@code subscriber}: the {@code /64}, which corresponds to one
+ *       subscriber. It carries the normal quota, so an abusive subscriber does
+ *       not hit the neighbours.
+ *   <li>{@code site}: the {@code /48}, a typical site allocation. Whoever
+ *       holds a {@code /48} has 65,536 {@code /64} blocks available; the
+ *       aggregate ceiling stops them multiplying quotas and tracking entries
+ *       by rotating blocks.
  * </ul>
  *
- * <p>O IPv4 e exato nos dois niveis: blocos IPv4 sao escassos e agrupar por
- * {@code /24} atingiria usuarios legitimos sem relacao com o atacante.
+ * <p>IPv4 is exact at both levels: IPv4 blocks are scarce, and grouping by
+ * {@code /24} would hit legitimate users with no relation to the attacker.
  *
- * @param subscriber chave do assinante: IPv4 exato ou prefixo {@code /64}
- * @param site chave do site: IPv4 exato ou prefixo {@code /48}
+ * @param subscriber the subscriber key: an exact IPv4 or a {@code /64} prefix
+ * @param site the site key: an exact IPv4 or a {@code /48} prefix
  */
 public record ClientNetwork(String subscriber, String site) {
 
@@ -37,11 +37,11 @@ public record ClientNetwork(String subscriber, String site) {
     private static final Pattern IPV4_LITERAL = Pattern.compile("^\\d{1,3}(\\.\\d{1,3}){3}$");
 
     /**
-     * Redes do endereco informado.
+     * The networks of the address given.
      *
-     * <p>Nunca resolve nome: so interpreta literais de IP. Um valor que nao seja
-     * literal e usado como veio nos dois niveis, para que uma entrada
-     * desconhecida continue sendo contabilizada em vez de escapar do limite.
+     * <p>It never resolves a name: it only interprets IP literals. A value
+     * that is not a literal is used as it came at both levels, so an unknown
+     * entry is still counted rather than escaping the limit.
      */
     public static ClientNetwork of(String clientIp) {
         if (clientIp == null || clientIp.isBlank()) {
@@ -50,15 +50,15 @@ public record ClientNetwork(String subscriber, String site) {
 
         String address = clientIp.strip().toLowerCase(Locale.ROOT);
 
-        // Forma IPv4 mapeada em IPv6, comum em servidores com dual stack.
+        // The IPv4-mapped IPv6 form, common on dual-stack servers.
         if (address.startsWith("::ffff:") && IPV4_LITERAL.matcher(address.substring(7)).matches()) {
             return exact(address.substring(7));
         }
 
         if (IPV4_LITERAL.matcher(address).matches() || address.indexOf(':') < 0) {
-            // IPv4, ou valor que nao e literal de IP. Nao se tenta resolver:
-            // resolucao de nome numa rota publica permitiria induzir consultas
-            // DNS externas.
+            // IPv4, or a value that is not an IP literal. No resolution is
+            // attempted: resolving a name on a public route would allow
+            // external DNS lookups to be induced.
             return exact(address);
         }
 
@@ -72,7 +72,7 @@ public record ClientNetwork(String subscriber, String site) {
     private static ClientNetwork ipv6(String address) {
         byte[] bytes;
         try {
-            // Literal IPv6: getByName nao faz consulta de nome neste caso.
+            // An IPv6 literal: getByName performs no name lookup in this case.
             bytes = InetAddress.getByName(address).getAddress();
         } catch (UnknownHostException exception) {
             return exact(address);
