@@ -1,150 +1,170 @@
-# 01 — Visão do produto
+# 01 — Product overview
 
-## 1. Identificação
+## 1. Identification
 
-- **Nome:** JH.COMP Prospect
-- **Responsável inicial:** JH.COMP
-- **Mercado inicial:** pequenos negócios e prestadores de serviços em Poços de Caldas e região, Minas Gerais.
-- **Modelo inicial:** ferramenta interna.
-- **Visão futura:** produto SaaS multi-organização.
+- **Name:** JH.COMP Prospect
+- **Owner:** JH.COMP
+- **Initial market:** small businesses and service providers in Poços de
+  Caldas and the surrounding region, Minas Gerais, Brazil.
+- **Model:** internal tool.
+- **Possible future:** multi-organisation SaaS. The data model is already
+  isolated per organisation, which keeps that option open without committing
+  to it.
 
-## 2. Problema
+## 2. Problem
 
-A JH.COMP está em fase inicial e precisa construir um fluxo comercial previsível. A prospecção feita de maneira dispersa dificulta identificar empresas adequadas, registrar informações, priorizar oportunidades, personalizar abordagens e aprender quais serviços têm maior procura.
+JH.COMP is an early-stage company and needs a predictable commercial process.
+Prospecting done ad hoc makes it hard to identify suitable companies, record
+what was found, prioritise opportunities, personalise outreach and learn which
+services are actually in demand.
 
-O produto centraliza esse processo e reduz tarefas repetitivas sem substituir o julgamento humano na comunicação comercial.
+This product centralises that process and removes repetitive work **without**
+replacing human judgement in commercial communication.
 
-## 3. Proposta de valor
+## 3. Value proposition
 
-Transformar informações comerciais legítimas e verificáveis em oportunidades organizadas para serviços como:
+Turn legitimate, verifiable business information into organised opportunities
+for services such as:
 
-- Sites institucionais e landing pages.
-- Catálogos e lojas virtuais.
-- Sistemas e automações.
-- Integrações com WhatsApp.
-- Suporte e manutenção de computadores, quando pertinente.
+- institutional websites and landing pages;
+- catalogues and online stores;
+- systems and automation;
+- WhatsApp integrations;
+- computer support and maintenance, where relevant.
 
-O produto não deve presumir que uma empresa precisa de um serviço apenas porque uma informação não foi encontrada. Toda oportunidade precisa ter evidência, nível de confiança e possibilidade de revisão.
+The product must never assume a company needs a service merely because some
+piece of information was not found. Every opportunity carries evidence, a
+confidence level and the possibility of review.
 
-## 4. Objetivos
+## 4. Objectives
 
-### Objetivos do MVP
+### MVP objectives
 
-1. Centralizar empresas e leads.
-2. Permitir cadastro manual e importação CSV.
-3. Apoiar pesquisa por região e segmento usando fontes permitidas.
-4. Evitar registros duplicados.
-5. Registrar a origem e a data de coleta das informações.
-6. Identificar oportunidades digitais com evidências.
-7. Priorizar leads por pontuação explicável.
-8. Gerenciar o processo comercial em pipeline.
-9. Gerar mensagens personalizadas para revisão humana.
-10. Registrar contatos, respostas e solicitações de não contato.
-11. Criar uma prévia básica de site a partir de templates controlados.
+1. Centralise companies and leads.
+2. Support manual entry and CSV import.
+3. Support search by region and segment using permitted sources.
+4. Prevent duplicate records.
+5. Record the origin and collection date of every piece of information.
+6. Identify digital opportunities backed by evidence.
+7. Prioritise leads with an explainable score.
+8. Manage the commercial process in a pipeline.
+9. Draft personalised messages for human review.
+10. Record contacts, replies and do-not-contact requests.
 
-### Objetivos futuros
+> Objective 11 of the original plan — "produce a basic website preview from
+> controlled templates" — was removed from the MVP by decision D13. The
+> Website Studio is not implemented and has no entities, endpoints or screens.
 
-- Mais conectores de dados.
-- Website Studio com personalização mais completa.
-- Publicação assistida de projetos contratados.
-- Integrações oficiais com canais de comunicação.
-- Gestão de equipes e permissões avançadas.
-- Planos, cobrança e operação SaaS.
+### Later objectives
 
-## 5. Não objetivos
+- More data connectors.
+- Assisted publication of contracted projects.
+- Official integrations with communication channels.
+- Team management and finer-grained permissions.
+- Plans, billing and SaaS operation.
 
-O JH.COMP Prospect não é, no MVP:
+## 5. Non-objectives
 
-- Uma ferramenta de disparo em massa.
-- Um sistema para coletar dados por scraping não autorizado.
-- Uma plataforma de enriquecimento indiscriminado de dados pessoais.
-- Um substituto de CRM corporativo completo.
-- Um construtor de sites que publica automaticamente em nome de terceiros.
-- Um sistema que toma decisões comerciais sem supervisão.
+Within the MVP, JH.COMP Prospect is **not**:
 
-## 6. Usuários e papéis
+- a mass-sending tool;
+- a system for collecting data by unauthorised scraping;
+- a platform for indiscriminate enrichment of personal data;
+- a replacement for a full corporate CRM;
+- a site builder that publishes automatically on behalf of third parties;
+- a system that makes commercial decisions without supervision.
 
-### Administrador da organização
+## 6. Users and roles
 
-- Gerencia membros e configurações.
-- Acessa os dados da organização.
-- Gerencia integrações e parâmetros.
-- Consulta auditoria.
+### Organisation administrator
 
-### Operador comercial
+- Manages members and settings.
+- Accesses the organisation's data.
+- Manages integrations and parameters.
+- Reads the audit trail.
 
-- Pesquisa e cadastra empresas.
-- Qualifica leads.
-- Gerencia pipeline e tarefas.
-- Prepara mensagens e registra interações.
+### Sales operator
 
-No MVP, a JH.COMP pode começar com um único usuário administrador. O modelo de autorização deve, ainda assim, ser compatível com múltiplos membros por organização.
+- Researches and registers companies.
+- Qualifies leads.
+- Manages the pipeline and tasks.
+- Prepares messages and records interactions.
 
-## 7. Segmentos iniciais
+JH.COMP can start with a single administrator. The authorisation model is
+nevertheless built for several members per organisation, because retrofitting
+tenancy later is far more expensive than carrying it from the start.
 
-Segmentos candidatos, sujeitos a validação por pesquisa e conversas reais:
+## 7. Initial segments
 
-- Barbearias e salões.
-- Restaurantes e lanchonetes.
-- Clínicas e pet shops.
-- Oficinas e serviços automotivos.
-- Prestadores de serviços.
-- Pequenos comércios.
+Candidate segments, subject to validation by research and real conversations:
 
-A escolha de segmentos deve ser orientada por sinais observáveis, capacidade de atendimento e retorno das abordagens, não por suposições sobre cada setor.
+- barbershops and salons;
+- restaurants and snack bars;
+- clinics and pet shops;
+- garages and automotive services;
+- service providers;
+- small retailers.
 
-## 8. Jornada principal
+Segment choice must follow observable signals, capacity to deliver and the
+response to outreach — not assumptions about an industry.
 
-1. Operador escolhe cidade e segmento.
-2. Registra empresas manualmente, importa CSV ou consulta uma fonte autorizada.
-3. Sistema normaliza e tenta deduplicar os registros.
-4. Operador revisa dados e origem.
-5. Sistema ou operador inicia uma análise digital.
-6. Análise registra achados, evidências, confiança e data.
-7. Sistema calcula score explicável.
-8. Operador decide se o lead é adequado.
-9. Sistema prepara uma mensagem contextualizada.
-10. Operador revisa e envia fora do sistema ou por integração oficial habilitada.
-11. Interação e resultado são registrados.
-12. O lead avança no pipeline.
-13. Se houver interesse, é criada proposta e/ou projeto de site.
+## 8. Main journey
 
-## 9. Métricas
+1. The operator picks a city and a segment.
+2. Companies are registered by hand, imported from CSV, or fetched from an
+   authorised source.
+3. The system normalises the records and looks for duplicates.
+4. The operator reviews the data and its origin.
+5. The system or the operator starts a digital presence analysis.
+6. The analysis records findings, evidence, confidence and date.
+7. The system computes an explainable score.
+8. The operator decides whether the lead is a fit.
+9. The system drafts a contextual message.
+10. The operator reviews it and sends it outside the system, or through an
+    official integration once one exists.
+11. The interaction and its outcome are recorded.
+12. The lead advances in the pipeline.
+13. If there is interest, a proposal follows.
 
-### Operacionais
+## 9. Metrics
 
-- Empresas adicionadas por período.
-- Percentual de registros duplicados.
-- Percentual de leads com dados suficientes.
-- Tempo médio de análise.
-- Custo médio de análise por lead.
-- Percentual de achados com evidência.
+### Operational
 
-### Comerciais
+- Companies added per period.
+- Share of duplicate records.
+- Share of leads with sufficient data.
+- Average analysis time.
+- Average analysis cost per lead.
+- Share of findings backed by evidence.
 
-- Leads qualificados.
-- Abordagens aprovadas e realizadas.
-- Respostas recebidas.
-- Conversas comerciais iniciadas.
-- Propostas enviadas.
-- Negócios ganhos e perdidos.
-- Receita associada a negócios ganhos.
-- Conversão por segmento e origem.
+### Commercial
 
-As métricas não devem incentivar volume indiscriminado de contatos. Qualidade, relevância e respeito às preferências dos destinatários são requisitos do processo.
+- Qualified leads.
+- Approved and performed outreach.
+- Replies received.
+- Commercial conversations started.
+- Proposals sent.
+- Deals won and lost.
+- Revenue attributed to won deals.
+- Conversion by segment and by origin.
 
-## 10. Critérios de sucesso do MVP
+Metrics must not reward indiscriminate contact volume. Quality, relevance and
+respect for the recipient's preferences are requirements of the process, not
+trade-offs against it.
 
-O MVP será considerado útil quando um operador conseguir, em um único fluxo:
+## 10. MVP success criteria
 
-- Importar ou cadastrar empresas.
-- Encontrar e revisar duplicatas.
-- Consultar origem e atualidade dos dados.
-- Registrar uma análise com evidências.
-- Priorizar um lead.
-- Mover o lead no pipeline.
-- Gerar e revisar uma mensagem.
-- Registrar uma interação ou não contato.
-- Criar uma prévia básica de site.
+The MVP counts as useful when an operator can, in a single flow:
 
-Uma meta inicial de operação pode ser testar o fluxo com cerca de 30 empresas reais da região, obtidas de fontes permitidas. Essa quantidade é uma meta de validação, não uma promessa de conversão.
+- import or register companies;
+- find and review duplicates;
+- check the origin and freshness of the data;
+- record an analysis with evidence;
+- prioritise a lead;
+- move the lead through the pipeline;
+- generate and review a message;
+- record an interaction or a do-not-contact request.
+
+The first operational goal is to run that flow with roughly 30 real companies
+from the region, obtained from permitted sources. That number is a validation
+target, not a conversion promise.

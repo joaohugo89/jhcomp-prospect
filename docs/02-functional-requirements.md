@@ -1,164 +1,296 @@
-# 02 — Requisitos funcionais
+# 02 — Functional requirements
 
-## 1. Convenções
+## 1. Conventions
 
-Prioridades:
-- **P0:** indispensável para o MVP.
-- **P1:** importante, pode entrar após o fluxo principal.
-- **P2:** evolução futura.
+Priorities:
 
-Cada requisito deve ser implementado com validação de entrada, autorização e testes relevantes.
+- **P0:** indispensable for the MVP.
+- **P1:** important, may land after the main flow.
+- **P2:** future evolution.
 
-## 2. Identidade e organização
+Every requirement is implemented with input validation, authorisation and
+relevant tests. A requirement is not done until a negative cross-organisation
+test exists for the entity or endpoint it introduces.
 
-### RF-001 — Autenticação (P0)
-O sistema deve permitir autenticação de usuários por credenciais.
-**Aceite:** credenciais válidas permitem acesso; inválidas são rejeitadas sem revelar se o e-mail existe.
+Each requirement below carries its implementation status: **implemented**,
+**partial** or **not implemented**, so the document describes the system as it
+is rather than as it was planned.
 
-### RF-002 — Organização (P0)
-Cada usuário autenticado deve operar dentro de uma organização ativa.
-**Aceite:** a organização é resolvida no contexto de segurança do backend; o cliente não pode selecionar arbitrariamente outra organização.
+## 2. Identity and organisation
 
-### RF-003 — Membros e papéis (P1)
-O sistema deve suportar membros com papéis administrativos e operacionais.
-**Aceite:** operações administrativas são bloqueadas para operadores sem permissão.
+### RF-001 — Authentication (P0) — implemented
 
-## 3. Empresas e leads
+Users authenticate with credentials.
 
-### RF-010 — Cadastro de empresa (P0)
-Permitir criar, consultar, atualizar e arquivar empresas.
-Campos iniciais: nome, nome comercial, segmento, cidade, estado, site, redes sociais, telefone comercial, endereço comercial quando necessário e observações.
-**Aceite:** campos obrigatórios são validados e os dados ficam associados à organização.
+**Acceptance:** valid credentials grant access; invalid ones are rejected
+without revealing whether the e-mail exists.
 
-### RF-011 — Cadastro de lead (P0)
-Permitir criar uma oportunidade comercial associada a uma empresa.
-**Aceite:** um lead deve possuir status, origem e data de criação.
+Session cookie, no JWT and no refresh token (D1). The password comparison runs
+even when the user does not exist, so response time does not disclose which
+addresses are registered.
 
-### RF-012 — Listagem e filtros (P0)
-Permitir pesquisar e filtrar por nome, segmento, cidade, status, prioridade, score e origem.
-**Aceite:** listagem paginada, ordenação permitida e filtros combináveis.
+### RF-002 — Organisation (P0) — implemented
 
-### RF-013 — Histórico (P0)
-Exibir alterações e interações relevantes associadas ao lead.
-**Aceite:** o histórico é cronológico e não pode ser alterado por usuários sem permissão.
+Every authenticated user operates inside one active organisation.
 
-### RF-014 — Deduplicação (P0)
-Detectar possíveis empresas duplicadas usando identificadores disponíveis.
-**Aceite:** o sistema sugere correspondências e permite revisão antes de mesclar; não descarta registros silenciosamente.
+**Acceptance:** the organisation is resolved from the backend security context;
+the client cannot select another organisation. Membership is revalidated
+against the database on every authenticated request (D21), so revoking access,
+disabling a user, suspending an organisation or changing a role takes effect on
+the next request rather than when the session expires.
 
-### RF-015 — Importação CSV (P0)
-Permitir importar CSV com mapeamento de colunas, validação e relatório.
-**Aceite:** mostrar total lido, importado, rejeitado e possível duplicidade; erros por linha devem ser consultáveis.
+### RF-003 — Members and roles (P1) — implemented
 
-## 4. Descoberta e fontes
+Members hold administrative or operational roles.
 
-### RF-020 — Pesquisa manual (P0)
-Permitir registrar empresas encontradas pelo operador.
-**Aceite:** origem, URL ou referência da fonte, data de coleta e responsável são registrados quando disponíveis.
+**Acceptance:** administrative operations are refused for operators. The admin
+registers a member and receives a temporary password once; until it is changed
+the session can only reach `/auth/me`, `/auth/logout` and `/auth/password`
+(D28). Changing or resetting a password ends that user's other sessions. Nobody
+can change their own membership.
 
-### RF-021 — Pesquisa por fonte integrada (P1)
-Permitir executar pesquisas em uma fonte externa cuja API e termos tenham sido avaliados.
-**Aceite:** integração isolada por adaptador; falhas e limites do fornecedor são apresentados claramente.
+## 3. Companies and leads
 
-### RF-022 — Proveniência (P0)
-Cada dado importado ou enriquecido deve registrar sua origem e momento de coleta.
-**Aceite:** o usuário consegue identificar de onde veio um dado e quando foi atualizado.
+### RF-010 — Company record (P0) — implemented
 
-### RF-023 — Atualização de dados (P1)
-Permitir atualizar dados por nova consulta ou revisão manual.
-**Aceite:** preservar histórico mínimo de alterações relevantes e não sobrescrever silenciosamente informação confirmada por outra fonte.
+Create, read, update and archive companies. Fields: name, trade name, segment,
+city, state, website, social profiles, business phone, business address where
+relevant, and notes.
 
-## 5. Análise e qualificação
+**Acceptance:** required fields are validated and the data belongs to the
+organisation.
 
-### RF-030 — Solicitar análise (P0)
-Permitir solicitar análise de presença digital de uma empresa.
-**Aceite:** análise possui status (pendente, em processamento, concluída ou falha) e data.
+A company is deleted only when it has no commercial activity — at most the
+`NEW` lead opened with it — by whoever registered it, within 7 days, or by an
+admin; otherwise it is archived (D32).
 
-### RF-031 — Achados com evidência (P0)
-Cada achado deve conter descrição, estado de verificação, evidência/referência, confiança e data.
-**Aceite:** achados não verificados não podem ser exibidos como fatos confirmados.
+### RF-011 — Lead record (P0) — implemented
 
-### RF-032 — Score explicável (P0)
-Calcular score determinístico de 0 a 100 com base em critérios configurados.
-**Aceite:** exibir critérios e pontos atribuídos; ausência de informação não equivale automaticamente a uma deficiência.
+Create a commercial opportunity attached to a company.
 
-### RF-033 — Revisão humana (P0)
-Permitir corrigir, confirmar ou rejeitar achados.
-**Aceite:** revisão registra usuário e data.
+**Acceptance:** a lead has a status, an origin and a creation date.
+`Lead.status` is the single source of commercial state (D2).
+
+### RF-012 — Listing and filters (P0) — implemented
+
+Search and filter by name, segment, city, status, priority, score and origin.
+
+**Acceptance:** paginated listing, permitted sort orders, combinable filters.
+The lead list is a work queue (`/leads/worklist`), with bulk changes limited to
+owner and priority, and private or shared saved views — only an admin publishes
+or deletes a shared one (D31).
+
+### RF-013 — History (P0) — implemented
+
+Show relevant changes and interactions for a lead.
+
+**Acceptance:** the history is chronological and cannot be altered by users
+without permission.
+
+### RF-014 — Deduplication (P0) — implemented
+
+Detect possible duplicate companies from the available identifiers.
+
+**Acceptance:** the system proposes matches and allows review before merging;
+it never discards records silently. Merging moves leads and sources, archives
+the origin, and refuses with `409` when both sides have an open lead (D32).
+
+### RF-015 — CSV import (P0) — implemented
+
+Import a CSV with column mapping, validation and a report.
+
+**Acceptance:** show rows read, imported, rejected and possibly duplicate;
+per-row errors are inspectable.
+
+Two phases (D23): analysing creates nothing; confirming imports the valid rows
+and the chosen duplicates, and fills only the **empty** fields of an existing
+company. Limits: 2 MB and 2,000 rows (D14).
+
+## 4. Discovery and sources
+
+### RF-020 — Manual research (P0) — implemented
+
+Register companies found by the operator.
+
+**Acceptance:** origin, source URL or reference, collection date and
+responsible user are recorded when available.
+
+### RF-021 — Integrated source search (P1) — not implemented
+
+Run searches against an external source whose API and terms have been
+assessed.
+
+**Acceptance:** the integration is isolated behind an adapter; provider
+failures and rate limits are surfaced clearly.
+
+No provider has been selected, so no adapter exists. Leads currently enter by
+CSV or by hand. The `BusinessSource` port is specified in document 03 and is
+the intended seam.
+
+### RF-022 — Provenance (P0) — implemented
+
+Every imported or enriched value records where it came from and when.
+
+**Acceptance:** the user can tell the origin of a value and when it was last
+updated.
+
+### RF-023 — Data refresh (P1) — partial
+
+Update data from a new query or a manual review.
+
+**Acceptance:** keep a minimal history of relevant changes and never silently
+overwrite information confirmed by another source.
+
+Manual review is implemented; scheduled refresh depends on RF-021.
+
+## 5. Analysis and qualification
+
+### RF-030 — Request an analysis (P0) — implemented
+
+Request a digital presence analysis for a company.
+
+**Acceptance:** the analysis has a status (pending, running, completed, failed)
+and a date. It runs as a background job (D15) and the lead takes the score of
+the most recently completed analysis (D3).
+
+### RF-031 — Findings with evidence (P0) — implemented
+
+Each finding carries a description, verification state, evidence or reference,
+confidence and date.
+
+**Acceptance:** unverified findings are never presented as confirmed facts.
+
+### RF-032 — Explainable score (P0) — implemented
+
+A deterministic score from 0 to 100 over configured criteria.
+
+**Acceptance:** criteria and the points awarded are shown; missing information
+is never automatically a deficiency.
+
+A criterion scores only when `CONFIRMED`, and the absence of a website is never
+confirmed automatically — only by human review (D24). Website checks go through
+`SafeHttpFetcher` alone, with SSRF protection, timeouts, size limits and
+robots.txt.
+
+### RF-033 — Human review (P0) — implemented
+
+Correct, confirm or reject findings.
+
+**Acceptance:** the review records the user and the date.
 
 ## 6. CRM
 
-### RF-040 — Pipeline (P0)
-Exibir leads em quadro Kanban.
-**Aceite:** mover lead entre etapas respeitando transições válidas e permissões.
+### RF-040 — Pipeline (P0) — implemented
 
-### RF-041 — Interações (P0)
-Registrar contato, resposta, reunião, proposta, pedido de não contato e outras interações.
-**Aceite:** cada interação registra canal, data, resultado e observações pertinentes.
+Show leads on a Kanban board.
 
-### RF-042 — Tarefas (P1)
-Criar tarefas vinculadas a leads.
-**Aceite:** tarefa possui título, prazo, status e responsável opcional.
+**Acceptance:** moving a lead between stages respects valid transitions and
+permissions. Columns are `PipelineStage` rows whose `stage_key` maps one-to-one
+to `Lead.status`; moving a card is `PATCH /leads/{leadId}/status` (D2).
 
-### RF-043 — Ganho/perdido (P0)
-Permitir encerrar oportunidade como ganha ou perdida.
-**Aceite:** negócio perdido pode registrar motivo; negócio ganho pode registrar valor e serviço contratado, se conhecidos.
+### RF-041 — Interactions (P0) — implemented
+
+Record contacts, replies, meetings, proposals, do-not-contact requests and
+other interactions.
+
+**Acceptance:** each interaction records channel, date, outcome and notes.
+
+### RF-042 — Tasks (P1) — implemented
+
+Create tasks attached to leads.
+
+**Acceptance:** a task has a title, a due date, a status and an optional owner.
+
+### RF-043 — Won / lost (P0) — implemented
+
+Close an opportunity as won or lost.
+
+**Acceptance:** a lost deal may record a reason; a won deal may record the
+value and the contracted service. `Deal` holds only value, service, outcome and
+loss reason — the state itself lives in `Lead.status` (D2).
 
 ## 7. Outreach
 
-### RF-050 — Gerar mensagem (P0)
-Gerar rascunho contextualizado usando dados e achados aprovados.
-**Aceite:** mensagem é salva como rascunho; IA não pode enviar diretamente.
+### RF-050 — Generate a message (P0) — implemented
 
-### RF-051 — Revisar mensagem (P0)
-Permitir editar, aprovar ou descartar rascunho.
-**Aceite:** somente mensagem aprovada pode ser marcada como pronta para uso externo.
+Draft a contextual message from the data and the approved findings.
 
-### RF-052 — Registrar envio (P0)
-Permitir registrar envio realizado manualmente ou por integração habilitada.
-**Aceite:** registrar canal, data, responsável e resultado; não afirmar envio se ele não foi confirmado.
+**Acceptance:** the message is saved as a draft; the AI cannot send anything.
 
-### RF-053 — Não contato (P0)
-Permitir registrar pedido de não contato e bloquear novas abordagens comerciais não permitidas.
-**Aceite:** o bloqueio é aplicado antes da geração/aprovação/envio de novas mensagens.
+The AI returns text only (`AIProvider.generateMessage`, with no write tool —
+there is a structural test for it). Generation is synchronous and holds no
+transaction open during the call, and the output is validated before it becomes
+a draft (D26).
 
-### RF-054 — Integração de canal (P2)
-Integrar canais por APIs oficiais e autorizadas.
-**Aceite:** respeitar requisitos do fornecedor, políticas de canal e controles de privacidade.
+### RF-051 — Review a message (P0) — implemented
 
-## 8. Website Studio
+Edit, approve or discard a draft.
 
-### RF-060 — Templates (P1)
-Listar templates disponíveis por segmento.
-**Aceite:** cada template possui identificador, versão, descrição e campos configuráveis.
+**Acceptance:** only an approved message can be marked ready for external use.
+Approved is not sent.
 
-### RF-061 — Criar prévia (P1)
-Criar uma prévia baseada em template e dados aprovados.
-**Aceite:** prévia é identificada como demonstração e não é publicada como site oficial sem autorização.
+### RF-052 — Record a send (P0) — implemented
 
-### RF-062 — Projeto contratado (P2)
-Criar projeto de website após contratação.
-**Aceite:** projeto registra escopo, template, requisitos, revisões e status.
+Record a send performed manually or through an enabled integration.
+
+**Acceptance:** record channel, date, responsible user and outcome; never claim
+a send that was not confirmed. Opening a messaging app is not a send, and a
+lead never moves to `CONTACTED` automatically.
+
+### RF-053 — Do not contact (P0) — implemented
+
+Record a do-not-contact request and block further commercial outreach.
+
+**Acceptance:** the block is checked before generating, approving and recording
+a message, by normalised identifier, and stays valid even if the lead is
+reclassified. An import never clears a block. There is no removal in the MVP
+(D26).
+
+### RF-054 — Channel integration (P2) — not implemented
+
+Integrate channels through official, authorised APIs.
+
+**Acceptance:** respect provider requirements, channel policies and privacy
+controls.
+
+## 8. Website Studio — removed from scope
+
+Requirements RF-060, RF-061 and RF-062 (templates, preview, contracted
+project) were **removed from the MVP by decision D13**. No `WebsiteTemplate`,
+`WebsiteProject` or `WebsiteDeployment` entity exists, and none is to be
+created. The section is kept as a numbered placeholder so the requirement
+identifiers in the rest of the documentation keep their meaning.
 
 ## 9. Dashboard
 
-### RF-070 — Resumo (P0)
-Exibir contagens de leads por etapa, atividades recentes e negócios.
-**Aceite:** indicadores respeitam o escopo da organização e filtros de período.
+### RF-070 — Summary (P0) — implemented
 
-### RF-071 — Conversão (P1)
-Exibir taxas por origem e segmento quando houver amostra suficiente.
-**Aceite:** denominadores e período são claros; não apresentar percentuais enganosos com poucos dados.
+Show lead counts per stage, recent activity and deals.
 
-## 10. Requisitos não funcionais relacionados
+**Acceptance:** indicators respect the organisation scope and the period
+filter. A company's origin is its first provenance record (D29). Attention
+signals are uniform across the board, the list and the dashboard: idle for 7
+days, proposal with no contact for 7, no interaction for 14; a lead in
+`DO_NOT_CONTACT` never appears (D30).
 
-- **RNF-001:** todas as operações comerciais devem respeitar isolamento por organização.
-- **RNF-002:** listagens devem ser paginadas.
-- **RNF-003:** erros devem possuir formato consistente e não expor stack traces.
-- **RNF-004:** operações externas demoradas devem ser assíncronas.
-- **RNF-005:** integrações externas devem ter timeout e tratamento de falhas.
-- **RNF-006:** segredos não podem ser armazenados no código-fonte.
-- **RNF-007:** logs devem evitar conteúdo pessoal e credenciais.
-- **RNF-008:** ações críticas devem gerar trilha de auditoria.
-- **RNF-009:** datas devem ser persistidas de forma consistente (preferencialmente UTC) e exibidas no fuso configurado.
-- **RNF-010:** o frontend deve ser responsivo e acessível por teclado nas operações principais.
+### RF-071 — Conversion (P1) — implemented
+
+Show rates by origin and segment when the sample is large enough.
+
+**Acceptance:** denominators and period are explicit; no misleading percentages
+on thin data. The minimum sample is 10 (D29).
+
+## 10. Related non-functional requirements
+
+- **RNF-001:** every commercial operation respects organisation isolation.
+- **RNF-002:** listings are paginated.
+- **RNF-003:** errors share one format and never expose stack traces.
+- **RNF-004:** slow external operations run asynchronously.
+- **RNF-005:** external integrations have timeouts and failure handling.
+- **RNF-006:** secrets are never stored in source code.
+- **RNF-007:** logs avoid personal content and credentials.
+- **RNF-008:** critical actions produce an audit trail.
+- **RNF-009:** timestamps are persisted in UTC and displayed in the configured
+  time zone; money is `NUMERIC`, never floating point.
+- **RNF-010:** the frontend is responsive and keyboard-accessible for the main
+  operations.

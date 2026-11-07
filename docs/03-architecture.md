@@ -1,111 +1,96 @@
-# 03 — Arquitetura técnica
+# 03 — Technical architecture
 
-## 1. Decisão arquitetural
+## 1. Architectural decision
 
-Adotar **monólito modular** com separação por domínio e camadas. Não iniciar com microserviços.
+A **modular monolith**, split by domain and by layer. Not microservices.
 
-Motivos:
-- Menor custo operacional.
-- Deploy e depuração mais simples.
-- Transações consistentes no banco relacional.
-- Fronteiras de domínio explícitas.
-- Possibilidade de extrair serviços no futuro se houver necessidade comprovada.
+Reasons:
 
-## 2. Stack proposta
+- lower operational cost for a one-person team;
+- simpler deployment and debugging;
+- consistent transactions in a relational database;
+- explicit domain boundaries;
+- the option to extract a service later, if a need is ever demonstrated.
+
+## 2. Stack
+
+Versions are pinned in `pom.xml`, the lockfile and the Docker images, never as
+floating tags. The current set was checked against the registries on
+2026-11-04: Java 21 · Spring Boot 4.1.2 · SpringDoc 3.2.0 · Testcontainers
+2.0.5 · PostgreSQL 18-alpine · React 19.3.1 · TypeScript 7.0.2 · Vite 8.3.5 ·
+Vitest 5.1.0 · Tailwind 4.3.4. Flyway, Jackson, Hibernate and the JDBC driver
+are managed by the Spring Boot BOM and must not be pinned by hand.
 
 ### Backend
-- Java 21.
-- Spring Boot em versão estável compatível escolhida no início do projeto.
-- Spring Web.
-- Spring Security.
-- Spring Data JPA.
-- Jakarta Validation.
-- Flyway.
-- SpringDoc OpenAPI.
-- JUnit 5 e Mockito.
-- Testcontainers para testes de integração.
+
+Java 21 · Spring Boot (Web, Security, Data JPA, Validation) · Flyway ·
+SpringDoc OpenAPI · JUnit 5 · Mockito · Testcontainers for integration tests
+against a real PostgreSQL.
 
 ### Frontend
-- React.
-- TypeScript em modo strict.
-- Vite.
-- Tailwind CSS.
-- Biblioteca de componentes escolhida e documentada pelo projeto.
-- Cliente HTTP centralizado.
-- Gerenciamento de estado local e de servidor sem duplicar responsabilidades.
 
-### Infraestrutura
-- PostgreSQL.
-- Docker e Docker Compose para desenvolvimento.
-- Reverse proxy/HTTPS na implantação.
-- Serviço de armazenamento de artefatos apenas quando o Website Studio exigir.
-- CI para build, lint e testes.
+React · TypeScript in strict mode (`any` is forbidden) · Vite · Tailwind CSS ·
+a single centralised HTTP client · local and server state kept apart rather
+than duplicated.
 
-Não fixar versões arbitrárias neste documento. Fixar versões compatíveis no `pom.xml`, lockfile e imagens Docker, evitando tags flutuantes em produção.
+### Infrastructure
 
-## 3. Módulos de domínio
+PostgreSQL · Docker and Docker Compose for development · a reverse proxy
+terminating HTTPS in production · CI for build, lint and tests.
 
-| Módulo | Responsabilidade |
+## 3. Domain modules
+
+The original plan listed twelve modules. The implementation has **eight**
+(D16): `enrichment` lives inside `company` and `organization` inside
+`identity`, because neither had a domain of its own; `website` was dropped
+with the Website Studio (D13).
+
+| Module | Responsibility |
 |---|---|
-| identity | Usuários, autenticação e papéis |
-| organization | Organizações e associação de membros |
-| company | Cadastro mestre de empresas |
-| lead | Oportunidades comerciais |
-| discovery | Consultas e importação de fontes |
-| enrichment | Normalização e atualização de dados |
-| analysis | Achados, evidências e score |
-| crm | Pipeline, negócios, tarefas e interações |
-| outreach | Rascunhos, aprovações e registros de contato |
-| website | Templates, prévias e projetos |
-| dashboard | Consultas agregadas e indicadores |
-| shared | Configuração, erros, auditoria e utilitários transversais |
+| `identity` | Organisations, users, membership, authentication, roles |
+| `company` | Master company record, provenance, deduplication, enrichment |
+| `lead` | Commercial opportunities, status, priority, saved views |
+| `discovery` | CSV import and duplicate classification |
+| `analysis` | Findings, evidence, score |
+| `crm` | Pipeline, deals, tasks, interactions |
+| `outreach` | Drafts, approvals, contact records, do-not-contact list |
+| `dashboard` | Aggregate queries and indicators |
+| `shared` | Configuration, errors, auditing, jobs, normalisation, time |
 
-Os módulos devem depender de contratos explícitos. Evitar acesso direto às classes internas de outro módulo.
+Modules depend on explicit contracts. Reaching into another module's internal
+classes is not allowed.
 
-## 4. Organização interna de cada módulo
-
-Estrutura recomendada:
+## 4. Layout inside a module
 
 ```text
 module/
-├── domain/
-│   ├── model/
-│   ├── valueobject/
-│   ├── repository/
-│   └── service/
-├── application/
-│   ├── usecase/
-│   ├── command/
-│   ├── query/
-│   └── dto/
-├── infrastructure/
-│   ├── persistence/
-│   ├── client/
-│   └── adapter/
-└── presentation/
-    ├── controller/
-    └── request/
+├── domain/           entities, value objects, repository ports, domain services
+├── application/      use cases, commands, queries, DTOs
+├── infrastructure/   persistence, clients, adapters
+└── presentation/     controllers, request and response records
 ```
 
-A estrutura pode ser simplificada em módulos pequenos, desde que as dependências continuem claras.
+Only `company`, `lead`, `analysis` and `outreach` carry all four layers.
+`discovery` and `dashboard` are flat, and that is deliberate: a package
+structure that exists only to be symmetrical costs navigation and buys
+nothing.
 
-## 5. Regras de dependência
+## 5. Dependency rules
 
-- `presentation` recebe HTTP, valida requests e chama casos de uso.
-- `application` coordena os casos de uso.
-- `domain` contém regras de negócio e não depende de Spring, HTTP ou fornecedor externo.
-- `infrastructure` implementa persistência e integrações.
-- Controladores não devem conter regras de negócio.
-- Entidades JPA não devem ser expostas diretamente na API.
-- DTOs de request/response devem ser explícitos.
-- Não utilizar `any` no frontend.
-- Não aceitar `organizationId` enviado pelo cliente como fonte de autorização.
+- `presentation` receives HTTP, validates requests and calls a use case.
+- `application` coordinates use cases.
+- `domain` holds business rules and depends on neither Spring, nor HTTP, nor
+  any external provider.
+- `infrastructure` implements persistence and integrations.
+- Controllers contain no business logic.
+- JPA entities are never exposed by the API; request and response DTOs are
+  explicit.
+- `any` is forbidden in the frontend.
+- `organizationId` from the client is never a source of authorisation.
 
-## 6. Integrações por adaptadores
+## 6. Integrations through adapters
 
-### Fontes de empresas
-
-Criar contrato semelhante a:
+### Business sources
 
 ```java
 public interface BusinessSource {
@@ -113,140 +98,117 @@ public interface BusinessSource {
 }
 ```
 
-Cada fornecedor deve ter adaptador próprio, com:
-- configuração e credenciais fora do código;
-- timeout;
-- tratamento de rate limit;
-- mapeamento para modelo interno;
-- proveniência;
-- respeito aos termos de uso e retenção de dados.
+Each provider gets its own adapter, with configuration and credentials outside
+the code, a timeout, rate-limit handling, mapping to the internal model,
+provenance, and respect for the provider's terms and retention rules.
 
-A integração inicial deve ser escolhida após validar cobertura, preço, permissões e condições de armazenamento. A Places API oficial é uma candidata, não uma dependência obrigatória.
+**No provider has been chosen and no adapter exists.** The first one should be
+selected only after validating regional coverage, price, permissions and
+storage conditions. The official Places API is a candidate, not a commitment.
 
-### IA
+### AI
 
 ```java
 public interface AIProvider {
-    MessageGenerationResult generateMessage(
-        MessageGenerationRequest request
-    );
-
-    LeadAnalysisResult analyzeLead(
-        LeadAnalysisRequest request
-    );
+    MessageGenerationResult generateMessage(MessageGenerationRequest request);
 }
 ```
 
-O resultado da IA deve ser tratado como conteúdo não confiável:
-- validar estrutura;
-- limitar tamanho;
-- não executar código retornado;
-- não permitir que a IA acione envio externo;
-- registrar provedor/modelo quando apropriado;
-- armazenar versão do prompt para rastreabilidade, sem guardar segredos.
+The only implementation in the MVP is a deterministic fake with no network
+access (D26). It builds the text from the supplied context and returns the same
+JSON shape a model would, so output validation is genuinely exercised.
 
-### Mensageria
+`analyzeLead` was part of the original sketch and is **not** part of the port.
+The analysis is deterministic and evidence-based; handing it to a model would
+have meant scoring companies on an assertion nobody could trace.
 
-O MVP prepara mensagens e registra contatos manuais. Futuras integrações devem usar APIs oficiais, permissões adequadas e controles de envio.
+AI output is untrusted input. Validate its structure, cap its size, never
+execute returned code, never give the AI a path to send anything externally,
+record provider and model where appropriate, and store the prompt version for
+traceability without storing secrets.
 
-## 7. Processamento assíncrono
+### Messaging
 
-Análises, importações maiores e geração de prévias podem ser executadas em background.
+The MVP prepares messages and records manual contacts. Any future integration
+must use official APIs with the right permissions and sending controls.
 
-No início, avaliar `@Async` ou uma tabela de jobs persistente com worker Spring. Uma tabela de jobs é preferível quando for necessário sobreviver a reinicializações e retomar tarefas.
+## 7. Asynchronous processing
 
-Não introduzir Redis, RabbitMQ ou Kafka sem necessidade demonstrada. Se a carga crescer, selecionar broker conforme requisitos reais.
+Analyses and other slow work run in the background through a **persistent job
+table with a Spring worker** (D15), not `@Async`: the work has to survive a
+restart and be resumable.
 
-Cada job deve ter:
-- id;
-- organização;
-- tipo;
-- payload validado;
-- status;
-- tentativas;
-- timestamps;
-- erro resumido;
-- idempotency key quando aplicável.
+No Redis, RabbitMQ or Kafka. If load ever justifies a broker, pick one against
+the requirements at that time.
+
+Each job records an id, the organisation, a type, a validated payload, a
+status, an attempt count, timestamps, a summarised error, and an idempotency
+key where applicable.
 
 ## 8. Multi-tenancy
 
-Usar isolamento lógico por `organization_id` no PostgreSQL no MVP.
+Logical isolation by `organization_id` in PostgreSQL.
 
-Requisitos:
-- coluna obrigatória em todas as entidades pertencentes à organização;
-- filtro aplicado no backend em todas as consultas;
-- contexto de organização derivado da sessão autenticada;
-- índices compostos iniciando por `organization_id` quando fizer sentido;
-- testes negativos de acesso cruzado;
-- avaliar Row-Level Security como defesa adicional, não como substituto da autorização da aplicação.
+- The column is mandatory on every entity that belongs to an organisation.
+- The filter is applied in the backend on every query.
+- The organisation context comes from the authenticated session, and
+  membership is revalidated on each request (D21).
+- Composite indexes start with `organization_id` where it helps.
+- Negative cross-tenant tests are mandatory.
+- A resource from another organisation answers `404`, never `403`.
+- Row-Level Security is worth evaluating as defence in depth, never as a
+  replacement for application authorisation.
 
-Entidades globais, como catálogo de templates públicos, devem ser explicitamente identificadas como globais e não misturadas com dados privados.
+## 9. Transactions and consistency
 
-## 9. Transações e consistência
+- Use a transaction in any use case that changes several related entities.
+- **Never hold a transaction open across a network call.**
+- For external integrations, persist the intermediate state and process the
+  result afterwards.
+- Make imports and jobs idempotent wherever a repeat is possible.
+- Record meaningful events in the commercial history.
 
-- Usar transações nos casos de uso que alteram múltiplas entidades relacionadas.
-- Não manter transação aberta durante chamadas de rede.
-- Para integrações externas, persistir estado intermediário e processar resultado depois.
-- Implementar idempotência em importações e jobs quando houver risco de repetição.
-- Registrar eventos importantes no histórico comercial.
+One trap worth stating explicitly: `SELECT ... FOR UPDATE` combined with
+auditing in a `REQUIRES_NEW` transaction deadlocks, because `audit_event` has a
+foreign key to `organization` and the new transaction waits on the one that
+started it. Serialise with `pg_advisory_xact_lock` instead.
 
 ## 10. Frontend
 
-Estrutura sugerida:
-
 ```text
 src/
-├── app/
-│   ├── router/
-│   └── providers/
-├── modules/
-│   ├── dashboard/
-│   ├── companies/
-│   ├── leads/
-│   ├── discovery/
-│   ├── analysis/
-│   ├── pipeline/
-│   ├── outreach/
-│   └── website-studio/
-├── components/
-├── services/
-├── hooks/
-├── types/
-└── shared/
+├── app/          routing, filters, formatting, preferences, theme
+├── components/   genuinely reusable components
+├── modules/      one folder per area: companies, leads, crm, analysis,
+│                 outreach, imports, dashboard, members, auth
+├── services/     one module per API area, over a single HTTP client
+└── types/        the API contract mirrored as TypeScript types
 ```
 
-Cada módulo deve concentrar páginas, componentes e tipos específicos. Componentes realmente reutilizáveis ficam em `components/`.
+Each module owns its pages, components and local types. Routes are split into
+separate chunks so opening the application does not download the screens it is
+not showing.
 
-## 11. Observabilidade
+## 11. Observability
 
-MVP:
-- logs estruturados;
-- correlation/request ID;
-- logs de falhas de integração sem segredos;
-- health checks;
-- métricas básicas de jobs;
-- auditoria de ações relevantes.
+Today: structured logs, a request id that also returns in the `X-Request-Id`
+header, integration failures logged without secrets, a health check that
+verifies the database, basic job metrics, and an audit trail for relevant
+actions.
 
-Futuro:
-- tracing distribuído se a arquitetura justificar;
-- dashboards operacionais;
-- alertas de falhas e custos.
+Later: distributed tracing if the architecture ever justifies it, operational
+dashboards, failure and cost alerts.
 
-## 12. Ambientes e deploy
+## 12. Environments and deployment
 
-Ambientes:
-- local;
-- teste/CI;
-- produção.
+Three environments: local, CI, production.
 
-Usar Docker Compose no desenvolvimento para API e PostgreSQL. Frontend pode ser executado separadamente.
+Development runs on Docker Compose. In production (D27) the stack is defined by
+`docker-compose.prod.yml`, only Caddy publishes a port, and the `prod` profile
+trusts `X-Forwarded-For` only from an internal proxy — without that, the
+per-IP login limit would apply to every user at once. The first administrator
+is created by `scripts/create-admin.sh` under the `bootstrap` profile.
 
-Produção deve ter:
-- HTTPS;
-- variáveis/segredos protegidos;
-- backup e teste de restauração;
-- migrations controladas;
-- política de retenção;
-- monitoramento de disponibilidade.
-
-Cloudflare pode atender DNS, proxy e hospedagem do frontend conforme a solução escolhida. Não presumir que substitui a hospedagem do backend ou do banco.
+Production requires HTTPS, protected secrets, backups with a **tested**
+restore, controlled migrations, a retention policy and availability
+monitoring. Operational procedures are in document 12.
