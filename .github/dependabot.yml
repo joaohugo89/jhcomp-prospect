@@ -1,5 +1,12 @@
-# Atualizacoes de dependencia (doc 10 §9, item 7). Semanais e agrupadas, para
-# chegarem como poucos PRs revisaveis, e nao um por biblioteca.
+# Dependency updates (doc 10 §9, item 7). Weekly and grouped, so they arrive as
+# a few reviewable pull requests rather than one per library.
+#
+# Major updates of the base images are ignored on purpose. The runtime is Java
+# 21 by decision and Node stays on an LTS line, so a bump to temurin-24 or to
+# node 25-alpine is not an update but a change of platform - it belongs in a
+# recorded decision, not in an automated pull request. Patch and minor updates
+# still come through, which is where the base image security fixes are, and
+# Dependabot security updates are enabled on top of this.
 version: 2
 updates:
   - package-ecosystem: maven
@@ -17,6 +24,15 @@ updates:
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule: { interval: weekly }
+    ignore:
+      # Java 21: see the pinned versions in CLAUDE.md.
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+      - dependency-name: maven
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Node LTS only: 25 is an odd, short-lived line.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker-compose
     directory: /
