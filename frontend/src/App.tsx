@@ -5,7 +5,6 @@ import { AppShell } from './components/AppShell';
 import { EmptyState, LoadingState } from './components/States';
 import { buttonPrimary } from './components/styles';
 import { LoginPage } from './modules/auth/LoginPage';
-import { ForcedPasswordChange } from './modules/auth/PasswordPages';
 import { DashboardPage } from './modules/dashboard/DashboardPage';
 import { LeadsPage } from './modules/leads/LeadsPage';
 import { fetchSession, logout } from './services/authService';
@@ -34,6 +33,16 @@ const ImportDetailPage = lazyPage(async () => (await import('./modules/imports/I
 const MembersPage = lazyPage(async () => (await import('./modules/members/MembersPage')).MembersPage);
 const SuppressionPage = lazyPage(async () => (await import('./modules/outreach/SuppressionPage')).SuppressionPage);
 const PasswordPage = lazyPage(async () => (await import('./modules/auth/PasswordPages')).PasswordPage);
+
+/*
+ * Both exports of PasswordPages are lazy, and deliberately so: importing one of
+ * them eagerly would keep the module in the initial chunk and silently cancel
+ * the split of the other. Neither is on the critical path - a normal session
+ * has no forced password change.
+ */
+const ForcedPasswordChange = lazyPage(
+  async () => (await import('./modules/auth/PasswordPages')).ForcedPasswordChange,
+);
 
 /**
  * Development only: in a production build the condition is `false`, the import
@@ -125,13 +134,15 @@ export function App(): React.JSX.Element {
 
   if (auth.session.passwordChangeRequired) {
     return (
-      <ForcedPasswordChange
-        session={auth.session}
-        onChanged={updateSession}
-        onSignOut={() => {
-          void signOut();
-        }}
-      />
+      <Suspense fallback={<LoadingState />}>
+        <ForcedPasswordChange
+          session={auth.session}
+          onChanged={updateSession}
+          onSignOut={() => {
+            void signOut();
+          }}
+        />
+      </Suspense>
     );
   }
 
