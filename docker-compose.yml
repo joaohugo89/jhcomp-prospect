@@ -20,7 +20,7 @@ name: jhcomp-prospect
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:19-alpine
     container_name: jhcomp-prospect-db
     restart: unless-stopped
     environment:
